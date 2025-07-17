@@ -4,16 +4,16 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { CheckCircle, XCircle, ArrowLeft, Trophy, Clock, BookOpen } from 'lucide-react';
-import { useAuth } from '../hooks/useMockAuth.tsx';
-import { mockDataService, Exam, Submission } from '../services/mockData.ts';
+import { CheckCircle, XCircle, ArrowLeft, Trophy, BookOpen } from 'lucide-react';
+import { useAuth } from '../hooks/useMockAuth';
+import { mockDataService, Exam, Submission } from '../services/mockData';
 
 const ExamResults: React.FC = () => {
   const { examId } = useParams<{examId: string;}>();
   const navigate = useNavigate();
   const { user } = useAuth();
   const [exam, setExam] = useState<Exam | null>(null);
-  const [submission, setSubmission] = useState<Submission | null>(null);
+  const [submission, setSubmission] = useState<Submission | undefined>(undefined);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

@@ -4,16 +4,16 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Clock, BookOpen, Trophy, User, LogOut, Play, Lock, TrendingUp, Award, Target, Users } from 'lucide-react';
-import { useAuth } from '../hooks/useMockAuth.tsx';
-import { mockDataService, Exam, UserStats, Ranking } from '../services/mockData.ts';
+import { Clock, BookOpen, Trophy, User, LogOut, Play, Lock, Award, Target, Users } from 'lucide-react';
+import { useAuth } from '../hooks/useMockAuth';
+import { mockDataService, Exam, UserStats, Ranking } from '../services/mockData';
 
 const StudentDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const [exams, setExams] = useState<Exam[]>([]);
   const [userStats, setUserStats] = useState<UserStats | null>(null);
-  const [userRanking, setUserRanking] = useState<Ranking | null>(null);
+  const [userRanking, setUserRanking] = useState<Ranking | undefined>(undefined);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -98,7 +98,7 @@ const StudentDashboard: React.FC = () => {
         {/* Welcome Section */}
         <div className="mb-8" data-id="jx44x3omn" data-path="src/components/StudentDashboard.tsx">
           <h2 className="text-3xl font-bold text-gray-900 mb-2" data-id="uxzgbt3u7" data-path="src/components/StudentDashboard.tsx">Welcome back, {user?.name}!</h2>
-          <p className="text-gray-600" data-id="e7cvpgr9m" data-path="src/components/StudentDashboard.tsx">Here's an overview of your academic progress</p>
+          <p className="text-gray-600" data-id="e7cvpgr9m" data-path="src/components/StudentDashboard.tsx">Here&apos; an overview of your academic progress</p>
         </div>
 
         {/* Stats Cards */}

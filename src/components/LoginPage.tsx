@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { GraduationCap, Mail, Lock, User } from 'lucide-react';
-import { useAuth } from '../hooks/useMockAuth.tsx';
+import { useAuth } from '../hooks/useMockAuth';
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();

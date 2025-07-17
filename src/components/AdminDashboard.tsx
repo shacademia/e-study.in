@@ -13,11 +13,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
-import { Checkbox } from '@/components/ui/checkbox';
+// import { Checkbox } from '@/components/ui/checkbox';
 import {
   BookOpen,
-  Users,
-  Trophy,
+  // Users,
+  // Trophy,
   Plus,
   Edit,
   Trash2,
@@ -30,17 +30,17 @@ import {
   CheckCircle,
   Copy,
   Search,
-  Filter,
-  Undo2,
-  Settings,
-  BarChart3 } from
+  // Filter,
+  // Settings,
+  // BarChart3,
+  Undo2 } from
 'lucide-react';
 import { useAuth } from '../hooks/useMockAuth';
 import { mockDataService, Exam, Question, Ranking } from '../services/mockData';
 import { toast } from '@/hooks/use-toast';
 import ExamBuilder from './ExamBuilder';
 import QuestionBank from './QuestionBank';
-import StudentRankings from './StudentRankings';
+// import StudentRankings from './StudentRankings';
 
 const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -53,8 +53,8 @@ const AdminDashboard: React.FC = () => {
   const [showCreateQuestion, setShowCreateQuestion] = useState(false);
   const [showExamBuilder, setShowExamBuilder] = useState(false);
   const [showQuestionBank, setShowQuestionBank] = useState(false);
-  const [selectedExam, setSelectedExam] = useState<Exam | null>(null);
-  const [selectedQuestions, setSelectedQuestions] = useState<Set<string>>(new Set());
+  const [selectedExam, setSelectedExam] = useState<Exam | undefined>(undefined);
+  // const [selectedQuestions, setSelectedQuestions] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
   const [subjectFilter, setSubjectFilter] = useState('all');
   const [difficultyFilter, setDifficultyFilter] = useState('all');
@@ -710,7 +710,7 @@ const AdminDashboard: React.FC = () => {
                           <Label data-id="il4ysac0o" data-path="src/components/AdminDashboard.tsx">Difficulty</Label>
                           <Select
                             value={newQuestion.difficulty}
-                            onValueChange={(value) => setNewQuestion({ ...newQuestion, difficulty: value as any })} data-id="jermlq8jv" data-path="src/components/AdminDashboard.tsx">
+                            onValueChange={(value: "easy" | "medium" | "hard") => setNewQuestion({ ...newQuestion, difficulty: value })} data-id="jermlq8jv" data-path="src/components/AdminDashboard.tsx">
 
                             <SelectTrigger data-id="r1uvvkpd2" data-path="src/components/AdminDashboard.tsx">
                               <SelectValue data-id="98q1rdzmz" data-path="src/components/AdminDashboard.tsx" />

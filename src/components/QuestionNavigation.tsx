@@ -3,16 +3,18 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 
+type QuestionStatus = 'current' | 'answered' | 'marked' | 'unanswered';
+
 interface QuestionNavigationProps {
   totalQuestions: number;
   currentQuestion: number;
   onQuestionSelect: (questionIndex: number) => void;
-  getQuestionStatus: (questionIndex: number) => 'current' | 'answered' | 'marked' | 'unanswered';
+  getQuestionStatus: (questionIndex: number) => QuestionStatus;
 }
 
 const QuestionNavigation: React.FC<QuestionNavigationProps> = ({
   totalQuestions,
-  currentQuestion,
+  // currentQuestion,
   onQuestionSelect,
   getQuestionStatus
 }) => {

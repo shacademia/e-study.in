@@ -1,16 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+// import { CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Switch } from '@/components/ui/switch';
-import { Separator } from '@/components/ui/separator';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+// import { DialogTrigger } from '@/components/ui/dialog';
+// import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+// import { Switch } from '@/components/ui/switch';
+// import { Separator } from '@/components/ui/separator';
 import {
   ArrowLeft,
   Plus,
@@ -29,15 +31,15 @@ import {
   Grid,
   List,
   RefreshCw,
-  FileText,
-  Target,
+  // FileText,
+  // Target,
+  // Star,
+  // Share2,
   Clock,
-  Star,
-  Copy,
-  Share2 } from
+  Copy } from
 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { mockDataService, Question } from '../services/mockData.ts';
+import { mockDataService, Question } from '../services/mockData';
 
 interface QuestionFilters {
   subject: string;
@@ -52,6 +54,18 @@ interface EnhancedQuestionBankProps {
   onSelectQuestions?: (questions: Question[]) => void;
   multiSelect?: boolean;
   preSelectedQuestions?: string[];
+}
+
+type Difficulty = "easy" | "medium" | "hard";
+
+interface NewQuestion {
+  content: string;
+  options: string[];
+  correctOption: number;
+  subject: string;
+  topic: string;
+  difficulty: Difficulty;
+  tags: string;
 }
 
 const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
@@ -80,15 +94,15 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
   const [loading, setLoading] = useState(true);
 
   // New question form state
-  const [newQuestion, setNewQuestion] = useState({
-    content: '',
-    options: ['', '', '', ''],
-    correctOption: 0,
-    subject: '',
-    topic: '',
-    difficulty: 'easy' as const,
-    tags: ''
-  });
+  const [newQuestion, setNewQuestion] = useState<NewQuestion>({
+  content: '',
+  options: ['', '', '', ''],
+  correctOption: 0,
+  subject: '',
+  topic: '',
+  difficulty: 'easy',
+  tags: ''
+});
 
   // Available options for filters
   const [subjects, setSubjects] = useState<string[]>([]);
@@ -98,10 +112,6 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
   useEffect(() => {
     loadQuestions();
   }, []);
-
-  useEffect(() => {
-    applyFilters();
-  }, [questions, searchTerm, filters, sortBy, sortOrder]);
 
   const loadQuestions = async () => {
     try {
@@ -128,74 +138,70 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
     }
   };
 
-  const applyFilters = () => {
-    let filtered = questions;
+  const applyFilters = useCallback(() => {
+  let filtered = questions;
 
-    // Apply search filter
-    if (searchTerm) {
-      filtered = filtered.filter((q) =>
+  if (searchTerm) {
+    filtered = filtered.filter((q) =>
       q.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
       q.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
       q.topic.toLowerCase().includes(searchTerm.toLowerCase()) ||
       q.tags.some((tag) => tag.toLowerCase().includes(searchTerm.toLowerCase()))
-      );
-    }
+    );
+  }
 
-    // Apply filters
-    if (filters.subject !== 'all') {
-      filtered = filtered.filter((q) => q.subject === filters.subject);
-    }
+  if (filters.subject !== 'all') {
+    filtered = filtered.filter((q) => q.subject === filters.subject);
+  }
 
-    if (filters.difficulty !== 'all') {
-      filtered = filtered.filter((q) => q.difficulty === filters.difficulty);
-    }
+  if (filters.difficulty !== 'all') {
+    filtered = filtered.filter((q) => q.difficulty === filters.difficulty);
+  }
 
-    if (filters.topic !== 'all') {
-      filtered = filtered.filter((q) => q.topic === filters.topic);
-    }
+  if (filters.topic !== 'all') {
+    filtered = filtered.filter((q) => q.topic === filters.topic);
+  }
 
-    if (filters.tags.length > 0) {
-      filtered = filtered.filter((q) =>
+  if (filters.tags.length > 0) {
+    filtered = filtered.filter((q) =>
       filters.tags.some((tag) => q.tags.includes(tag))
-      );
+    );
+  }
+
+  filtered.sort((a, b) => {
+    let aValue: number | string, bValue: number | string;
+
+    switch (sortBy) {
+      case 'date':
+        aValue = new Date(a.createdAt).getTime();
+        bValue = new Date(b.createdAt).getTime();
+        break;
+      case 'difficulty':
+        const difficultyOrder = { easy: 1, medium: 2, hard: 3 };
+        aValue = difficultyOrder[a.difficulty];
+        bValue = difficultyOrder[b.difficulty];
+        break;
+      case 'subject':
+        aValue = a.subject.toLowerCase();
+        bValue = b.subject.toLowerCase();
+        break;
+      case 'topic':
+        aValue = a.topic.toLowerCase();
+        bValue = b.topic.toLowerCase();
+        break;
+      default:
+        return 0;
     }
 
-    // Apply sorting
-    filtered.sort((a, b) => {
-      let aValue, bValue;
+    return sortOrder === 'asc' ? (aValue > bValue ? 1 : -1) : (aValue < bValue ? 1 : -1);
+  });
 
-      switch (sortBy) {
-        case 'date':
-          aValue = new Date(a.createdAt).getTime();
-          bValue = new Date(b.createdAt).getTime();
-          break;
-        case 'difficulty': { 
-          const difficultyOrder = { easy: 1, medium: 2, hard: 3 };
-          aValue = difficultyOrder[a.difficulty];
-          bValue = difficultyOrder[b.difficulty];
-          break;
-        }
-        case 'subject':
-          aValue = a.subject.toLowerCase();
-          bValue = b.subject.toLowerCase();
-          break;
-        case 'topic':
-          aValue = a.topic.toLowerCase();
-          bValue = b.topic.toLowerCase();
-          break;
-        default:
-          return 0;
-      }
+  setFilteredQuestions(filtered);
+  }, [questions, searchTerm, filters, sortBy, sortOrder]);
 
-      if (sortOrder === 'asc') {
-        return aValue > bValue ? 1 : -1;
-      } else {
-        return aValue < bValue ? 1 : -1;
-      }
-    });
-
-    setFilteredQuestions(filtered);
-  };
+  useEffect(() => {
+    applyFilters();
+  }, [applyFilters]);
 
   const handleSelectQuestion = (questionId: string) => {
     setSelectedQuestions((prev) => {
@@ -338,7 +344,6 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
           <p data-id="xkmfruw93" data-path="src/components/EnhancedQuestionBank.tsx">Loading questions...</p>
         </div>
       </div>);
-
   }
 
   return (
@@ -732,7 +737,7 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
                 <Label data-id="wyl3wqw8b" data-path="src/components/EnhancedQuestionBank.tsx">Difficulty</Label>
                 <Select
                   value={newQuestion.difficulty}
-                  onValueChange={(value) => setNewQuestion({ ...newQuestion, difficulty: value as any })} data-id="6wasniudv" data-path="src/components/EnhancedQuestionBank.tsx">
+                  onValueChange={(value: "easy" | "medium" | "hard") => setNewQuestion({ ...newQuestion, difficulty: value })} data-id="6wasniudv" data-path="src/components/EnhancedQuestionBank.tsx">
 
                   <SelectTrigger data-id="v141pyh07" data-path="src/components/EnhancedQuestionBank.tsx">
                     <SelectValue data-id="4t60vvzv2" data-path="src/components/EnhancedQuestionBank.tsx" />
