@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { useLocation } from "react-router-dom";
 import { useEffect } from "react";
+import Link from "next/link";
 
 const NotFound = () => {
   const location = useLocation();
@@ -47,7 +48,7 @@ const NotFound = () => {
           transition={{ duration: 0.5, delay: 0.6 }} data-id="7objctfy1" data-path="src/pages/NotFound.tsx">
 
           <Button asChild variant="default" size="lg" data-id="bupya3nbq" data-path="src/pages/NotFound.tsx">
-            <a href="/" data-id="7a24x863e" data-path="src/pages/NotFound.tsx">Back to Home</a>
+            <Link href="/" data-id="7a24x863e" data-path="src/pages/NotFound.tsx">Back to Home</Link>
           </Button>
         </motion.div>
       </motion.div>
