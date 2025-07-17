@@ -1,0 +1,187 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id String @id @default(uuid())
+  email String @unique
+  name String @default("Anonymous")
+  role Role @default(USER)
+  password String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  questions Question[]
+  profileImage String?
+  bio String? @default("This user prefers to keep an air of mystery about them.")
+  isActive Boolean @default(false)
+  lastLogin DateTime? @default(now())
+  lastActive DateTime? @default(now())
+  isEmailVerified Boolean @default(false)
+  createdExams Exam[]
+  submissions Submission[]
+  rankings Ranking[]
+}
+// role Enum
+enum Role {
+  ADMIN
+  USER
+  GUEST
+  MODERATOR
+}
+
+model Question {
+  id String @id @default(uuid())
+  content String
+  options String[] // Array of options
+  correctOption Int
+  difficulty Difficulty @default(MEDIUM)
+  subject String
+  topic String
+  tags String[] // Array of tags
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  author User @relation(fields: [authorId], references: [id])
+  authorId String
+  examSections ExamSectionQuestion[]
+  exams ExamQuestion[]
+  questionStatuses QuestionStatus[]
+}
+
+model ExamSection {
+  id String @id @default(uuid())
+  name String
+  description String?
+  timeLimit Int? @default(0)
+  marks Int @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  exam Exam @relation(fields: [examId], references: [id], onDelete: Cascade)
+  examId String
+  questions ExamSectionQuestion[]
+}
+
+// Difficulty enum
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+// Question Status enum
+enum QuestionAnswerStatus {
+  NOT_ANSWERED
+  ANSWERED
+  MARKED_FOR_REVIEW
+}
+
+// New models for the exam system
+
+model Exam {
+  id String @id @default(uuid())
+  name String
+  description String
+  isPublished Boolean @default(false)
+  isDraft Boolean @default(true)
+  timeLimit Int // in minutes
+  totalMarks Int @default(0)
+  password String?
+  isPasswordProtected Boolean @default(false)
+  instructions String @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy User @relation(fields: [createdById], references: [id])
+  createdById String
+  sections ExamSection[]
+  questions ExamQuestion[]
+  submissions Submission[]
+  rankings Ranking[]
+}
+
+// Junction table for many-to-many relationship between Exam and Question
+model ExamQuestion {
+  id String @id @default(uuid())
+  exam Exam @relation(fields: [examId], references: [id], onDelete: Cascade)
+  examId String
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  questionId String
+  order Int @default(0)
+  marks Int @default(1)
+  
+  @@unique([examId, questionId])
+}
+
+// Junction table for many-to-many relationship between ExamSection and Question
+model ExamSectionQuestion {
+  id String @id @default(uuid())
+  examSection ExamSection @relation(fields: [examSectionId], references: [id], onDelete: Cascade)
+  examSectionId String
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  questionId String
+  order Int @default(0)
+  marks Int @default(1)
+  
+  @@unique([examSectionId, questionId])
+}
+
+model QuestionStatus {
+  id String @id @default(uuid())
+  questionId String
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  status QuestionAnswerStatus @default(NOT_ANSWERED)
+  answer Int?
+  timeSpent Int @default(0) // in seconds
+  submission Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  submissionId String
+  
+  @@unique([questionId, submissionId])
+}
+
+model Submission {
+  id String @id @default(uuid())
+  user User @relation(fields: [userId], references: [id])
+  userId String
+  exam Exam @relation(fields: [examId], references: [id])
+  examId String
+  answers Json // Store as JSON: Record<string, number>
+  questionStatuses QuestionStatus[]
+  score Int @default(0)
+  totalQuestions Int @default(0)
+  completedAt DateTime?
+  timeSpent Int @default(0) // in seconds
+  isSubmitted Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@unique([userId, examId])
+}
+
+model Ranking {
+  id String @id @default(uuid())
+  user User @relation(fields: [userId], references: [id])
+  userId String
+  userName String
+  exam Exam @relation(fields: [examId], references: [id])
+  examId String
+  examName String
+  score Int
+  rank Int
+  totalQuestions Int
+  percentage Float
+  completedAt DateTime
+  createdAt DateTime @default(now())
+  
+  @@unique([userId, examId])
+  @@index([examId, rank])
+}
