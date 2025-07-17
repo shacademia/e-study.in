@@ -7,7 +7,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+// import { DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
@@ -15,22 +16,22 @@ import {
   ArrowLeft,
   Plus,
   Search,
-  Filter,
+  // Filter,
   Edit,
   Trash2,
   Save,
   Eye,
-  Clock,
+  // Clock,
   BookOpen,
   CheckCircle,
   Settings,
-  Lock,
-  Timer,
-  Users,
-  FileText } from
+  // Timer,
+  // Users,
+  // FileText,
+  Lock } from
 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { mockDataService, Exam, ExamSection, Question } from '../services/mockData.ts';
+import { mockDataService, Exam, ExamSection, Question } from '../services/mockData';
 
 interface EnhancedExamBuilderProps {
   onBack: () => void;
@@ -258,7 +259,7 @@ const EnhancedExamBuilder: React.FC<EnhancedExamBuilderProps> = ({ onBack, editi
       updatedAt: new Date()
     };
 
-    if (editingExam) {
+    if (editingExam && editingExam.id) {
       await mockDataService.updateExam(editingExam.id, examData);
     } else {
       await mockDataService.createExam(examData);
@@ -272,9 +273,12 @@ const EnhancedExamBuilder: React.FC<EnhancedExamBuilderProps> = ({ onBack, editi
     onBack();
   } catch (error) {
     console.error('Failed to save exam:', error);
+
+    const errorMessage =
+    error instanceof Error ? error.message : 'Failed to save exam';
     toast({
       title: 'Error',
-      description: error.message || 'Failed to save exam',
+      description: errorMessage,
       variant: 'destructive'
     });
   }

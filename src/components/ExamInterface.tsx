@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,18 +8,18 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+// import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Clock,
   ChevronLeft,
   ChevronRight,
   Flag,
   Lock,
-  AlertCircle,
+  // AlertCircle,
+  // Pause,
   Bookmark,
   Coffee,
   Play,
-  Pause,
   Navigation,
   CheckCircle,
   Circle,
@@ -93,6 +93,68 @@ const ExamInterface: React.FC = () => {
     loadExam();
   }, [examId]);
 
+  const updateQuestionTimeSpent = useCallback(() => {
+    if (!exam || !questionStartTime) return;
+
+    const currentQuestionId = exam.questions[currentQuestionIndex]?.id;
+    if (!currentQuestionId) return;
+
+    const timeSpent = Math.floor((new Date().getTime() - questionStartTime.getTime()) / 1000);
+    setQuestionStatuses((prev) => ({
+      ...prev,
+      [currentQuestionId]: {
+        ...prev[currentQuestionId],
+        timeSpent: (prev[currentQuestionId]?.timeSpent || 0) + timeSpent
+      }
+    }));
+
+    setQuestionStartTime(new Date());
+  }, [exam, currentQuestionIndex, questionStartTime]);
+
+
+  const handleSubmitExam = useCallback(async () => {
+    if (!exam || !user) return;
+
+    updateQuestionTimeSpent();
+
+    try {
+      // Calculate score
+      let score = 0;
+      exam.questions.forEach((question) => {
+        if (answers[question.id] === question.correctOption) {
+          score += 1; // Each correct answer = 1 points
+        }
+      });
+
+      const totalTimeSpent = startTime ? Math.floor((new Date().getTime() - startTime.getTime()) / 1000) : 0;
+
+      await mockDataService.createSubmission({
+        userId: user.id,
+        examId: exam.id,
+        answers,
+        questionStatuses,
+        score,
+        totalQuestions: exam.questions.length,
+        timeSpent: totalTimeSpent,
+        isSubmitted: true
+      });
+
+      toast({
+        title: 'Success',
+        description: 'Exam submitted successfully'
+      });
+
+      navigate(`/results/${exam.id}`);
+    } catch (error) {
+      console.error('Error submitting exam:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to submit exam',
+        variant: 'destructive'
+      });
+    }
+  }, [exam, user, answers, questionStatuses, startTime, navigate, updateQuestionTimeSpent]);
+
   useEffect(() => {
     if (examStarted && timeLeft > 0 && !isOnBreak) {
       const timer = setInterval(() => {
@@ -107,7 +169,7 @@ const ExamInterface: React.FC = () => {
 
       return () => clearInterval(timer);
     }
-  }, [examStarted, timeLeft, isOnBreak]);
+  }, [examStarted, timeLeft, isOnBreak, handleSubmitExam]);
 
   // Track time spent on current question
   useEffect(() => {
@@ -134,22 +196,6 @@ const ExamInterface: React.FC = () => {
         description: 'Incorrect password',
         variant: 'destructive'
       });
-    }
-  };
-
-  const updateQuestionTimeSpent = () => {
-    if (!exam || !questionStartTime) return;
-
-    const currentQuestionId = exam.questions[currentQuestionIndex]?.id;
-    if (currentQuestionId) {
-      const timeSpent = Math.floor((new Date().getTime() - questionStartTime.getTime()) / 1000);
-      setQuestionStatuses((prev) => ({
-        ...prev,
-        [currentQuestionId]: {
-          ...prev[currentQuestionId],
-          timeSpent: prev[currentQuestionId].timeSpent + timeSpent
-        }
-      }));
     }
   };
 
@@ -203,49 +249,6 @@ const ExamInterface: React.FC = () => {
   const handleQuestionNavigation = (index: number) => {
     updateQuestionTimeSpent();
     setCurrentQuestionIndex(index);
-  };
-
-  const handleSubmitExam = async () => {
-    if (!exam || !user) return;
-
-    updateQuestionTimeSpent();
-
-    try {
-      // Calculate score
-      let score = 0;
-      exam.questions.forEach((question) => {
-        if (answers[question.id] === question.correctOption) {
-          score += 10; // Each correct answer = 10 points
-        }
-      });
-
-      const totalTimeSpent = startTime ? Math.floor((new Date().getTime() - startTime.getTime()) / 1000) : 0;
-
-      await mockDataService.createSubmission({
-        userId: user.id,
-        examId: exam.id,
-        answers,
-        questionStatuses,
-        score,
-        totalQuestions: exam.questions.length,
-        timeSpent: totalTimeSpent,
-        isSubmitted: true
-      });
-
-      toast({
-        title: 'Success',
-        description: 'Exam submitted successfully'
-      });
-
-      navigate(`/results/${exam.id}`);
-    } catch (error) {
-      console.error('Error submitting exam:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to submit exam',
-        variant: 'destructive'
-      });
-    }
   };
 
   const formatTime = (seconds: number) => {
@@ -387,7 +390,7 @@ const ExamInterface: React.FC = () => {
           <div className="space-y-4" data-id="k8v4g94sf" data-path="src/components/ExamInterface.tsx">
             <div className="p-4 bg-blue-50 rounded-lg" data-id="n2f6fefv3" data-path="src/components/ExamInterface.tsx">
               <p className="text-sm text-blue-800" data-id="gg23wiciu" data-path="src/components/ExamInterface.tsx">
-                You're on a break. The timer continues in the background. Click "Resume" when you're ready to continue.
+                You&apos;re on a break. The timer continues in the background. Click &quot;Resume&quot; when you&apos;re ready to continue.
               </p>
             </div>
             <div className="text-center" data-id="hgs5n68s3" data-path="src/components/ExamInterface.tsx">

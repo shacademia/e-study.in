@@ -1,19 +1,19 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+// import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   ArrowLeft,
   Plus,
   Search,
-  Filter,
+  // Filter,
   Edit,
   Trash2,
   Upload,
@@ -22,6 +22,18 @@ import {
   Tag,
   CheckCircle } from
 'lucide-react';
+
+type Difficulty = "easy" | "medium" | "hard";
+
+interface NewQuestion {
+  question: string;
+  options: string[];
+  correctAnswer: number;
+  subject: string;
+  topic: string;
+  difficulty: Difficulty;
+  tags: string;
+}
 
 interface Question {
   id: number;
@@ -108,13 +120,13 @@ const QuestionBank: React.FC<QuestionBankProps> = ({ onBack }) => {
   const [showBulkUpload, setShowBulkUpload] = useState(false);
 
   // New question form state
-  const [newQuestion, setNewQuestion] = useState({
+  const [newQuestion, setNewQuestion] = useState<NewQuestion>({
     question: '',
     options: ['', '', '', ''],
     correctAnswer: 0,
     subject: '',
     topic: '',
-    difficulty: 'easy' as const,
+    difficulty: 'easy',
     tags: ''
   });
 
@@ -470,7 +482,7 @@ const QuestionBank: React.FC<QuestionBankProps> = ({ onBack }) => {
                 <Label data-id="auo2j7b3o" data-path="src/components/QuestionBank.tsx">Difficulty</Label>
                 <Select
                   value={newQuestion.difficulty}
-                  onValueChange={(value) => setNewQuestion({ ...newQuestion, difficulty: value as any })} data-id="qs5aeikyo" data-path="src/components/QuestionBank.tsx">
+                  onValueChange={(value: "easy" | "medium" | "hard") => setNewQuestion({ ...newQuestion, difficulty: value })} data-id="qs5aeikyo" data-path="src/components/QuestionBank.tsx">
 
                   <SelectTrigger data-id="jfqfikygt" data-path="src/components/QuestionBank.tsx">
                     <SelectValue data-id="757fdcmf5" data-path="src/components/QuestionBank.tsx" />

@@ -6,8 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Trophy, Medal, Award, ArrowLeft, BookOpen, Crown, Star } from 'lucide-react';
-import { useAuth } from '../hooks/useMockAuth.tsx';
-import { mockDataService, Ranking, Exam } from '../services/mockData.ts';
+import { useAuth } from '../hooks/useMockAuth';
+import { mockDataService, Ranking, Exam } from '../services/mockData';
 
 const StudentRankings: React.FC = () => {
   const navigate = useNavigate();
