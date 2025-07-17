@@ -1,5 +1,5 @@
-import { prisma } from "@/lib/db"
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/db";
 import jwt from 'jsonwebtoken'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'default_secret_key'
@@ -7,7 +7,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'default_secret_key'
 export async function GET(req: Request) {
     // Get token from middleware header
     const token = req.headers.get('x-auth-token');
-
+    console.log('Token received:', token);
     // This shouldn't happen if middleware is working, but just in case
     if (!token) {
         return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
@@ -17,28 +17,17 @@ export async function GET(req: Request) {
         // Verify JWT token
         const decoded = jwt.verify(token, JWT_SECRET) as { id: string; email: string }
         const userId = decoded.id;
-        const userEmail = decoded.email;
         
-        console.log('Authenticated user accessing admins endpoint:', { userId, userEmail });
-        
-        const users = await prisma.user.findMany({
-            where: {
-                role: 'ADMIN'
-            },
-            select: {
-                id: true,
-                email: true,
-                createdAt: true,
-                updatedAt: true,
-            }
-        })
-        
-        return NextResponse.json(users, {
-            status: 200,
-            headers: {
-                "Content-Type": "application/json"
-            }
-        })
+        // Fetch user data from the database
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+        });
+
+        if (!user) {
+            return NextResponse.json({ error: "User not found" }, { status: 404 });
+        }
+
+        return NextResponse.json(user);
     } catch (error) {
         console.error('JWT verification failed:', error)
         return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
