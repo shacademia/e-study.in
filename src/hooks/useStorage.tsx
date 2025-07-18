@@ -1,12 +1,11 @@
+'use client';
+
 import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import {
   uploadProfilePicture,
-  uploadExamAttachment,
-  uploadSubmissionAttachment,
-  deleteFile,
-  getFileDownloadURL } from
-'@/services/supabase/storage.ts';
+  uploadExamAttachment
+} from '@/services/supabase/storage';
 import { useToast } from '@/hooks/use-toast';
 
 export interface UploadProgress {
@@ -16,6 +15,7 @@ export interface UploadProgress {
   url?: string;
 }
 
+// --- Profile Picture Upload Hook ---
 export const useProfilePictureUpload = () => {
   const [uploadProgress, setUploadProgress] = useState<UploadProgress>({
     progress: 0,
@@ -24,22 +24,25 @@ export const useProfilePictureUpload = () => {
   const { toast } = useToast();
 
   const uploadMutation = useMutation({
-    mutationFn: ({ userId, file }: {userId: string;file: File;}) => {
+    mutationFn: async ({ userId, file }: { userId: string; file: File }) => {
       setUploadProgress({ progress: 0, uploading: true });
-      return uploadProfilePicture(userId, file);
+      return await uploadProfilePicture(userId, file);
     },
-    onSuccess: (url) => {
+    onSuccess: (url: string) => {
       setUploadProgress({ progress: 100, uploading: false, url });
-      toast({
-        title: "Profile picture uploaded successfully"
-      });
+      toast({ title: 'Profile picture uploaded successfully' });
     },
-    onError: (error: any) => {
-      setUploadProgress({ progress: 0, uploading: false, error: error.message });
+    onError: (error: unknown) => {
+      const err = error as Error;
+      setUploadProgress({
+        progress: 0,
+        uploading: false,
+        error: err.message
+      });
       toast({
-        title: "Upload failed",
-        description: error.message,
-        variant: "destructive"
+        title: 'Upload failed',
+        description: err.message,
+        variant: 'destructive'
       });
     }
   });
@@ -51,6 +54,7 @@ export const useProfilePictureUpload = () => {
   };
 };
 
+// --- Exam Attachment Upload Hook ---
 export const useExamAttachmentUpload = () => {
   const [uploadProgress, setUploadProgress] = useState<UploadProgress>({
     progress: 0,
@@ -59,22 +63,25 @@ export const useExamAttachmentUpload = () => {
   const { toast } = useToast();
 
   const uploadMutation = useMutation({
-    mutationFn: ({ examId, file }: {examId: string;file: File;}) => {
+    mutationFn: async ({ examId, file }: { examId: string; file: File }) => {
       setUploadProgress({ progress: 0, uploading: true });
-      return uploadExamAttachment(examId, file);
+      return await uploadExamAttachment(examId, file);
     },
-    onSuccess: (url) => {
+    onSuccess: (url: string) => {
       setUploadProgress({ progress: 100, uploading: false, url });
-      toast({
-        title: "File uploaded successfully"
-      });
+      toast({ title: 'File uploaded successfully' });
     },
-    onError: (error: any) => {
-      setUploadProgress({ progress: 0, uploading: false, error: error.message });
+    onError: (error: unknown) => {
+      const err = error as Error;
+      setUploadProgress({
+        progress: 0,
+        uploading: false,
+        error: err.message
+      });
       toast({
-        title: "Upload failed",
-        description: error.message,
-        variant: "destructive"
+        title: 'Upload failed',
+        description: err.message,
+        variant: 'destructive'
       });
     }
   });
@@ -86,27 +93,37 @@ export const useExamAttachmentUpload = () => {
   };
 };
 
+// --- General Reusable File Upload Hook ---
 export const useFileUpload = () => {
   const [uploadProgress, setUploadProgress] = useState<UploadProgress>({
     progress: 0,
     uploading: false
   });
 
-  const upload = async (file: File, uploadFn: (file: File) => Promise<string>) => {
+  const upload = async (
+    file: File,
+    uploadFn: (file: File) => Promise<string>
+  ): Promise<string> => {
     try {
       setUploadProgress({ progress: 0, uploading: true });
       const url = await uploadFn(file);
       setUploadProgress({ progress: 100, uploading: false, url });
       return url;
-    } catch (error: any) {
-      setUploadProgress({ progress: 0, uploading: false, error: error.message });
-      throw error;
+    } catch (error) {
+      const err = error as Error;
+      setUploadProgress({
+        progress: 0,
+        uploading: false,
+        error: err.message
+      });
+      throw err;
     }
   };
 
   return { uploadProgress, upload };
 };
 
+// --- Drag and Drop Hook ---
 export const useDragAndDrop = (onDrop: (files: File[]) => void) => {
   const [isDragOver, setIsDragOver] = useState(false);
 
@@ -123,7 +140,6 @@ export const useDragAndDrop = (onDrop: (files: File[]) => void) => {
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
-
     const files = Array.from(e.dataTransfer.files);
     onDrop(files);
   };

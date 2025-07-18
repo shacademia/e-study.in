@@ -10,18 +10,20 @@ import {
   getExam,
   createExam,
   updateExam,
-  deleteExam,
   getSections,
-  createSection,
   createSubmission,
   getUserSubmissions,
   getExamSubmissions,
-  updateSubmission,
   getRankings,
   getUserRank,
-  calculateRankings } from
-'@/services/supabase/database';
+  calculateRankings
+} from '@/services/supabase/database';
 import { useToast } from '@/hooks/use-toast';
+
+type Exam = { id: string; [key: string]: unknown };
+type Submission = { id: string; exam_id: string; [key: string]: unknown };
+type UpdatePayload = Record<string, unknown>;
+type MutationError = unknown;
 
 // Questions hooks
 export const useQuestions = (sectionId?: string) => {
@@ -47,15 +49,13 @@ export const useCreateQuestion = () => {
     mutationFn: createQuestion,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['questions'] });
-      toast({
-        title: "Question created successfully"
-      });
+      toast({ title: 'Question created successfully' });
     },
-    onError: (error: any) => {
+    onError: (error: MutationError) => {
       toast({
-        title: "Failed to create question",
-        description: error.message,
-        variant: "destructive"
+        title: 'Failed to create question',
+        description: (error as Error).message,
+        variant: 'destructive'
       });
     }
   });
@@ -66,18 +66,17 @@ export const useUpdateQuestion = () => {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: ({ id, updates }: {id: string;updates: any;}) => updateQuestion(id, updates),
+    mutationFn: ({ id, updates }: { id: string; updates: UpdatePayload }) =>
+      updateQuestion(id, updates),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['questions'] });
-      toast({
-        title: "Question updated successfully"
-      });
+      toast({ title: 'Question updated successfully' });
     },
-    onError: (error: any) => {
+    onError: (error: MutationError) => {
       toast({
-        title: "Failed to update question",
-        description: error.message,
-        variant: "destructive"
+        title: 'Failed to update question',
+        description: (error as Error).message,
+        variant: 'destructive'
       });
     }
   });
@@ -91,15 +90,13 @@ export const useDeleteQuestion = () => {
     mutationFn: deleteQuestion,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['questions'] });
-      toast({
-        title: "Question deleted successfully"
-      });
+      toast({ title: 'Question deleted successfully' });
     },
-    onError: (error: any) => {
+    onError: (error: MutationError) => {
       toast({
-        title: "Failed to delete question",
-        description: error.message,
-        variant: "destructive"
+        title: 'Failed to delete question',
+        description: (error as Error).message,
+        variant: 'destructive'
       });
     }
   });
@@ -129,15 +126,13 @@ export const useCreateExam = () => {
     mutationFn: createExam,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['exams'] });
-      toast({
-        title: "Exam created successfully"
-      });
+      toast({ title: 'Exam created successfully' });
     },
-    onError: (error: any) => {
+    onError: (error: MutationError) => {
       toast({
-        title: "Failed to create exam",
-        description: error.message,
-        variant: "destructive"
+        title: 'Failed to create exam',
+        description: (error as Error).message,
+        variant: 'destructive'
       });
     }
   });
@@ -148,18 +143,17 @@ export const useUpdateExam = () => {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: ({ id, updates }: {id: string;updates: any;}) => updateExam(id, updates),
+    mutationFn: ({ id, updates }: { id: string; updates: UpdatePayload }) =>
+      updateExam(id, updates),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['exams'] });
-      toast({
-        title: "Exam updated successfully"
-      });
+      toast({ title: 'Exam updated successfully' });
     },
-    onError: (error: any) => {
+    onError: (error: MutationError) => {
       toast({
-        title: "Failed to update exam",
-        description: error.message,
-        variant: "destructive"
+        title: 'Failed to update exam',
+        description: (error as Error).message,
+        variant: 'destructive'
       });
     }
   });
@@ -197,10 +191,9 @@ export const useCreateSubmission = () => {
 
   return useMutation({
     mutationFn: createSubmission,
-    onSuccess: async (data) => {
+    onSuccess: async (data: Submission) => {
       queryClient.invalidateQueries({ queryKey: ['submissions'] });
 
-      // Calculate rankings after submission
       try {
         await calculateRankings(data.exam_id);
         queryClient.invalidateQueries({ queryKey: ['rankings'] });
@@ -208,15 +201,13 @@ export const useCreateSubmission = () => {
         console.error('Failed to calculate rankings:', error);
       }
 
-      toast({
-        title: "Exam submitted successfully"
-      });
+      toast({ title: 'Exam submitted successfully' });
     },
-    onError: (error: any) => {
+    onError: (error: MutationError) => {
       toast({
-        title: "Failed to submit exam",
-        description: error.message,
-        variant: "destructive"
+        title: 'Failed to submit exam',
+        description: (error as Error).message,
+        variant: 'destructive'
       });
     }
   });
@@ -241,41 +232,46 @@ export const useUserRank = (userId: string, examId: string) => {
 
 // Real-time hooks using Supabase subscriptions
 export const useExamRealtime = (examId: string) => {
-  const [exam, setExam] = useState<any>(null);
-  const [submissions, setSubmissions] = useState<any[]>([]);
+  const [exam, setExam] = useState<Exam | null>(null);
+  const [submissions, setSubmissions] = useState<Submission[]>([]);
 
   useEffect(() => {
     if (!examId) return;
 
-    // Import supabase dynamically to avoid circular dependency
     import('@/config/supabase').then(({ supabase }) => {
-      // Subscribe to exam changes
-      const examSubscription = supabase.
-      channel(`exam-${examId}`).
-      on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'exams',
-        filter: `id=eq.${examId}`
-      }, (payload) => {
-        setExam(payload.new);
-      }).
-      subscribe();
+      const examSubscription = supabase
+        .channel(`exam-${examId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'exams',
+            filter: `id=eq.${examId}`
+          },
+          (payload) => {
+            setExam(payload.new as Exam);
+          }
+        )
+        .subscribe();
 
-      // Subscribe to submissions changes
-      const submissionsSubscription = supabase.
-      channel(`submissions-${examId}`).
-      on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'submissions',
-        filter: `exam_id=eq.${examId}`
-      }, (payload) => {
-        if (payload.eventType === 'INSERT') {
-          setSubmissions((prev) => [...prev, payload.new]);
-        }
-      }).
-      subscribe();
+      const submissionsSubscription = supabase
+        .channel(`submissions-${examId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'submissions',
+            filter: `exam_id=eq.${examId}`
+          },
+          (payload) => {
+            if (payload.eventType === 'INSERT') {
+              setSubmissions((prev) => [...prev, payload.new as Submission]);
+            }
+          }
+        )
+        .subscribe();
 
       return () => {
         examSubscription.unsubscribe();

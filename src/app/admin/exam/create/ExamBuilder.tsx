@@ -1,3 +1,4 @@
+'use client';
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -52,7 +53,7 @@ import {
   Target,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { mockDataService, Exam, Question } from "../services/mockData";
+import { mockDataService, Exam, Question } from "../../../../services/mockData";
 // import { Value } from "@radix-ui/react-select";
 
 interface ExamSection {
@@ -315,6 +316,7 @@ const ExamBuilder: React.FC<ExamBuilderProps> = ({ onBack, editingExam }) => {
 
     onBack();
   } catch (error) {
+    console.error("Failed to save exam:", error);
     toast({
       title: "Error",
       description: "Failed to save exam",
@@ -339,14 +341,10 @@ const ExamBuilder: React.FC<ExamBuilderProps> = ({ onBack, editingExam }) => {
   return (
     <div
       className="min-h-screen bg-gray-50"
-      data-id="6fnzgiaq9"
-      data-path="src/components/ExamBuilder.tsx"
     >
       {/* Header */}
       <header
         className="bg-white shadow-sm border-b"
-        data-id="d7zi3oxuu"
-        data-path="src/components/ExamBuilder.tsx"
       >
         <div
           className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"

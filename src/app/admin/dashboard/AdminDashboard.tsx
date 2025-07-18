@@ -1,8 +1,6 @@
-"use client"
+"use client";
 import React, { useState, useEffect } from 'react';
-
-// TODO: use next/navigation
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -35,15 +33,17 @@ import {
   // BarChart3,
   Undo2 } from
 'lucide-react';
-import { useAuth } from '../hooks/useMockAuth';
-import { mockDataService, Exam, Question, Ranking } from '../services/mockData';
+import { useAuth } from '@hooks/useMockAuth';
+import { mockDataService, Exam, Question, Ranking } from '@services/mockData';
 import { toast } from '@/hooks/use-toast';
-import ExamBuilder from './ExamBuilder';
-import QuestionBank from './QuestionBank';
+
+import dynamic from 'next/dynamic';
+const EnhancedExamBuilder = dynamic(() => import('../exam/create/EnhancedExamBuilder'), { ssr: false });
+const QuestionBank = dynamic(() => import('../questionbank/QuestionBank'), { ssr: false });
 // import StudentRankings from './StudentRankings';
 
 const AdminDashboard: React.FC = () => {
-  const navigate = useNavigate();
+  const router = useRouter();
   const { user, signOut } = useAuth();
   const [exams, setExams] = useState<Exam[]>([]);
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -83,19 +83,19 @@ const AdminDashboard: React.FC = () => {
     const loadData = async () => {
       try {
         const [examData, questionData, rankingData] = await Promise.all([
-        mockDataService.getAllExams(),
-        mockDataService.getQuestions(),
-        mockDataService.getRankings()]
-        );
+          mockDataService.getAllExams(),
+          mockDataService.getQuestions(),
+          mockDataService.getRankings(),
+        ]);
         setExams(examData);
         setQuestions(questionData);
         setRankings(rankingData);
       } catch (error) {
-        console.error('Error loading data:', error);
+        console.error("Error loading data:", error);
         toast({
-          title: 'Error',
-          description: 'Failed to load data',
-          variant: 'destructive'
+          title: "Error",
+          description: "Failed to load data",
+          variant: "destructive",
         });
       } finally {
         setLoading(false);
@@ -105,32 +105,36 @@ const AdminDashboard: React.FC = () => {
     loadData();
   }, []);
 
+  /////////////// i have to change the bellow create exam interce like edit exam interface
+
   const handleCreateExam = async () => {
     try {
       const createdExam = await mockDataService.createExam(newExam);
       setShowCreateExam(false);
       setNewExam({
-        name: '',
-        description: '',
+        name: "",
+        description: "",
         timeLimit: 60,
-        password: '',
+        password: "",
         isPasswordProtected: false,
-        instructions: ''
+        instructions: "",
       });
       toast({
-        title: 'Success',
-        description: 'Exam created successfully'
+        title: "Success",
+        description: "Exam created successfully",
       });
       // Optimistically update the UI
       setExams([...exams, createdExam]);
       const examData = await mockDataService.getAllExams();
       setExams(examData);
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to create exam',
-        variant: 'destructive'
-      });
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        toast({
+          title: "Error",
+          description: "Failed to create exam",
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -156,6 +160,7 @@ const AdminDashboard: React.FC = () => {
       const questionData = await mockDataService.getQuestions();
       setQuestions(questionData);
     } catch (error) {
+      console.error("Error creating exam:", error);
       toast({
         title: 'Error',
         description: 'Failed to create question',
@@ -178,6 +183,7 @@ const AdminDashboard: React.FC = () => {
         description: `Exam ${isPublished ? 'published' : 'unpublished'} successfully`
       });
     } catch (error) {
+      console.error("Failed to update exam:", error);
       // Revert on error
       const examData = await mockDataService.getAllExams();
       setExams(examData);
@@ -201,6 +207,7 @@ const AdminDashboard: React.FC = () => {
         description: 'Exam deleted successfully'
       });
     } catch (error) {
+      console.error("Failed to delete exam:", error);
       // Revert on error
       const examData = await mockDataService.getAllExams();
       setExams(examData);
@@ -224,6 +231,7 @@ const AdminDashboard: React.FC = () => {
         description: 'Exam duplicated successfully'
       });
     } catch (error) {
+      console.error("Failed to duplicate exam:", error);
       // Revert on error
       const examData = await mockDataService.getAllExams();
       setExams(examData);
@@ -259,6 +267,7 @@ const AdminDashboard: React.FC = () => {
 
       });
     } catch (error) {
+      console.error("Failed to delete question:", error);
       // Revert on error
       const questionData = await mockDataService.getQuestions();
       setQuestions(questionData);
@@ -282,6 +291,7 @@ const AdminDashboard: React.FC = () => {
         description: `"${restoredQuestion.content.substring(0, 50)}..." was restored`
       });
     } catch (error) {
+      console.error("Failed to restore question:", error);
       toast({
         title: 'Error',
         description: 'Failed to restore question',
@@ -302,6 +312,7 @@ const AdminDashboard: React.FC = () => {
         description: 'Question duplicated successfully'
       });
     } catch (error) {
+      console.error("Failed to duplicate question:", error);
       // Revert on error
       const questionData = await mockDataService.getQuestions();
       setQuestions(questionData);
@@ -316,7 +327,7 @@ const AdminDashboard: React.FC = () => {
   const handleLogout = async () => {
     try {
       await signOut();
-      navigate('/login');
+      router.push('/login');
     } catch (error) {
       console.error('Logout error:', error);
     }
@@ -354,7 +365,7 @@ const AdminDashboard: React.FC = () => {
 
   // Show other components
   if (showExamBuilder) {
-    return <ExamBuilder onBack={() => setShowExamBuilder(false)} editingExam={selectedExam} data-id="bzurrhcs8" data-path="src/components/AdminDashboard.tsx" />;
+    return <EnhancedExamBuilder onBack={() => setShowExamBuilder(false)} editingExam={selectedExam} data-id="bzurrhcs8" data-path="src/components/AdminDashboard.tsx" />;
   }
 
   if (showQuestionBank) {

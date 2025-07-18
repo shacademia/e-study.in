@@ -1,3 +1,4 @@
+'use client';
 import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -39,7 +40,7 @@ import {
   Copy } from
 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { mockDataService, Question } from '../services/mockData';
+import { mockDataService, Question } from '../../../services/mockData';
 
 interface QuestionFilters {
   subject: string;

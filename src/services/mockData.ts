@@ -60,9 +60,9 @@ export interface Submission {
   questionStatuses: Record<string, QuestionStatus>;
   score: number;
   totalQuestions: number;
-  completedAt: Date;
   timeSpent: number;
   isSubmitted: boolean;
+  completedAt: Date;
 }
 
 export interface Ranking {

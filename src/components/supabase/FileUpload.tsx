@@ -4,8 +4,8 @@ import { Progress } from '@/components/ui/progress';
 import { Card } from '@/components/ui/card';
 import { Upload, X, File } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useDragAndDrop } from '@/hooks/useStorage.tsx';
-import type { UploadProgress } from '@/hooks/useStorage.tsx';
+import { useDragAndDrop } from '@/hooks/useStorage';
+import type { UploadProgress } from '@/hooks/useStorage';
 
 interface FileUploadProps {
   onFileSelect: (files: File[]) => void;

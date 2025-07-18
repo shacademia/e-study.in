@@ -1,7 +1,7 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = 'https://your-project.supabase.co';
-const supabaseKey = 'your-anon-key-here';
+const supabaseUrl = "https://your-project.supabase.co";
+const supabaseKey = "your-anon-key-here";
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
@@ -14,7 +14,7 @@ export interface Database {
           id: string;
           email: string;
           name: string;
-          role: 'student' | 'admin';
+          role: "student" | "admin";
           profile_picture_url?: string;
           created_at: string;
           updated_at: string;
@@ -23,7 +23,7 @@ export interface Database {
           id?: string;
           email: string;
           name: string;
-          role?: 'student' | 'admin';
+          role?: "student" | "admin";
           profile_picture_url?: string;
           created_at?: string;
           updated_at?: string;
@@ -32,7 +32,7 @@ export interface Database {
           id?: string;
           email?: string;
           name?: string;
-          role?: 'student' | 'admin';
+          role?: "student" | "admin";
           profile_picture_url?: string;
           created_at?: string;
           updated_at?: string;
@@ -46,7 +46,7 @@ export interface Database {
           options: string[];
           correct_option: number;
           tags: string[];
-          difficulty: 'easy' | 'medium' | 'hard';
+          difficulty: "easy" | "medium" | "hard";
           created_at: string;
           updated_at: string;
         };
@@ -57,7 +57,7 @@ export interface Database {
           options: string[];
           correct_option: number;
           tags?: string[];
-          difficulty?: 'easy' | 'medium' | 'hard';
+          difficulty?: "easy" | "medium" | "hard";
           created_at?: string;
           updated_at?: string;
         };
@@ -68,7 +68,7 @@ export interface Database {
           options?: string[];
           correct_option?: number;
           tags?: string[];
-          difficulty?: 'easy' | 'medium' | 'hard';
+          difficulty?: "easy" | "medium" | "hard";
           created_at?: string;
           updated_at?: string;
         };
@@ -133,7 +133,7 @@ export interface Database {
           id: string;
           user_id: string;
           exam_id: string;
-          answers: Record<string, any>;
+          answers: Record<string, number>;
           score: number;
           completed_at: string;
           created_at: string;
@@ -143,7 +143,7 @@ export interface Database {
           id?: string;
           user_id: string;
           exam_id: string;
-          answers: Record<string, any>;
+          answers: Record<string, number>;
           score?: number;
           completed_at?: string;
           created_at?: string;
@@ -153,7 +153,7 @@ export interface Database {
           id?: string;
           user_id?: string;
           exam_id?: string;
-          answers?: Record<string, any>;
+          answers?: Record<string, number>;
           score?: number;
           completed_at?: string;
           created_at?: string;

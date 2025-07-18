@@ -1,16 +1,17 @@
+"use client";
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Trophy, Medal, Award, ArrowLeft, BookOpen, Crown, Star } from 'lucide-react';
-import { useAuth } from '../hooks/useMockAuth';
-import { mockDataService, Ranking, Exam } from '../services/mockData';
+import { useAuth } from '../../hooks/useMockAuth';
+import { mockDataService, Ranking, Exam } from '../../services/mockData';
 
 const StudentRankings: React.FC = () => {
-  const navigate = useNavigate();
+  const router = useRouter();
   const { user } = useAuth();
   const [rankings, setRankings] = useState<Ranking[]>([]);
   const [exams, setExams] = useState<Exam[]>([]);
@@ -141,7 +142,7 @@ const StudentRankings: React.FC = () => {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => navigate('/dashboard')}
+                onClick={() => router.push('/dashboard')}
                 className="mr-4" data-id="0yjyp3nuq" data-path="src/components/StudentRankings.tsx">
 
                 <ArrowLeft className="h-4 w-4 mr-2" data-id="8ebajbj9d" data-path="src/components/StudentRankings.tsx" />

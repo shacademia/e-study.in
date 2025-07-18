@@ -8,13 +8,21 @@ import {
   resetPassword,
   onAuthStateChange,
   getUserProfile,
-  type AuthUser } from
-'@/services/supabase/auth';
+} from '@/services/supabase/auth';
 import { useToast } from '@/hooks/use-toast';
+
+// Define a basic shape for user profile (adjust as needed)
+interface UserProfile {
+  id: string;
+  name?: string;
+  email: string;
+  role: string;
+  [key: string]: unknown;
+}
 
 interface AuthContextType {
   user: User | null;
-  userProfile: any | null;
+  userProfile: UserProfile | null;
   loading: boolean;
   signUp: (email: string, password: string, name: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
@@ -26,9 +34,9 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: {children: React.ReactNode;}) {
+export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [userProfile, setUserProfile] = useState<any | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
@@ -40,8 +48,8 @@ export function AuthProvider({ children }: {children: React.ReactNode;}) {
         try {
           const profile = await getUserProfile(user.id);
           setUserProfile(profile);
-        } catch (error) {
-          console.error('Error fetching user profile:', error);
+        } catch (err) {
+          console.error('Error fetching user profile:', err);
         }
       } else {
         setUserProfile(null);
@@ -58,8 +66,8 @@ export function AuthProvider({ children }: {children: React.ReactNode;}) {
       try {
         const profile = await getUserProfile(user.id);
         setUserProfile(profile);
-      } catch (error) {
-        console.error('Error refreshing profile:', error);
+      } catch (err) {
+        console.error('Error refreshing profile:', err);
       }
     }
   };
@@ -71,7 +79,8 @@ export function AuthProvider({ children }: {children: React.ReactNode;}) {
         title: "Account created successfully",
         description: "Please check your email to verify your account."
       });
-    } catch (error: any) {
+    } catch (err: unknown) {
+      const error = err as Error;
       toast({
         title: "Sign up failed",
         description: error.message,
@@ -84,10 +93,9 @@ export function AuthProvider({ children }: {children: React.ReactNode;}) {
   const handleSignIn = async (email: string, password: string) => {
     try {
       await signInWithEmail(email, password);
-      toast({
-        title: "Signed in successfully"
-      });
-    } catch (error: any) {
+      toast({ title: "Signed in successfully" });
+    } catch (err: unknown) {
+      const error = err as Error;
       toast({
         title: "Sign in failed",
         description: error.message,
@@ -100,8 +108,8 @@ export function AuthProvider({ children }: {children: React.ReactNode;}) {
   const handleGoogleSignIn = async () => {
     try {
       await signInWithGoogle();
-      // Toast will be shown after redirect
-    } catch (error: any) {
+    } catch (err: unknown) {
+      const error = err as Error;
       toast({
         title: "Google sign in failed",
         description: error.message,
@@ -114,10 +122,9 @@ export function AuthProvider({ children }: {children: React.ReactNode;}) {
   const handleSignOut = async () => {
     try {
       await signOutUser();
-      toast({
-        title: "Signed out successfully"
-      });
-    } catch (error: any) {
+      toast({ title: "Signed out successfully" });
+    } catch (err: unknown) {
+      const error = err as Error;
       toast({
         title: "Sign out failed",
         description: error.message,
@@ -134,7 +141,8 @@ export function AuthProvider({ children }: {children: React.ReactNode;}) {
         title: "Password reset sent",
         description: "Check your email for reset instructions."
       });
-    } catch (error: any) {
+    } catch (err: unknown) {
+      const error = err as Error;
       toast({
         title: "Password reset failed",
         description: error.message,
@@ -144,7 +152,7 @@ export function AuthProvider({ children }: {children: React.ReactNode;}) {
     }
   };
 
-  const value = {
+  const value: AuthContextType = {
     user,
     userProfile,
     loading,
@@ -156,7 +164,11 @@ export function AuthProvider({ children }: {children: React.ReactNode;}) {
     refreshProfile
   };
 
-  return <AuthContext.Provider value={value} data-id="24xyv1oyq" data-path="src/hooks/useAuth.tsx">{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {

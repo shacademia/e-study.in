@@ -1,9 +1,17 @@
-import AdminDashboard from "@/components/AdminDashboard";
-import Image from "next/image";
+// app/page.tsx
+'use client';
 
-export default function Home() {
-  const ROLE = 'ADMIN'
-  return(
-   <AdminDashboard/>
-  )
-}
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+
+const HomePage = () => {
+  const router = useRouter();
+
+  useEffect(() => {
+    router.replace('/login');
+  }, [router]);
+
+  return null;
+};
+
+export default HomePage;

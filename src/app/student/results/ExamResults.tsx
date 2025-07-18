@@ -1,16 +1,17 @@
+'use client';
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useRouter  } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { CheckCircle, XCircle, ArrowLeft, Trophy, BookOpen } from 'lucide-react';
-import { useAuth } from '../hooks/useMockAuth';
-import { mockDataService, Exam, Submission } from '../services/mockData';
+import { useAuth } from '../../../hooks/useMockAuth';
+import { mockDataService, Exam, Submission } from '../../../services/mockData';
 
 const ExamResults: React.FC = () => {
   const { examId } = useParams<{examId: string;}>();
-  const navigate = useNavigate();
+  const router = useRouter();
   const { user } = useAuth();
   const [exam, setExam] = useState<Exam | null>(null);
   const [submission, setSubmission] = useState<Submission | undefined>(undefined);
@@ -64,7 +65,7 @@ const ExamResults: React.FC = () => {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => navigate('/dashboard')}
+                onClick={() => router.push('/dashboard')}
                 className="mr-4" data-id="5afuhyzlw" data-path="src/components/ExamResults.tsx">
 
                 <ArrowLeft className="h-4 w-4 mr-2" data-id="1csmscihc" data-path="src/components/ExamResults.tsx" />
@@ -200,13 +201,13 @@ const ExamResults: React.FC = () => {
           <div className="flex justify-center space-x-4" data-id="q8x1f64xx" data-path="src/components/ExamResults.tsx">
             <Button
               variant="outline"
-              onClick={() => navigate('/dashboard')} data-id="ntj9grn45" data-path="src/components/ExamResults.tsx">
+              onClick={() => router.push('/dashboard')} data-id="ntj9grn45" data-path="src/components/ExamResults.tsx">
 
               <BookOpen className="h-4 w-4 mr-2" data-id="m8psxvyxf" data-path="src/components/ExamResults.tsx" />
               Back to Dashboard
             </Button>
             <Button
-              onClick={() => navigate('/rankings')} data-id="2uo3av98a" data-path="src/components/ExamResults.tsx">
+              onClick={() => router.push('/rankings')} data-id="2uo3av98a" data-path="src/components/ExamResults.tsx">
 
               <Trophy className="h-4 w-4 mr-2" data-id="8qvx0pdkt" data-path="src/components/ExamResults.tsx" />
               View Rankings

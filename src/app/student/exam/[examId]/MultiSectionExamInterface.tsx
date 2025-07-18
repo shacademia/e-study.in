@@ -1,5 +1,6 @@
+'use client';
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -9,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+// import BreakTimer from '../BreakTimer';
 // import { Progress } from '@/components/ui/progress';
 import {
   Clock,
@@ -32,13 +34,13 @@ import {
   // FileText,
   Target } from
 'lucide-react';
-import { useAuth } from '../hooks/useMockAuth';
-import { mockDataService, Exam, ExamSection, Question, QuestionStatus } from '../services/mockData';
+import { useAuth } from '../../../../hooks/useMockAuth';
+import { mockDataService, Exam, ExamSection, Question, QuestionStatus } from '../../../../services/mockData';
 import { toast } from '@/hooks/use-toast';
 
 const MultiSectionExamInterface: React.FC = () => {
   const { examId } = useParams<{ examId: string }>();
-  const navigate = useNavigate();
+  const router = useRouter();
   const { user } = useAuth();
   const [exam, setExam] = useState<Exam | null>(null);
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
@@ -162,7 +164,7 @@ const MultiSectionExamInterface: React.FC = () => {
       });
 
       toast({ title: "Success", description: "Exam submitted successfully" });
-      navigate(`/results/${exam.id}`);
+      router.push(`/results/${exam.id}`);
     } catch (error) {
       console.error("Error submitting exam:", error);
       toast({
@@ -177,7 +179,7 @@ const MultiSectionExamInterface: React.FC = () => {
     answers,
     questionStatuses,
     startTime,
-    navigate,
+    router,
     updateQuestionTimeSpent,
   ]);
   
@@ -623,6 +625,14 @@ const MultiSectionExamInterface: React.FC = () => {
       </Dialog>
 
       {/* Break Modal */}
+      
+      {/* {showBreakModal && (
+        <BreakTimer
+          timeRemaining={timeLeft}
+          onReturnToExam={handleResumeExam}
+        />
+      )} */}
+
       <Dialog
         open={showBreakModal}
         onOpenChange={() => {}}

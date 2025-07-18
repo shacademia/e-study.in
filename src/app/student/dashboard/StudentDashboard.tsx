@@ -1,15 +1,16 @@
+"use client";
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Clock, BookOpen, Trophy, User, LogOut, Play, Lock, Award, Target, Users } from 'lucide-react';
-import { useAuth } from '../hooks/useMockAuth';
-import { mockDataService, Exam, UserStats, Ranking } from '../services/mockData';
+import { useAuth } from '../../../hooks/useMockAuth';
+import { mockDataService, Exam, UserStats, Ranking } from '../../../services/mockData';
 
 const StudentDashboard: React.FC = () => {
-  const navigate = useNavigate();
+  const router = useRouter();
   const { user, signOut } = useAuth();
   const [exams, setExams] = useState<Exam[]>([]);
   const [userStats, setUserStats] = useState<UserStats | null>(null);
@@ -38,17 +39,17 @@ const StudentDashboard: React.FC = () => {
   }, [user]);
 
   const handleStartExam = (examId: string) => {
-    navigate(`/exam/${examId}`);
+    router.push(`/exam/${examId}`);
   };
 
   const handleViewResults = (examId: string) => {
-    navigate(`/results/${examId}`);
+    router.push(`/results/${examId}`);
   };
 
   const handleLogout = async () => {
     try {
       await signOut();
-      navigate('/login');
+      router.push('/login');
     } catch (error) {
       console.error('Logout error:', error);
     }
@@ -76,7 +77,7 @@ const StudentDashboard: React.FC = () => {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => navigate('/rankings')} data-id="eutl428n1" data-path="src/components/StudentDashboard.tsx">
+                onClick={() => router.push('/rankings')} data-id="eutl428n1" data-path="src/components/StudentDashboard.tsx">
 
                 <Trophy className="h-4 w-4 mr-2" data-id="cf64zxn0a" data-path="src/components/StudentDashboard.tsx" />
                 Rankings
