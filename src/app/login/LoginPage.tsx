@@ -4,8 +4,19 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
+} from '@/components/ui/card';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger
+} from '@/components/ui/tabs';
 import { GraduationCap, Mail, Lock, User } from 'lucide-react';
 import { useAuth } from '../../hooks/useMockAuth';
 
@@ -15,8 +26,8 @@ import { useAuth } from '../../hooks/useMockAuth';
 
 const LoginPage: React.FC = () => {
   const router = useRouter();
-  const { signIn, signUp, user } = useAuth();
-  const [loading, setLoading] = useState(false);
+  const { signIn, signUp, user, loading } = useAuth();
+  const [loadingSubmit, setLoadingSubmit] = useState(false);
 
   const [signInData, setSignInData] = useState({ email: '', password: '' });
   const [signUpData, setSignUpData] = useState({
@@ -28,13 +39,13 @@ const LoginPage: React.FC = () => {
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setLoadingSubmit(true);
     try {
       await signIn(signInData.email, signInData.password);
     } catch (error) {
       console.error('Sign in error:', error);
     } finally {
-      setLoading(false);
+      setLoadingSubmit(false);
     }
   };
 
@@ -44,21 +55,26 @@ const LoginPage: React.FC = () => {
       alert('Passwords do not match');
       return;
     }
-    setLoading(true);
+    setLoadingSubmit(true);
     try {
       await signUp(signUpData.email, signUpData.password, signUpData.name);
     } catch (error) {
       console.error('Sign up error:', error);
     } finally {
-      setLoading(false);
+      setLoadingSubmit(false);
     }
   };
 
   useEffect(() => {
-    if (user) {
-      router.push(user.role === 'admin' ? '/admin' : '/dashboard');
+    if (!loading && user) {
+      router.push(user.role === 'admin' ? '/admin/dashboard' : '/student/dashboard');
     }
-  }, [user, router]);
+  }, [user, loading, router]);
+
+  if (!loading && user) {
+    // prevent flicker when already logged in
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
@@ -109,8 +125,8 @@ const LoginPage: React.FC = () => {
                         required
                       />
                     </div>
-                    <Button type="submit" className="w-full" disabled={loading}>
-                      {loading ? 'Signing in...' : 'Sign In'}
+                    <Button type="submit" className="w-full" disabled={loadingSubmit}>
+                      {loadingSubmit ? 'Signing in...' : 'Sign In'}
                     </Button>
                   </form>
 
@@ -177,8 +193,8 @@ const LoginPage: React.FC = () => {
                         required
                       />
                     </div>
-                    <Button type="submit" className="w-full" disabled={loading}>
-                      {loading ? 'Creating account...' : 'Sign Up'}
+                    <Button type="submit" className="w-full" disabled={loadingSubmit}>
+                      {loadingSubmit ? 'Creating account...' : 'Sign Up'}
                     </Button>
                   </form>
                 </CardContent>
