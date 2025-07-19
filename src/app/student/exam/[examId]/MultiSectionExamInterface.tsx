@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -34,12 +34,15 @@ import {
   // FileText,
   Target } from
 'lucide-react';
-import { useAuth } from '../../../../hooks/useMockAuth';
-import { mockDataService, Exam, ExamSection, Question, QuestionStatus } from '../../../../services/mockData';
+import { useAuth } from '@hooks/useMockAuth';
+import { mockDataService, Exam, ExamSection, Question, QuestionStatus } from '@services/mockData';
 import { toast } from '@/hooks/use-toast';
 
-const MultiSectionExamInterface: React.FC = () => {
-  const { examId } = useParams<{ examId: string }>();
+interface MultiSectionExamInterfaceProps {
+  examId: string;
+}
+
+const MultiSectionExamInterface: React.FC<MultiSectionExamInterfaceProps> = ({ examId }) => {
   const router = useRouter();
   const { user } = useAuth();
   const [exam, setExam] = useState<Exam | null>(null);
