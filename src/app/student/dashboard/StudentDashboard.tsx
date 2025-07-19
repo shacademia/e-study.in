@@ -6,8 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Clock, BookOpen, Trophy, User, LogOut, Play, Lock, Award, Target, Users } from 'lucide-react';
-import { useAuth } from '../../../hooks/useMockAuth';
-import { mockDataService, Exam, UserStats, Ranking } from '../../../services/mockData';
+import { useAuth } from '@hooks/useMockAuth';
+import { mockDataService, Exam, UserStats, Ranking } from '@services/mockData';
 
 const StudentDashboard: React.FC = () => {
   const router = useRouter();
@@ -21,9 +21,9 @@ const StudentDashboard: React.FC = () => {
     const loadData = async () => {
       try {
         const [examData, statsData, rankingData] = await Promise.all([
-        mockDataService.getExams(),
-        mockDataService.getUserStats(user?.id || ''),
-        mockDataService.getUserRank(user?.id || '')]
+          mockDataService.getExams(),
+          mockDataService.getUserStats(user?.id || ''),
+          mockDataService.getUserRank(user?.id || '')]
         );
         setExams(examData);
         setUserStats(statsData);
@@ -39,11 +39,11 @@ const StudentDashboard: React.FC = () => {
   }, [user]);
 
   const handleStartExam = (examId: string) => {
-    router.push(`/exam/${examId}`);
+    router.push(`/student/exam/${examId}`);
   };
 
   const handleViewResults = (examId: string) => {
-    router.push(`/results/${examId}`);
+    router.push(`/student/results/${examId}`);
   };
 
   const handleLogout = async () => {
@@ -54,11 +54,15 @@ const StudentDashboard: React.FC = () => {
       console.error('Logout error:', error);
     }
   };
-
+  
+  // Filter exams based on completed submissions
   const completedExamIds = userStats?.recentSubmissions.map((sub) => sub.examId) || [];
+  // Separate available and completed exams
   const availableExams = exams.filter((exam) => !completedExamIds.includes(exam.id));
+  // Completed exams are those that have been submitted by the user
   const completedExams = exams.filter((exam) => completedExamIds.includes(exam.id));
 
+  // If loading, show a loading state
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen" data-id="y59u53ns2" data-path="src/components/StudentDashboard.tsx">Loading...</div>;
   }
@@ -183,7 +187,7 @@ const StudentDashboard: React.FC = () => {
                     <p className="font-semibold text-lg" data-id="83f6qpsm9" data-path="src/components/StudentDashboard.tsx">{user?.name}</p>
                     <p className="text-sm text-gray-600" data-id="khayzuhze" data-path="src/components/StudentDashboard.tsx">Email: {user?.email}</p>
                   </div>
-                  
+
                   <div className="grid grid-cols-2 gap-4" data-id="ct86kue47" data-path="src/components/StudentDashboard.tsx">
                     <div className="text-center p-3 bg-blue-50 rounded-lg" data-id="6g2esseop" data-path="src/components/StudentDashboard.tsx">
                       <p className="text-xl font-bold text-blue-600" data-id="v9w7omptr" data-path="src/components/StudentDashboard.tsx">{userStats?.totalExamsAttended || 0}</p>
@@ -194,7 +198,7 @@ const StudentDashboard: React.FC = () => {
                       <p className="text-sm text-gray-600" data-id="dy5es47le" data-path="src/components/StudentDashboard.tsx">Avg Score</p>
                     </div>
                   </div>
-                  
+
                   <div className="space-y-2" data-id="hjrm5y14w" data-path="src/components/StudentDashboard.tsx">
                     <div className="flex justify-between text-sm" data-id="67o3s8y1c" data-path="src/components/StudentDashboard.tsx">
                       <span data-id="8cj5kw8x0" data-path="src/components/StudentDashboard.tsx">Average Performance</span>
@@ -204,7 +208,7 @@ const StudentDashboard: React.FC = () => {
                   </div>
 
                   {userRanking &&
-                  <div className="p-3 bg-purple-50 rounded-lg" data-id="wwx9ks0qn" data-path="src/components/StudentDashboard.tsx">
+                    <div className="p-3 bg-purple-50 rounded-lg" data-id="wwx9ks0qn" data-path="src/components/StudentDashboard.tsx">
                       <p className="text-sm font-medium text-purple-800" data-id="ermgf4bqu" data-path="src/components/StudentDashboard.tsx">
                         Current Rank: #{userRanking.rank}
                       </p>
@@ -248,19 +252,19 @@ const StudentDashboard: React.FC = () => {
             <div className="space-y-6" data-id="8uygofuwt" data-path="src/components/StudentDashboard.tsx">
               {/* Available Exams */}
               {availableExams.length > 0 &&
-              <div data-id="pk99jqv6i" data-path="src/components/StudentDashboard.tsx">
+                <div data-id="pk99jqv6i" data-path="src/components/StudentDashboard.tsx">
                   <h2 className="text-2xl font-bold text-gray-900 mb-6" data-id="8fli45em0" data-path="src/components/StudentDashboard.tsx">Available Exams</h2>
                   <div className="space-y-4" data-id="y2iij0b8v" data-path="src/components/StudentDashboard.tsx">
                     {availableExams.map((exam) =>
-                  <Card key={exam.id} className="hover:shadow-md transition-shadow" data-id="78en1fj2x" data-path="src/components/StudentDashboard.tsx">
+                      <Card key={exam.id} className="hover:shadow-md transition-shadow" data-id="78en1fj2x" data-path="src/components/StudentDashboard.tsx">
                         <CardHeader data-id="t20elh6us" data-path="src/components/StudentDashboard.tsx">
                           <div className="flex justify-between items-start" data-id="oqifjtskj" data-path="src/components/StudentDashboard.tsx">
                             <div data-id="tkba2rvzf" data-path="src/components/StudentDashboard.tsx">
                               <CardTitle className="text-lg flex items-center" data-id="kphsanx5k" data-path="src/components/StudentDashboard.tsx">
                                 {exam.name}
                                 {exam.isPasswordProtected &&
-                            <Lock className="h-4 w-4 ml-2 text-yellow-600" data-id="itxs45hb0" data-path="src/components/StudentDashboard.tsx" />
-                            }
+                                  <Lock className="h-4 w-4 ml-2 text-yellow-600" data-id="itxs45hb0" data-path="src/components/StudentDashboard.tsx" />
+                                }
                               </CardTitle>
                               <CardDescription className="mt-1" data-id="lpm57vvyg" data-path="src/components/StudentDashboard.tsx">{exam.description}</CardDescription>
                             </div>
@@ -280,20 +284,20 @@ const StudentDashboard: React.FC = () => {
                               <span className="font-medium" data-id="jxo9kqfyd" data-path="src/components/StudentDashboard.tsx">{exam.questions.length}</span> questions
                             </div>
                           </div>
-                          
+
                           {exam.isPasswordProtected &&
-                      <div className="mb-4 p-3 bg-yellow-50 rounded-lg" data-id="6lwb8zyhj" data-path="src/components/StudentDashboard.tsx">
+                            <div className="mb-4 p-3 bg-yellow-50 rounded-lg" data-id="6lwb8zyhj" data-path="src/components/StudentDashboard.tsx">
                               <p className="text-sm font-medium text-yellow-800 flex items-center" data-id="inzswk1bb" data-path="src/components/StudentDashboard.tsx">
                                 <Lock className="h-4 w-4 mr-2" data-id="sl2wwusih" data-path="src/components/StudentDashboard.tsx" />
                                 Password protected exam
                               </p>
                             </div>
-                      }
-                          
+                          }
+
                           <div className="flex space-x-2" data-id="aihlg9mbr" data-path="src/components/StudentDashboard.tsx">
                             <Button
-                          onClick={() => handleStartExam(exam.id)}
-                          className="flex items-center" data-id="abi2sip24" data-path="src/components/StudentDashboard.tsx">
+                              onClick={() => handleStartExam(exam.id)}
+                              className="flex items-center" data-id="abi2sip24" data-path="src/components/StudentDashboard.tsx">
 
                               <Play className="h-4 w-4 mr-2" data-id="8n0u2wd1f" data-path="src/components/StudentDashboard.tsx" />
                               Start Exam
@@ -301,20 +305,20 @@ const StudentDashboard: React.FC = () => {
                           </div>
                         </CardContent>
                       </Card>
-                  )}
+                    )}
                   </div>
                 </div>
               }
 
               {/* Completed Exams */}
               {completedExams.length > 0 &&
-              <div data-id="a8cj9t7i8" data-path="src/components/StudentDashboard.tsx">
+                <div data-id="a8cj9t7i8" data-path="src/components/StudentDashboard.tsx">
                   <h2 className="text-2xl font-bold text-gray-900 mb-6" data-id="dby06kjih" data-path="src/components/StudentDashboard.tsx">Completed Exams</h2>
                   <div className="space-y-4" data-id="99c5pud3w" data-path="src/components/StudentDashboard.tsx">
                     {completedExams.map((exam) => {
-                    const submission = userStats?.recentSubmissions.find((sub) => sub.examId === exam.id);
-                    return (
-                      <Card key={exam.id} className="hover:shadow-md transition-shadow" data-id="ctmnmoidb" data-path="src/components/StudentDashboard.tsx">
+                      const submission = userStats?.recentSubmissions.find((sub) => sub.examId === exam.id);
+                      return (
+                        <Card key={exam.id} className="hover:shadow-md transition-shadow" data-id="ctmnmoidb" data-path="src/components/StudentDashboard.tsx">
                           <CardHeader data-id="tffkk817y" data-path="src/components/StudentDashboard.tsx">
                             <div className="flex justify-between items-start" data-id="n85ovfb6n" data-path="src/components/StudentDashboard.tsx">
                               <div data-id="75qdvno3z" data-path="src/components/StudentDashboard.tsx">
@@ -337,9 +341,9 @@ const StudentDashboard: React.FC = () => {
                                 <span className="font-medium" data-id="gb6oy569p" data-path="src/components/StudentDashboard.tsx">{exam.questions.length}</span> questions
                               </div>
                             </div>
-                            
+
                             {submission &&
-                          <div className="mb-4 p-3 bg-green-50 rounded-lg" data-id="hflqoefvx" data-path="src/components/StudentDashboard.tsx">
+                              <div className="mb-4 p-3 bg-green-50 rounded-lg" data-id="hflqoefvx" data-path="src/components/StudentDashboard.tsx">
                                 <p className="text-sm font-medium text-green-800" data-id="yzo8hksja" data-path="src/components/StudentDashboard.tsx">
                                   Score: {submission.score} marks ({Math.round(submission.score / exam.totalMarks * 100)}%)
                                 </p>
@@ -347,12 +351,12 @@ const StudentDashboard: React.FC = () => {
                                   Completed on: {new Date(submission.completedAt).toLocaleDateString()}
                                 </p>
                               </div>
-                          }
-                            
+                            }
+
                             <div className="flex space-x-2" data-id="b2cei6eot" data-path="src/components/StudentDashboard.tsx">
                               <Button
-                              variant="outline"
-                              onClick={() => handleViewResults(exam.id)} data-id="0n9odoucl" data-path="src/components/StudentDashboard.tsx">
+                                variant="outline"
+                                onClick={() => handleViewResults(exam.id)} data-id="0n9odoucl" data-path="src/components/StudentDashboard.tsx">
 
                                 View Results
                               </Button>
@@ -360,14 +364,14 @@ const StudentDashboard: React.FC = () => {
                           </CardContent>
                         </Card>);
 
-                  })}
+                    })}
                   </div>
                 </div>
               }
 
               {/* No Exams Available */}
               {availableExams.length === 0 && completedExams.length === 0 &&
-              <div className="text-center py-12" data-id="o6f0af85r" data-path="src/components/StudentDashboard.tsx">
+                <div className="text-center py-12" data-id="o6f0af85r" data-path="src/components/StudentDashboard.tsx">
                   <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" data-id="54mxlisqe" data-path="src/components/StudentDashboard.tsx" />
                   <h3 className="text-lg font-medium text-gray-900 mb-2" data-id="cns5soj0d" data-path="src/components/StudentDashboard.tsx">No Exams Available</h3>
                   <p className="text-gray-600" data-id="544qmcnk4" data-path="src/components/StudentDashboard.tsx">There are no published exams available at the moment.</p>

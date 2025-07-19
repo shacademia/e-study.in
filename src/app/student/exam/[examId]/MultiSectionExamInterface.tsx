@@ -167,7 +167,7 @@ const MultiSectionExamInterface: React.FC<MultiSectionExamInterfaceProps> = ({ e
       });
 
       toast({ title: "Success", description: "Exam submitted successfully" });
-      router.push(`/results/${exam.id}`);
+      router.push(`/student/results/${exam.id}`);
     } catch (error) {
       console.error("Error submitting exam:", error);
       toast({

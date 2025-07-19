@@ -11,7 +11,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
-// import { Checkbox } from '@/components/ui/checkbox';
 import {
   BookOpen,
   // Users,
@@ -24,22 +23,23 @@ import {
   Lock,
   LogOut,
   Clock,
-  FileText,
   CheckCircle,
   Copy,
   Search,
+  Users,
+  // FileText,
   // Filter,
   // Settings,
   // BarChart3,
   Undo2 } from
 'lucide-react';
 import { useAuth } from '@hooks/useMockAuth';
-import { mockDataService, Exam, Question, Ranking } from '@services/mockData';
+import { mockDataService, Exam, Question, Ranking, UserStats } from '@services/mockData';
 import { toast } from '@/hooks/use-toast';
 
 import dynamic from 'next/dynamic';
 const EnhancedExamBuilder = dynamic(() => import('../exam/create/EnhancedExamBuilder'), { ssr: false });
-const QuestionBank = dynamic(() => import('../questionbank/QuestionBank'), { ssr: false });
+const EnhancedQuestionBank = dynamic(() => import('../questionbank/EnhancedQuestionBank'), { ssr: false });
 // import StudentRankings from './StudentRankings';
 
 const AdminDashboard: React.FC = () => {
@@ -54,11 +54,12 @@ const AdminDashboard: React.FC = () => {
   const [showExamBuilder, setShowExamBuilder] = useState(false);
   const [showQuestionBank, setShowQuestionBank] = useState(false);
   const [selectedExam, setSelectedExam] = useState<Exam | undefined>(undefined);
-  // const [selectedQuestions, setSelectedQuestions] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
   const [subjectFilter, setSubjectFilter] = useState('all');
   const [difficultyFilter, setDifficultyFilter] = useState('all');
   const [selectedExamForRankings, setSelectedExamForRankings] = useState('all');
+  const [userStats, setUserStats] = useState<UserStats | null>(null);
+  // const [selectedQuestions, setSelectedQuestions] = useState<Set<string>>(new Set());
 
   const [newExam, setNewExam] = useState({
     name: '',
@@ -82,13 +83,15 @@ const AdminDashboard: React.FC = () => {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [examData, questionData, rankingData] = await Promise.all([
+        const [examData, questionData,statsData, rankingData] = await Promise.all([
           mockDataService.getAllExams(),
           mockDataService.getQuestions(),
+          mockDataService.getUserStats(user?.id || ''),
           mockDataService.getRankings(),
         ]);
         setExams(examData);
         setQuestions(questionData);
+        setUserStats(statsData);
         setRankings(rankingData);
       } catch (error) {
         console.error("Error loading data:", error);
@@ -138,6 +141,7 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
+  // this fuction for question bank won't be needed in future
   const handleCreateQuestion = async () => {
     try {
       const createdQuestion = await mockDataService.createQuestion(newQuestion);
@@ -369,7 +373,7 @@ const AdminDashboard: React.FC = () => {
   }
 
   if (showQuestionBank) {
-    return <QuestionBank onBack={() => setShowQuestionBank(false)} data-id="viylgv3pn" data-path="src/components/AdminDashboard.tsx" />;
+    return <EnhancedQuestionBank onBack={() => setShowQuestionBank(false)} data-id="viylgv3pn" data-path="src/components/AdminDashboard.tsx" />;
   }
 
   return (
@@ -405,7 +409,8 @@ const AdminDashboard: React.FC = () => {
             <div className="space-y-6" data-id="3riy9xrl1" data-path="src/components/AdminDashboard.tsx">
               {/* Statistics Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" data-id="f1lzdf8m0" data-path="src/components/AdminDashboard.tsx">
-                <Card className="bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200" data-id="s5z7wkw1r" data-path="src/components/AdminDashboard.tsx">
+                
+                {/* <Card className="bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200" data-id="s5z7wkw1r" data-path="src/components/AdminDashboard.tsx">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2" data-id="6rvlspzlv" data-path="src/components/AdminDashboard.tsx">
                     <CardTitle className="text-sm font-medium text-blue-800" data-id="6xxk38u23" data-path="src/components/AdminDashboard.tsx">Total Exams</CardTitle>
                     <div className="h-8 w-8 bg-blue-500 rounded-full flex items-center justify-center" data-id="za698udhb" data-path="src/components/AdminDashboard.tsx">
@@ -416,7 +421,21 @@ const AdminDashboard: React.FC = () => {
                     <div className="text-2xl font-bold text-blue-900" data-id="7xuzewo68" data-path="src/components/AdminDashboard.tsx">{exams.length}</div>
                     <p className="text-xs text-blue-600 mt-1" data-id="1h0zeldzj" data-path="src/components/AdminDashboard.tsx">All created exams</p>
                   </CardContent>
+                </Card> */}
+
+                <Card className="bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200" data-id="s5z7wkw1r" data-path="src/components/AdminDashboard.tsx">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2" data-id="6rvlspzlv" data-path="src/components/AdminDashboard.tsx">
+                    <CardTitle className="text-sm font-medium text-blue-800" data-id="6xxk38u23" data-path="src/components/AdminDashboard.tsx">Total Students</CardTitle>
+                    <div className="h-8 w-8 bg-blue-500 rounded-full flex items-center justify-center" data-id="za698udhb" data-path="src/components/AdminDashboard.tsx">
+                      <Users className="h-4 w-4 text-white" data-id="mz4npxq6m" data-path="src/components/AdminDashboard.tsx" />
+                    </div>
+                  </CardHeader>
+                  <CardContent data-id="afi2wbc6u" data-path="src/components/AdminDashboard.tsx">
+                    <div className="text-2xl font-bold text-blue-900" data-id="7xuzewo68" data-path="src/components/AdminDashboard.tsx">{userStats?.totalStudents || 0}</div>
+                    <p className="text-xs text-blue-600 mt-1" data-id="1h0zeldzj" data-path="src/components/AdminDashboard.tsx">In the system</p>
+                  </CardContent>
                 </Card>
+
                 <Card className="bg-gradient-to-r from-green-50 to-green-100 border-green-200" data-id="lx7yrct4f" data-path="src/components/AdminDashboard.tsx">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2" data-id="rbagywiu2" data-path="src/components/AdminDashboard.tsx">
                     <CardTitle className="text-sm font-medium text-green-800" data-id="jbj8g1405" data-path="src/components/AdminDashboard.tsx">Published</CardTitle>
@@ -429,6 +448,7 @@ const AdminDashboard: React.FC = () => {
                     <p className="text-xs text-green-600 mt-1" data-id="onlun1dmf" data-path="src/components/AdminDashboard.tsx">Active exams</p>
                   </CardContent>
                 </Card>
+
                 <Card className="bg-gradient-to-r from-yellow-50 to-yellow-100 border-yellow-200" data-id="c4l8jstmq" data-path="src/components/AdminDashboard.tsx">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2" data-id="6jo8uxocl" data-path="src/components/AdminDashboard.tsx">
                     <CardTitle className="text-sm font-medium text-yellow-800" data-id="skg2ne28o" data-path="src/components/AdminDashboard.tsx">Draft</CardTitle>
@@ -441,6 +461,7 @@ const AdminDashboard: React.FC = () => {
                     <p className="text-xs text-yellow-600 mt-1" data-id="32q91opc6" data-path="src/components/AdminDashboard.tsx">Pending exams</p>
                   </CardContent>
                 </Card>
+
                 <Card className="bg-gradient-to-r from-purple-50 to-purple-100 border-purple-200" data-id="v9a1ijkia" data-path="src/components/AdminDashboard.tsx">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2" data-id="1qg0floo8" data-path="src/components/AdminDashboard.tsx">
                     <CardTitle className="text-sm font-medium text-purple-800" data-id="4i0l0gma7" data-path="src/components/AdminDashboard.tsx">Questions</CardTitle>
@@ -450,7 +471,7 @@ const AdminDashboard: React.FC = () => {
                   </CardHeader>
                   <CardContent data-id="rbt7czok4" data-path="src/components/AdminDashboard.tsx">
                     <div className="text-2xl font-bold text-purple-900" data-id="2n0obf6td" data-path="src/components/AdminDashboard.tsx">{questions.length}</div>
-                    <p className="text-xs text-purple-600 mt-1" data-id="53o92lowk" data-path="src/components/AdminDashboard.tsx">Question bank</p>
+                    <p className="text-xs text-purple-600 mt-1" data-id="53o92lowk" data-path="src/components/AdminDashboard.tsx">In question bank</p>
                   </CardContent>
                 </Card>
               </div>

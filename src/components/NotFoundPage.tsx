@@ -1,18 +1,21 @@
-'use client';
+"use client";
 
+import React from "react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 
-const NotFound = () => {
+export function NotFoundPage() {
   const pathname = usePathname();
 
   useEffect(() => {
-    console.error("404 Error: User attempted to access non-existent route:", pathname);
+    console.error(
+      "404 Error: User attempted to access non-existent route:",
+      pathname
+    );
   }, [pathname]);
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
       <motion.div
@@ -35,7 +38,9 @@ const NotFound = () => {
           transition={{ duration: 0.5, delay: 0.4 }}
           className="space-y-4"
         >
-          <h2 className="text-2xl font-semibold tracking-tight">Page Not Found</h2>
+          <h2 className="text-2xl font-semibold tracking-tight">
+            Page Not Found
+          </h2>
           <p className="text-muted-foreground">
             Sorry, the page you are looking for does not exist.
           </p>
@@ -53,7 +58,4 @@ const NotFound = () => {
       </motion.div>
     </div>
   );
-};
-
-export default NotFound;
-// This component handles the 404 Not Found page with animations and logging.
+}

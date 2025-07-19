@@ -907,14 +907,14 @@ export const mockDataService = {
       );
     }
     const newQuestion = {
-      id: uuidv4(),
-      difficulty: "medium",
-      subject: "",
-      topic: "",
-      tags: [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
       ...question,
+      id: uuidv4(),
+      difficulty: question.difficulty || "medium",
+      subject: question.subject || "",
+      topic: question.topic || "",
+      tags: question.tags || [],
+      createdAt: new Date(),
+      updatedAt: new Date()
     } as Question;
     mockQuestions.push(newQuestion);
     return Promise.resolve(newQuestion);

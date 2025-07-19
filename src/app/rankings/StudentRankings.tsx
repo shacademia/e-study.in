@@ -219,7 +219,13 @@ const StudentRankings: React.FC = () => {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => router.push("/dashboard")}
+                onClick={() => {
+                  if (user?.role === "admin") {
+                    router.push("/admin/dashboard");
+                  } else {
+                    router.push("/student/dashboard");
+                  }
+                }}
                 className="mr-4"
                 data-id="0yjyp3nuq"
                 data-path="src/components/StudentRankings.tsx"
@@ -365,11 +371,10 @@ const StudentRankings: React.FC = () => {
                         key={ranking.id}
                         className={`flex items-center justify-between p-4 rounded-lg transition-all duration-200 hover:shadow-md ${getCardBorder(
                           ranking.rank
-                        )} ${
-                          ranking.userId === user?.id
+                        )} ${ranking.userId === user?.id
                             ? "ring-2 ring-blue-400"
                             : ""
-                        }`}
+                          }`}
                         data-id="sfwsh8wyw"
                         data-path="src/components/StudentRankings.tsx"
                       >
@@ -421,19 +426,18 @@ const StudentRankings: React.FC = () => {
                               {ranking.rank <= 3 && (
                                 <Badge
                                   variant="outline"
-                                  className={`ml-2 ${
-                                    ranking.rank === 1
+                                  className={`ml-2 ${ranking.rank === 1
                                       ? "border-yellow-400 text-yellow-600"
                                       : ranking.rank === 2
-                                      ? "border-gray-400 text-gray-600"
-                                      : "border-amber-400 text-amber-600"
-                                  }`}
+                                        ? "border-gray-400 text-gray-600"
+                                        : "border-amber-400 text-amber-600"
+                                    }`}
                                 >
                                   {ranking.rank === 1
                                     ? "Gold"
                                     : ranking.rank === 2
-                                    ? "Silver"
-                                    : "Bronze"}
+                                      ? "Silver"
+                                      : "Bronze"}
                                 </Badge>
                               )}
                             </div>
@@ -532,11 +536,10 @@ const StudentRankings: React.FC = () => {
                           key={ranking.id}
                           className={`flex items-center justify-between p-4 rounded-lg transition-all duration-200 hover:shadow-md ${getCardBorder(
                             ranking.rank
-                          )} ${
-                            ranking.userId === user?.id
+                          )} ${ranking.userId === user?.id
                               ? "ring-2 ring-blue-400"
                               : ""
-                          }`}
+                            }`}
                           data-id="hsbhrxaeo"
                           data-path="src/components/StudentRankings.tsx"
                         >
@@ -580,7 +583,7 @@ const StudentRankings: React.FC = () => {
                               data-id="m762mw3zw"
                               data-path="src/components/StudentRankings.tsx"
                             >
-                              <p
+                              <div
                                 className="font-medium text-gray-900 flex items-center"
                                 data-id="i5ebr66we"
                                 data-path="src/components/StudentRankings.tsx"
@@ -599,24 +602,23 @@ const StudentRankings: React.FC = () => {
                                 {ranking.rank <= 3 && (
                                   <Badge
                                     variant="outline"
-                                    className={`ml-2 ${
-                                      ranking.rank === 1
+                                    className={`ml-2 ${ranking.rank === 1
                                         ? "border-yellow-400 text-yellow-600"
                                         : ranking.rank === 2
-                                        ? "border-gray-400 text-gray-600"
-                                        : "border-amber-400 text-amber-600"
-                                    }`}
+                                          ? "border-gray-400 text-gray-600"
+                                          : "border-amber-400 text-amber-600"
+                                      }`}
                                     data-id="2r11u7rii"
                                     data-path="src/components/StudentRankings.tsx"
                                   >
                                     {ranking.rank === 1
                                       ? "Gold"
                                       : ranking.rank === 2
-                                      ? "Silver"
-                                      : "Bronze"}
+                                        ? "Silver"
+                                        : "Bronze"}
                                   </Badge>
                                 )}
-                              </p>
+                              </div>
                               <p
                                 className="text-sm text-gray-600"
                                 data-id="6eykcovqu"

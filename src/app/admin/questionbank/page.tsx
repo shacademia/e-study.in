@@ -1,17 +1,17 @@
 'use client';
 
 import React from 'react';
-import QuestionBank from './QuestionBank';
+import EnhancedQuestionBank from './EnhancedQuestionBank';
 
 import { useRouter } from 'next/navigation';
 
-const QuestionBankPage = () => {
+const EnhancedQuestionBankPage = () => {
   const router = useRouter();
 
   const handleBack = () => {
     router.back(); // Navigates to the previous page
   };
 
-  return <QuestionBank onBack={handleBack} />;
+  return <EnhancedQuestionBank onBack={handleBack} />;
 };
-export default QuestionBankPage;
+export default EnhancedQuestionBankPage;

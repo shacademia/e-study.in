@@ -2,14 +2,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-// import { CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+// import { CardDescription } from '@/components/ui/card';
+// import { Checkbox } from '@/components/ui/checkbox';
 // import { DialogTrigger } from '@/components/ui/dialog';
 // import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 // import { Switch } from '@/components/ui/switch';
@@ -22,25 +22,26 @@ import {
   Edit,
   Trash2,
   Upload,
-  Download,
   BookOpen,
   Tag,
   CheckCircle,
-  Eye,
   SortAsc,
   SortDesc,
   Grid,
   List,
   RefreshCw,
+  Undo2,
+  // Download,
   // FileText,
   // Target,
   // Star,
   // Share2,
   Clock,
-  Copy } from
-'lucide-react';
+  Copy
+} from
+  'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { mockDataService, Question } from '../../../services/mockData';
+import { mockDataService, Question } from '@services/mockData';
 
 interface QuestionFilters {
   subject: string;
@@ -71,13 +72,14 @@ interface NewQuestion {
 
 const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
   onBack,
-  onSelectQuestions,
-  multiSelect = false,
-  preSelectedQuestions = []
+  // onSelectQuestions,
+  // multiSelect = false,
+  // preSelectedQuestions = []
 }) => {
+  // const [selectedQuestions, setSelectedQuestions] = useState<Set<string>>(new Set(preSelectedQuestions));
+  const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [filteredQuestions, setFilteredQuestions] = useState<Question[]>([]);
-  const [selectedQuestions, setSelectedQuestions] = useState<Set<string>>(new Set(preSelectedQuestions));
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState<QuestionFilters>({
     subject: 'all',
@@ -96,14 +98,14 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
 
   // New question form state
   const [newQuestion, setNewQuestion] = useState<NewQuestion>({
-  content: '',
-  options: ['', '', '', ''],
-  correctOption: 0,
-  subject: '',
-  topic: '',
-  difficulty: 'easy',
-  tags: ''
-});
+    content: '',
+    options: ['', '', '', ''],
+    correctOption: 0,
+    subject: '',
+    topic: '',
+    difficulty: 'easy',
+    tags: ''
+  });
 
   // Available options for filters
   const [subjects, setSubjects] = useState<string[]>([]);
@@ -129,6 +131,7 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
       setTopics(uniqueTopics);
       setAllTags(uniqueTags);
     } catch (error) {
+      console.error('Failed to load questions:', error);
       toast({
         title: 'Error',
         description: 'Failed to load questions',
@@ -140,94 +143,101 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
   };
 
   const applyFilters = useCallback(() => {
-  let filtered = questions;
+    let filtered = questions;
 
-  if (searchTerm) {
-    filtered = filtered.filter((q) =>
-      q.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      q.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      q.topic.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      q.tags.some((tag) => tag.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
-  }
-
-  if (filters.subject !== 'all') {
-    filtered = filtered.filter((q) => q.subject === filters.subject);
-  }
-
-  if (filters.difficulty !== 'all') {
-    filtered = filtered.filter((q) => q.difficulty === filters.difficulty);
-  }
-
-  if (filters.topic !== 'all') {
-    filtered = filtered.filter((q) => q.topic === filters.topic);
-  }
-
-  if (filters.tags.length > 0) {
-    filtered = filtered.filter((q) =>
-      filters.tags.some((tag) => q.tags.includes(tag))
-    );
-  }
-
-  filtered.sort((a, b) => {
-    let aValue: number | string, bValue: number | string;
-
-    switch (sortBy) {
-      case 'date':
-        aValue = new Date(a.createdAt).getTime();
-        bValue = new Date(b.createdAt).getTime();
-        break;
-      case 'difficulty':
-        const difficultyOrder = { easy: 1, medium: 2, hard: 3 };
-        aValue = difficultyOrder[a.difficulty];
-        bValue = difficultyOrder[b.difficulty];
-        break;
-      case 'subject':
-        aValue = a.subject.toLowerCase();
-        bValue = b.subject.toLowerCase();
-        break;
-      case 'topic':
-        aValue = a.topic.toLowerCase();
-        bValue = b.topic.toLowerCase();
-        break;
-      default:
-        return 0;
+    if (searchTerm) {
+      filtered = filtered.filter((q) =>
+        q.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        q.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        q.topic.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        q.tags.some((tag) => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+      );
     }
 
-    return sortOrder === 'asc' ? (aValue > bValue ? 1 : -1) : (aValue < bValue ? 1 : -1);
-  });
+    if (filters.subject !== 'all') {
+      filtered = filtered.filter((q) => q.subject === filters.subject);
+    }
 
-  setFilteredQuestions(filtered);
+    if (filters.difficulty !== 'all') {
+      filtered = filtered.filter((q) => q.difficulty === filters.difficulty);
+    }
+
+    if (filters.topic !== 'all') {
+      filtered = filtered.filter((q) => q.topic === filters.topic);
+    }
+
+    if (filters.tags.length > 0) {
+      filtered = filtered.filter((q) =>
+        filters.tags.some((tag) => q.tags.includes(tag))
+      );
+    }
+
+    filtered.sort((a, b) => {
+      let aValue: number | string, bValue: number | string;
+
+      switch (sortBy) {
+        case 'date':
+          aValue = new Date(a.createdAt).getTime();
+          bValue = new Date(b.createdAt).getTime();
+          break;
+        case 'difficulty':
+          const difficultyOrder = { easy: 1, medium: 2, hard: 3 };
+          aValue = difficultyOrder[a.difficulty];
+          bValue = difficultyOrder[b.difficulty];
+          break;
+        case 'subject':
+          aValue = a.subject.toLowerCase();
+          bValue = b.subject.toLowerCase();
+          break;
+        case 'topic':
+          aValue = a.topic.toLowerCase();
+          bValue = b.topic.toLowerCase();
+          break;
+        default:
+          return 0;
+      }
+
+      return sortOrder === 'asc' ? (aValue > bValue ? 1 : -1) : (aValue < bValue ? 1 : -1);
+    });
+
+    setFilteredQuestions(filtered);
   }, [questions, searchTerm, filters, sortBy, sortOrder]);
 
   useEffect(() => {
     applyFilters();
   }, [applyFilters]);
 
-  const handleSelectQuestion = (questionId: string) => {
-    setSelectedQuestions((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(questionId)) {
-        newSet.delete(questionId);
-      } else {
-        if (multiSelect) {
-          newSet.add(questionId);
-        } else {
-          newSet.clear();
-          newSet.add(questionId);
-        }
-      }
-      return newSet;
-    });
-  };
+  // const handleSelectQuestion = (questionId: string) => {
+  //   setSelectedQuestions((prev) => {
+  //     const newSet = new Set(prev);
+  //     if (newSet.has(questionId)) {
+  //       newSet.delete(questionId);
+  //     } else {
+  //       if (multiSelect) {
+  //         newSet.add(questionId);
+  //       } else {
+  //         newSet.clear();
+  //         newSet.add(questionId);
+  //       }
+  //     }
+  //     return newSet;
+  //   });
+  // };
 
-  const handleSelectAll = () => {
-    if (selectedQuestions.size === filteredQuestions.length) {
-      setSelectedQuestions(new Set());
-    } else {
-      setSelectedQuestions(new Set(filteredQuestions.map((q) => q.id)));
-    }
-  };
+  // const handleSelectAll = () => {
+  //   if (selectedQuestions.size === filteredQuestions.length) {
+  //     setSelectedQuestions(new Set());
+  //   } else {
+  //     setSelectedQuestions(new Set(filteredQuestions.map((q) => q.id)));
+  //   }
+  // };
+
+  // const handleUseSelectedQuestions = () => {
+  //   const selectedQuestionObjects = questions.filter((q) => selectedQuestions.has(q.id));
+  //   if (onSelectQuestions) {
+  //     onSelectQuestions(selectedQuestionObjects);
+  //   }
+  // };
 
   const handleAddQuestion = async () => {
     try {
@@ -260,6 +270,7 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
       setShowAddQuestion(false);
       loadQuestions();
     } catch (error) {
+      console.error('Failed to add question:', error);
       toast({
         title: 'Error',
         description: 'Failed to add question',
@@ -270,13 +281,36 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
 
   const handleDeleteQuestion = async (questionId: string) => {
     try {
-      await mockDataService.deleteQuestion(questionId);
+      // Optimistically remove from UI
+      const questionToDelete = questions.find((q) => q.id === questionId);
+      if (!questionToDelete) return;
+
+      setQuestions((prev) => prev.filter((q) => q.id !== questionId));
+
+      const deletedQuestion = await mockDataService.deleteQuestion(questionId);
+
       toast({
-        title: 'Success',
-        description: 'Question deleted successfully'
+        title: 'Question Deleted',
+        description: `"${deletedQuestion.content.substring(0, 50)}..." was deleted.`,
+        action: (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleUndoDeleteQuestion}
+            className="ml-2"
+          >
+            <Undo2 className="h-4 w-4 mr-1" />
+            Undo
+          </Button>
+        )
       });
-      loadQuestions();
     } catch (error) {
+      console.error("Failed to delete question:", error);
+
+      // Reload on failure
+      const questionData = await mockDataService.getQuestions();
+      setQuestions(questionData);
+
       toast({
         title: 'Error',
         description: 'Failed to delete question',
@@ -285,12 +319,89 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
     }
   };
 
+  const handleUndoDeleteQuestion = async () => {
+    try {
+      const restoredQuestion = await mockDataService.undoDeleteQuestion();
+
+      // setQuestions([...questions, restoredQuestion]);
+      setQuestions(prev => [...prev, restoredQuestion]);
+
+      toast({
+        title: 'Question Restored',
+        description: `"${restoredQuestion.content.substring(0, 50)}..." was restored`
+      });
+    } catch (error) {
+      console.error("Failed to restore question:", error);
+      toast({
+        title: 'Error',
+        description: 'Failed to restore question',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const handleDuplicateQuestion = async (questionId: string) => {
+    try {
+      const duplicatedQuestion = await mockDataService.duplicateQuestion(questionId);
+
+      // setQuestions([...questions, duplicatedQuestion]);
+      setQuestions(prev => [...prev, duplicatedQuestion]);
+
+      toast({
+        title: 'Success',
+        description: 'Question duplicated successfully'
+      });
+    } catch (error) {
+      console.error("Failed to duplicate question:", error);
+      // Revert on error
+      const questionData = await mockDataService.getQuestions();
+      setQuestions(questionData);
+      toast({
+        title: 'Error',
+        description: 'Failed to duplicate question',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const handleEditQuestion = async (id: string, updates: Partial<Question>) => {
+    try {
+      const updated = await mockDataService.updateQuestion(id, updates);
+
+      setQuestions((prev) => {
+        const index = prev.findIndex((q) => q.id === id);
+        if (index === -1) return prev;
+
+        const updatedList = [...prev];
+        updatedList[index] = { ...prev[index], ...updated, updatedAt: new Date() };
+
+        return updatedList;
+      });
+
+      toast({
+        title: "Updated",
+        description: "Question updated successfully"
+      });
+
+      setEditingQuestion(null);
+      setShowAddQuestion(false);
+    } catch (error) {
+      console.error("Failed to edit question:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update question",
+        variant: "destructive"
+      });
+    }
+  };
+
+
   const handleTagFilter = (tag: string) => {
     setFilters((prev) => ({
       ...prev,
       tags: prev.tags.includes(tag) ?
-      prev.tags.filter((t) => t !== tag) :
-      [...prev.tags, tag]
+        prev.tags.filter((t) => t !== tag) :
+        [...prev.tags, tag]
     }));
   };
 
@@ -303,13 +414,6 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
       dateRange: 'all'
     });
     setSearchTerm('');
-  };
-
-  const handleUseSelectedQuestions = () => {
-    const selectedQuestionObjects = questions.filter((q) => selectedQuestions.has(q.id));
-    if (onSelectQuestions) {
-      onSelectQuestions(selectedQuestionObjects);
-    }
   };
 
   const getDifficultyColor = (difficulty: string) => {
@@ -394,7 +498,7 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" data-id="iti4t06p9" data-path="src/components/EnhancedQuestionBank.tsx">
+      <div className="w-full mx-auto px-14 py-8" data-id="iti4t06p9" data-path="src/components/EnhancedQuestionBank.tsx">
         <div className="space-y-6" data-id="jbrh3f8ba" data-path="src/components/EnhancedQuestionBank.tsx">
           {/* Enhanced Search and Filters */}
           <Card data-id="76t8d1wft" data-path="src/components/EnhancedQuestionBank.tsx">
@@ -415,7 +519,7 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
                   </Button>
                   <Button variant="outline" size="sm" onClick={clearFilters} data-id="vrphz3o0f" data-path="src/components/EnhancedQuestionBank.tsx">
                     <RefreshCw className="h-4 w-4 mr-2" data-id="w8ot30r0d" data-path="src/components/EnhancedQuestionBank.tsx" />
-                    Clear
+                    Clear Filters
                   </Button>
                 </div>
               </div>
@@ -434,7 +538,7 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
 
               {/* Advanced Filters */}
               {showFilters &&
-              <div className="space-y-4" data-id="teulaprj8" data-path="src/components/EnhancedQuestionBank.tsx">
+                <div className="space-y-4" data-id="teulaprj8" data-path="src/components/EnhancedQuestionBank.tsx">
                   <div className="grid grid-cols-1 md:grid-cols-5 gap-4" data-id="rp4j0b0rl" data-path="src/components/EnhancedQuestionBank.tsx">
                     <Select value={filters.subject} onValueChange={(value) => setFilters({ ...filters, subject: value })} data-id="5lhiyhtxj" data-path="src/components/EnhancedQuestionBank.tsx">
                       <SelectTrigger data-id="jh24u9afx" data-path="src/components/EnhancedQuestionBank.tsx">
@@ -443,8 +547,8 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
                       <SelectContent data-id="xbub134mn" data-path="src/components/EnhancedQuestionBank.tsx">
                         <SelectItem value="all" data-id="ua6ypfbbt" data-path="src/components/EnhancedQuestionBank.tsx">All Subjects</SelectItem>
                         {subjects.map((subject) =>
-                      <SelectItem key={subject} value={subject} data-id="8jilwtf56" data-path="src/components/EnhancedQuestionBank.tsx">{subject}</SelectItem>
-                      )}
+                          <SelectItem key={subject} value={subject} data-id="8jilwtf56" data-path="src/components/EnhancedQuestionBank.tsx">{subject}</SelectItem>
+                        )}
                       </SelectContent>
                     </Select>
 
@@ -467,8 +571,8 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
                       <SelectContent data-id="l8l7mwiim" data-path="src/components/EnhancedQuestionBank.tsx">
                         <SelectItem value="all" data-id="1efk0ic42" data-path="src/components/EnhancedQuestionBank.tsx">All Topics</SelectItem>
                         {topics.map((topic) =>
-                      <SelectItem key={topic} value={topic} data-id="0cciyz9ec" data-path="src/components/EnhancedQuestionBank.tsx">{topic}</SelectItem>
-                      )}
+                          <SelectItem key={topic} value={topic} data-id="0cciyz9ec" data-path="src/components/EnhancedQuestionBank.tsx">{topic}</SelectItem>
+                        )}
                       </SelectContent>
                     </Select>
 
@@ -485,14 +589,14 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
                     </Select>
 
                     <Button
-                    variant="outline"
-                    onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')} data-id="s8sbgi24h" data-path="src/components/EnhancedQuestionBank.tsx">
+                      variant="outline"
+                      onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')} data-id="s8sbgi24h" data-path="src/components/EnhancedQuestionBank.tsx">
 
                       {sortOrder === 'asc' ?
-                    <SortAsc className="h-4 w-4 mr-2" data-id="iqwrx2nyi" data-path="src/components/EnhancedQuestionBank.tsx" /> :
+                        <SortAsc className="h-4 w-4 mr-2" data-id="iqwrx2nyi" data-path="src/components/EnhancedQuestionBank.tsx" /> :
 
-                    <SortDesc className="h-4 w-4 mr-2" data-id="npc6q7lds" data-path="src/components/EnhancedQuestionBank.tsx" />
-                    }
+                        <SortDesc className="h-4 w-4 mr-2" data-id="npc6q7lds" data-path="src/components/EnhancedQuestionBank.tsx" />
+                      }
                       {sortOrder === 'asc' ? 'Ascending' : 'Descending'}
                     </Button>
                   </div>
@@ -502,16 +606,16 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
                     <Label className="text-sm font-medium mb-2 block" data-id="tcox3rykj" data-path="src/components/EnhancedQuestionBank.tsx">Filter by Tags:</Label>
                     <div className="flex flex-wrap gap-2" data-id="x0ee9vgek" data-path="src/components/EnhancedQuestionBank.tsx">
                       {allTags.map((tag) =>
-                    <Button
-                      key={tag}
-                      variant={filters.tags.includes(tag) ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => handleTagFilter(tag)} data-id="e3x3wwy39" data-path="src/components/EnhancedQuestionBank.tsx">
+                        <Button
+                          key={tag}
+                          variant={filters.tags.includes(tag) ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => handleTagFilter(tag)} data-id="e3x3wwy39" data-path="src/components/EnhancedQuestionBank.tsx">
 
                           <Tag className="h-3 w-3 mr-1" data-id="yr7qty3oc" data-path="src/components/EnhancedQuestionBank.tsx" />
                           {tag}
                         </Button>
-                    )}
+                      )}
                     </div>
                   </div>
                 </div>
@@ -520,7 +624,7 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
           </Card>
 
           {/* Selection Actions */}
-          {selectedQuestions.size > 0 &&
+          {/* {selectedQuestions.size > 0 &&
           <Card data-id="wt1ov5ilm" data-path="src/components/EnhancedQuestionBank.tsx">
               <CardContent className="py-4" data-id="4n7gglfex" data-path="src/components/EnhancedQuestionBank.tsx">
                 <div className="flex items-center justify-between" data-id="5dwrfgzk8" data-path="src/components/EnhancedQuestionBank.tsx">
@@ -563,19 +667,157 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
                 </div>
               </CardContent>
             </Card>
-          }
+          } */}
+
+          <Dialog open={!!editingQuestion} onOpenChange={() => setEditingQuestion(null)}>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Edit Question</DialogTitle>
+              </DialogHeader>
+
+              {editingQuestion && (
+                <div className="space-y-4">
+                  {/* Question Text */}
+                  <div>
+                    <Label htmlFor="question-content">Question</Label>
+                    <Textarea
+                      id="question-content"
+                      value={editingQuestion.content}
+                      onChange={(e) =>
+                        setEditingQuestion({ ...editingQuestion, content: e.target.value })
+                      }
+                      placeholder="Enter question here..."
+                    />
+                  </div>
+
+                  {/* Options */}
+                  <div className="grid grid-cols-2 gap-4">
+                    {editingQuestion.options.map((option, index) => (
+                      <div key={index}>
+                        <Label htmlFor={`option-${index}`}>
+                          Option {String.fromCharCode(65 + index)}
+                          {index === editingQuestion.correctOption && (
+                            <Badge className="ml-2 bg-green-100 text-green-800">Correct</Badge>
+                          )}
+                        </Label>
+                        <Input
+                          id={`option-${index}`}
+                          value={option}
+                          onChange={(e) => {
+                            const newOptions = [...editingQuestion.options];
+                            newOptions[index] = e.target.value;
+                            setEditingQuestion({ ...editingQuestion, options: newOptions });
+                          }}
+                          placeholder={`Option ${String.fromCharCode(65 + index)}`}
+                        />
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Correct Option */}
+                  <div>
+                    <Label>Correct Answer</Label>
+                    <Select
+                      value={editingQuestion.correctOption.toString()}
+                      onValueChange={(value) =>
+                        setEditingQuestion({
+                          ...editingQuestion,
+                          correctOption: parseInt(value),
+                        })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {editingQuestion.options.map((_, index) => (
+                          <SelectItem key={index} value={index.toString()}>
+                            Option {String.fromCharCode(65 + index)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Subject, Topic, Difficulty */}
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <Label htmlFor="subject">Subject</Label>
+                      <Input
+                        id="subject"
+                        value={editingQuestion.subject}
+                        onChange={(e) =>
+                          setEditingQuestion({ ...editingQuestion, subject: e.target.value })
+                        }
+                        placeholder="e.g., Mathematics"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="topic">Topic</Label>
+                      <Input
+                        id="topic"
+                        value={editingQuestion.topic}
+                        onChange={(e) =>
+                          setEditingQuestion({ ...editingQuestion, topic: e.target.value })
+                        }
+                        placeholder="e.g., Algebra"
+                      />
+                    </div>
+                    <div>
+                      <Label>Difficulty</Label>
+                      <Select
+                        value={editingQuestion.difficulty}
+                        onValueChange={(value) =>
+                          setEditingQuestion({ ...editingQuestion, difficulty: value as "easy" | "medium" | "hard" })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="easy">Easy</SelectItem>
+                          <SelectItem value="medium">Medium</SelectItem>
+                          <SelectItem value="hard">Hard</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Submit Button */}
+                  <Button
+                    className="w-full"
+                    onClick={() => {
+                      if (!editingQuestion) return;
+                      handleEditQuestion(editingQuestion.id, {
+                        content: editingQuestion.content,
+                        options: editingQuestion.options,
+                        correctOption: editingQuestion.correctOption,
+                        subject: editingQuestion.subject,
+                        topic: editingQuestion.topic,
+                        difficulty: editingQuestion.difficulty,
+                        tags: editingQuestion.tags,
+                      });
+                      setEditingQuestion(null);
+                    }}
+                  >
+                    Update Question
+                  </Button>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
 
           {/* Questions List */}
           <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4' : 'space-y-4'} data-id="vbe5615ta" data-path="src/components/EnhancedQuestionBank.tsx">
             {filteredQuestions.map((question) =>
-            <Card key={question.id} className="hover:shadow-lg transition-shadow" data-id="xgr0onlv4" data-path="src/components/EnhancedQuestionBank.tsx">
+              <Card key={question.id} className="hover:shadow-lg transition-shadow" data-id="xgr0onlv4" data-path="src/components/EnhancedQuestionBank.tsx">
                 <CardContent className="p-6" data-id="1levke2ps" data-path="src/components/EnhancedQuestionBank.tsx">
                   <div className="flex items-start space-x-4" data-id="6wiz8x58y" data-path="src/components/EnhancedQuestionBank.tsx">
-                    <Checkbox
+                    {/* <Checkbox
                     checked={selectedQuestions.has(question.id)}
-                    onCheckedChange={() => handleSelectQuestion(question.id)} data-id="a99l21ayp" data-path="src/components/EnhancedQuestionBank.tsx" />
+                    onCheckedChange={() => handleSelectQuestion(question.id)} data-id="a99l21ayp" data-path="src/components/EnhancedQuestionBank.tsx" 
+                    /> */}
 
-                    
                     <div className="flex-1" data-id="ng6ahwu3l" data-path="src/components/EnhancedQuestionBank.tsx">
                       <div className="flex items-center justify-between mb-2" data-id="4pjvrz3a3" data-path="src/components/EnhancedQuestionBank.tsx">
                         <div className="flex items-center space-x-2" data-id="f7magd3pn" data-path="src/components/EnhancedQuestionBank.tsx">
@@ -587,41 +829,43 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
                           </Badge>
                           <Badge variant="outline" data-id="38w6514om" data-path="src/components/EnhancedQuestionBank.tsx">{question.topic}</Badge>
                         </div>
+
                         <div className="flex items-center space-x-2" data-id="1pvfhl2ad" data-path="src/components/EnhancedQuestionBank.tsx">
-                          <Button variant="ghost" size="sm" data-id="d32z1saee" data-path="src/components/EnhancedQuestionBank.tsx">
-                            <Eye className="h-4 w-4" data-id="fsigfqpvg" data-path="src/components/EnhancedQuestionBank.tsx" />
+                          <Button variant="ghost" size="sm" onClick={() => handleDuplicateQuestion(question.id)} data-id="n8xjrp414" data-path="src/components/EnhancedQuestionBank.tsx">
+                            <Copy className="h-4 w-4" data-id="k0tskqwh9" data-path="src/components/EnhancedQuestionBank.tsx" />
                           </Button>
-                          <Button variant="ghost" size="sm" data-id="a6xmu57kx" data-path="src/components/EnhancedQuestionBank.tsx">
+
+                          <Button variant="ghost" size="sm" onClick={() => setEditingQuestion(question)} data-id="a6xmu57kx" data-path="src/components/EnhancedQuestionBank.tsx">
                             <Edit className="h-4 w-4" data-id="l7a5uj3tu" data-path="src/components/EnhancedQuestionBank.tsx" />
                           </Button>
+
                           <Button variant="ghost" size="sm" onClick={() => handleDeleteQuestion(question.id)} data-id="wb3u6wxwg" data-path="src/components/EnhancedQuestionBank.tsx">
                             <Trash2 className="h-4 w-4" data-id="plm03ky1o" data-path="src/components/EnhancedQuestionBank.tsx" />
                           </Button>
                         </div>
                       </div>
-                      
+
                       <h3 className="font-medium text-gray-900 mb-3 line-clamp-2" data-id="znv9ei6xb" data-path="src/components/EnhancedQuestionBank.tsx">
                         {question.content}
                       </h3>
-                      
+
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-3" data-id="q5kkiea0z" data-path="src/components/EnhancedQuestionBank.tsx">
                         {question.options.map((option, index) =>
-                      <div
-                        key={index}
-                        className={`p-2 rounded border text-sm ${
-                        index === question.correctOption ?
-                        'bg-green-50 border-green-200 text-green-800' :
-                        'bg-gray-50 border-gray-200'}`
-                        } data-id="vjx0xide6" data-path="src/components/EnhancedQuestionBank.tsx">
+                          <div
+                            key={index}
+                            className={`p-2 rounded border text-sm ${index === question.correctOption ?
+                                'bg-green-50 border-green-200 text-green-800' :
+                                'bg-gray-50 border-gray-200'}`
+                            } data-id="vjx0xide6" data-path="src/components/EnhancedQuestionBank.tsx">
 
                             {String.fromCharCode(65 + index)}. {option}
                             {index === question.correctOption &&
-                        <CheckCircle className="h-4 w-4 inline ml-2 text-green-600" data-id="ydylwcepy" data-path="src/components/EnhancedQuestionBank.tsx" />
-                        }
+                              <CheckCircle className="h-4 w-4 inline ml-2 text-green-600" data-id="ydylwcepy" data-path="src/components/EnhancedQuestionBank.tsx" />
+                            }
                           </div>
-                      )}
+                        )}
                       </div>
-                      
+
                       <div className="flex items-center justify-between text-sm text-gray-500" data-id="iocqb72t8" data-path="src/components/EnhancedQuestionBank.tsx">
                         <div className="flex items-center space-x-2" data-id="9golfccan" data-path="src/components/EnhancedQuestionBank.tsx">
                           <Tag className="h-3 w-3" data-id="jxsuosppo" data-path="src/components/EnhancedQuestionBank.tsx" />
@@ -640,7 +884,7 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
           </div>
 
           {filteredQuestions.length === 0 &&
-          <Card data-id="8i6oto51m" data-path="src/components/EnhancedQuestionBank.tsx">
+            <Card data-id="8i6oto51m" data-path="src/components/EnhancedQuestionBank.tsx">
               <CardContent className="text-center py-8" data-id="8851jtvyj" data-path="src/components/EnhancedQuestionBank.tsx">
                 <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" data-id="454n09i5l" data-path="src/components/EnhancedQuestionBank.tsx" />
                 <p className="text-gray-600" data-id="1neoh0ydb" data-path="src/components/EnhancedQuestionBank.tsx">No questions found matching your criteria</p>
@@ -672,30 +916,30 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
                 onChange={(e) => setNewQuestion({ ...newQuestion, content: e.target.value })} data-id="khdlaiz6z" data-path="src/components/EnhancedQuestionBank.tsx" />
 
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4" data-id="c5yraa7mw" data-path="src/components/EnhancedQuestionBank.tsx">
               {newQuestion.options.map((option, index) =>
-              <div key={index} data-id="6hrq39a75" data-path="src/components/EnhancedQuestionBank.tsx">
+                <div key={index} data-id="6hrq39a75" data-path="src/components/EnhancedQuestionBank.tsx">
                   <Label htmlFor={`option-${index}`} data-id="eyxhdtu2z" data-path="src/components/EnhancedQuestionBank.tsx">
                     Option {String.fromCharCode(65 + index)}
                     {index === newQuestion.correctOption &&
-                  <Badge className="ml-2 bg-green-100 text-green-800" data-id="col78dmp3" data-path="src/components/EnhancedQuestionBank.tsx">Correct</Badge>
-                  }
+                      <Badge className="ml-2 bg-green-100 text-green-800" data-id="col78dmp3" data-path="src/components/EnhancedQuestionBank.tsx">Correct</Badge>
+                    }
                   </Label>
                   <Input
-                  id={`option-${index}`}
-                  placeholder={`Option ${String.fromCharCode(65 + index)}`}
-                  value={option}
-                  onChange={(e) => {
-                    const newOptions = [...newQuestion.options];
-                    newOptions[index] = e.target.value;
-                    setNewQuestion({ ...newQuestion, options: newOptions });
-                  }} data-id="6kia4u5gq" data-path="src/components/EnhancedQuestionBank.tsx" />
+                    id={`option-${index}`}
+                    placeholder={`Option ${String.fromCharCode(65 + index)}`}
+                    value={option}
+                    onChange={(e) => {
+                      const newOptions = [...newQuestion.options];
+                      newOptions[index] = e.target.value;
+                      setNewQuestion({ ...newQuestion, options: newOptions });
+                    }} data-id="6kia4u5gq" data-path="src/components/EnhancedQuestionBank.tsx" />
 
                 </div>
               )}
             </div>
-            
+
             <div data-id="rqxcaprqs" data-path="src/components/EnhancedQuestionBank.tsx">
               <Label data-id="5qqtcv4di" data-path="src/components/EnhancedQuestionBank.tsx">Correct Answer</Label>
               <Select
@@ -707,14 +951,14 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
                 </SelectTrigger>
                 <SelectContent data-id="m3gu33lat" data-path="src/components/EnhancedQuestionBank.tsx">
                   {newQuestion.options.map((_, index) =>
-                  <SelectItem key={index} value={index.toString()} data-id="p89j2sz5t" data-path="src/components/EnhancedQuestionBank.tsx">
+                    <SelectItem key={index} value={index.toString()} data-id="p89j2sz5t" data-path="src/components/EnhancedQuestionBank.tsx">
                       Option {String.fromCharCode(65 + index)}
                     </SelectItem>
                   )}
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4" data-id="5o5hmbunn" data-path="src/components/EnhancedQuestionBank.tsx">
               <div data-id="ept10u7a3" data-path="src/components/EnhancedQuestionBank.tsx">
                 <Label htmlFor="subject" data-id="xp4l7705f" data-path="src/components/EnhancedQuestionBank.tsx">Subject</Label>
@@ -751,7 +995,7 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
                 </Select>
               </div>
             </div>
-            
+
             <div data-id="2tla7pncd" data-path="src/components/EnhancedQuestionBank.tsx">
               <Label htmlFor="tags" data-id="41v01tpxh" data-path="src/components/EnhancedQuestionBank.tsx">Tags (comma separated)</Label>
               <Input
@@ -761,7 +1005,7 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
                 onChange={(e) => setNewQuestion({ ...newQuestion, tags: e.target.value })} data-id="83vzwfg44" data-path="src/components/EnhancedQuestionBank.tsx" />
 
             </div>
-            
+
             <div className="flex justify-end space-x-2" data-id="cgp1khzvn" data-path="src/components/EnhancedQuestionBank.tsx">
               <Button variant="outline" onClick={() => setShowAddQuestion(false)} data-id="4f7d0g8lg" data-path="src/components/EnhancedQuestionBank.tsx">
                 Cancel
@@ -792,7 +1036,7 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
                 Choose File
               </Button>
             </div>
-            
+
             <div className="bg-blue-50 p-4 rounded-lg" data-id="5fgd0bd01" data-path="src/components/EnhancedQuestionBank.tsx">
               <h4 className="font-medium text-blue-900 mb-2" data-id="y0fdnhy6u" data-path="src/components/EnhancedQuestionBank.tsx">File Format Requirements:</h4>
               <ul className="text-sm text-blue-800 space-y-1" data-id="76epaug2o" data-path="src/components/EnhancedQuestionBank.tsx">
@@ -805,7 +1049,7 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
                 <li data-id="e71gy98yv" data-path="src/components/EnhancedQuestionBank.tsx">• Column 10: Tags (comma separated)</li>
               </ul>
             </div>
-            
+
             <div className="flex justify-end space-x-2" data-id="gpt8pm999" data-path="src/components/EnhancedQuestionBank.tsx">
               <Button variant="outline" onClick={() => setShowBulkUpload(false)} data-id="72wimhfnj" data-path="src/components/EnhancedQuestionBank.tsx">
                 Cancel
