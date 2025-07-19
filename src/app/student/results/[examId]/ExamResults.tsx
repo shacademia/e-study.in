@@ -1,16 +1,19 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { useParams, useRouter  } from 'next/navigation';
+import { useRouter  } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { CheckCircle, XCircle, ArrowLeft, Trophy, BookOpen } from 'lucide-react';
-import { useAuth } from '../../../hooks/useMockAuth';
-import { mockDataService, Exam, Submission } from '../../../services/mockData';
+import { useAuth } from '@hooks/useMockAuth';
+import { mockDataService, Exam, Submission } from '@/services/mockData';
 
-const ExamResults: React.FC = () => {
-  const { examId } = useParams<{examId: string;}>();
+interface ExamResultsProps {
+  examId: string;
+}
+
+const ExamResults: React.FC<ExamResultsProps> = ({ examId }) => {
   const router = useRouter();
   const { user } = useAuth();
   const [exam, setExam] = useState<Exam | null>(null);
