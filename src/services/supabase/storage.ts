@@ -3,6 +3,7 @@ import { supabase } from '@/config/supabase';
 // Storage bucket names
 export const STORAGE_BUCKETS = {
   PROFILE_PICTURES: 'profile-pictures',
+  QUESTION_IMAGES: 'question-images',
   EXAM_RESOURCES: 'exam-resources',
   SUBMISSION_ATTACHMENTS: 'submission-attachments'
 } as const;
@@ -30,15 +31,35 @@ export const uploadProfilePicture = async (userId: string, file: File): Promise<
   const fileExt = file.name.split('.').pop();
   const fileName = `${userId}/avatar.${fileExt}`;
 
-  const { data, error } = await supabase.storage.
-  from(STORAGE_BUCKETS.PROFILE_PICTURES).
-  upload(fileName, file, { upsert: true });
+  const { error } = await supabase.storage
+    .from(STORAGE_BUCKETS.PROFILE_PICTURES)
+    .upload(fileName, file, { upsert: true });
 
   if (error) throw error;
 
-  const { data: urlData } = supabase.storage.
-  from(STORAGE_BUCKETS.PROFILE_PICTURES).
-  getPublicUrl(fileName);
+  const { data: urlData } = supabase.storage
+    .from(STORAGE_BUCKETS.PROFILE_PICTURES)
+    .getPublicUrl(fileName);
+
+  return urlData.publicUrl;
+};
+
+// Upload question image
+export const uploadQuestionImage = async (questionId: string, file: File): Promise<string> => {
+  validateFile(file, 5 * 1024 * 1024, IMAGE_TYPES);
+
+  const fileExt = file.name.split('.').pop();
+  const fileName = `${questionId}/${Date.now()}.${fileExt}`;
+
+  const { error } = await supabase.storage
+    .from(STORAGE_BUCKETS.QUESTION_IMAGES)
+    .upload(fileName, file);
+
+  if (error) throw error;
+
+  const { data: urlData } = supabase.storage
+    .from(STORAGE_BUCKETS.QUESTION_IMAGES)
+    .getPublicUrl(fileName);
 
   return urlData.publicUrl;
 };
@@ -50,15 +71,15 @@ export const uploadExamAttachment = async (examId: string, file: File): Promise<
   const fileExt = file.name.split('.').pop();
   const fileName = `${examId}/${Date.now()}.${fileExt}`;
 
-  const { data, error } = await supabase.storage.
-  from(STORAGE_BUCKETS.EXAM_RESOURCES).
-  upload(fileName, file);
+  const { error } = await supabase.storage
+    .from(STORAGE_BUCKETS.EXAM_RESOURCES)
+    .upload(fileName, file);
 
   if (error) throw error;
 
-  const { data: urlData } = supabase.storage.
-  from(STORAGE_BUCKETS.EXAM_RESOURCES).
-  getPublicUrl(fileName);
+  const { data: urlData } = supabase.storage
+    .from(STORAGE_BUCKETS.EXAM_RESOURCES)
+    .getPublicUrl(fileName);
 
   return urlData.publicUrl;
 };
@@ -70,15 +91,15 @@ export const uploadSubmissionAttachment = async (submissionId: string, file: Fil
   const fileExt = file.name.split('.').pop();
   const fileName = `${submissionId}/${Date.now()}.${fileExt}`;
 
-  const { data, error } = await supabase.storage.
-  from(STORAGE_BUCKETS.SUBMISSION_ATTACHMENTS).
-  upload(fileName, file);
+  const { error } = await supabase.storage
+    .from(STORAGE_BUCKETS.SUBMISSION_ATTACHMENTS)
+    .upload(fileName, file);
 
   if (error) throw error;
 
-  const { data: urlData } = supabase.storage.
-  from(STORAGE_BUCKETS.SUBMISSION_ATTACHMENTS).
-  getPublicUrl(fileName);
+  const { data: urlData } = supabase.storage
+    .from(STORAGE_BUCKETS.SUBMISSION_ATTACHMENTS)
+    .getPublicUrl(fileName);
 
   return urlData.publicUrl;
 };

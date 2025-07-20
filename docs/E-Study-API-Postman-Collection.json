@@ -1,0 +1,1463 @@
+{
+	"info": {
+		"_postman_id": "e-study-api-collection",
+		"name": "E-Study.in API Collection",
+		"description": "Complete API collection for E-Study.in platform with authentication, exam management, submissions, and analytics",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "e-study-api"
+	},
+	"item": [
+		{
+			"name": "🔐 Authentication",
+			"item": [
+				{
+					"name": "Signup",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Test User\",\n  \"email\": \"test@example.com\",\n  \"password\": \"TestPassword123!\",\n  \"role\": \"USER\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/users/signup",
+							"host": ["{{base_url}}"],
+							"path": ["api", "users", "signup"]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Signup successful\", function () {",
+									"    pm.response.to.have.status(201);",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('token');",
+									"    pm.environment.set(\"auth_token\", jsonData.token);",
+									"    pm.environment.set(\"user_id\", jsonData.user.id);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Login",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"admin123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/users/login",
+							"host": ["{{base_url}}"],
+							"path": ["api", "users", "login"]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Login successful\", function () {",
+									"    pm.response.to.have.status(200);",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('token');",
+									"    pm.environment.set(\"auth_token\", jsonData.token);",
+									"    pm.environment.set(\"user_id\", jsonData.user.id);",
+									"    pm.environment.set(\"user_role\", jsonData.user.role);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Logout",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/users/logout",
+							"host": ["{{base_url}}"],
+							"path": ["api", "users", "logout"]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Logout successful\", function () {",
+									"    pm.response.to.have.status(200);",
+									"    pm.environment.unset(\"auth_token\");",
+									"    pm.environment.unset(\"user_id\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "👤 User Management",
+			"item": [
+				{
+					"name": "Get Current User",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/users/me/current",
+							"host": ["{{base_url}}"],
+							"path": ["api", "users", "me", "current"]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Get current user\", function () {",
+									"    pm.response.to.have.status(200);",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.success).to.be.true;",
+									"    pm.expect(jsonData.data).to.have.property('id');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Update Profile",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Updated User Name\",\n  \"email\": \"updated@example.com\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/users/updateuserprofile",
+							"host": ["{{base_url}}"],
+							"path": ["api", "users", "updateuserprofile"]
+						}
+					}
+				},
+				{
+					"name": "Get All Users (Admin)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/users/all",
+							"host": ["{{base_url}}"],
+							"path": ["api", "users", "all"]
+						}
+					}
+				},
+				{
+					"name": "Get Admin Users",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/users/admins",
+							"host": ["{{base_url}}"],
+							"path": ["api", "users", "admins"]
+						}
+					}
+				},
+				{
+					"name": "Update User Role (Admin)",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"role\": \"MODERATOR\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/users/{{user_id}}/role",
+							"host": ["{{base_url}}"],
+							"path": ["api", "users", "{{user_id}}", "role"]
+						}
+					}
+				},
+				{
+					"name": "Delete User (Admin)",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/users/{{user_id_to_delete}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "users", "{{user_id_to_delete}}"]
+						}
+					}
+				},
+				{
+					"name": "Get User Submissions",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/users/{{user_id}}/submissions?page=1&limit=10",
+							"host": ["{{base_url}}"],
+							"path": ["api", "users", "{{user_id}}", "submissions"],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "❓ Question Management",
+			"item": [
+				{
+					"name": "Create Question",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"content\": \"What is 2 + 2?\",\n  \"options\": [\"3\", \"4\", \"5\", \"6\"],\n  \"correctOption\": 1,\n  \"difficulty\": \"EASY\",\n  \"subject\": \"Mathematics\",\n  \"topic\": \"Arithmetic\",\n  \"tags\": [\"math\", \"basic\"],\n  \"marks\": 5\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/questions/create",
+							"host": ["{{base_url}}"],
+							"path": ["api", "questions", "create"]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Question created\", function () {",
+									"    pm.response.to.have.status(201);",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.success).to.be.true;",
+									"    pm.environment.set(\"question_id\", jsonData.data.id);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Get All Questions",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/questions?page=1&limit=10&subject=Mathematics&difficulty=EASY",
+							"host": ["{{base_url}}"],
+							"path": ["api", "questions"],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								},
+								{
+									"key": "subject",
+									"value": "Mathematics"
+								},
+								{
+									"key": "difficulty",
+									"value": "EASY"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Question by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/questions/{{question_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "questions", "{{question_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Update Question",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"content\": \"Updated question content?\",\n  \"options\": [\"Option 1\", \"Option 2\", \"Option 3\", \"Option 4\"],\n  \"correctOption\": 1,\n  \"difficulty\": \"MEDIUM\",\n  \"subject\": \"Updated Subject\",\n  \"topic\": \"Updated Topic\",\n  \"tags\": [\"updated\", \"tags\"],\n  \"marks\": 10\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/questions/{{question_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "questions", "{{question_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Delete Question",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/questions/{{question_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "questions", "{{question_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Get All Subjects",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/questions/subjects",
+							"host": ["{{base_url}}"],
+							"path": ["api", "questions", "subjects"]
+						}
+					}
+				},
+				{
+					"name": "Get Topics by Subject",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/questions/topics?subject=Mathematics",
+							"host": ["{{base_url}}"],
+							"path": ["api", "questions", "topics"],
+							"query": [
+								{
+									"key": "subject",
+									"value": "Mathematics"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "📋 Exam Management",
+			"item": [
+				{
+					"name": "Create Exam",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Test Exam\",\n  \"description\": \"A test exam for API testing\",\n  \"timeLimit\": 60,\n  \"isPasswordProtected\": false,\n  \"instructions\": \"Answer all questions to the best of your ability.\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/exams",
+							"host": ["{{base_url}}"],
+							"path": ["api", "exams"]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Exam created\", function () {",
+									"    pm.response.to.have.status(201);",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.success).to.be.true;",
+									"    pm.environment.set(\"exam_id\", jsonData.data.id);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Get All Exams",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/exams?page=1&limit=10&published=true",
+							"host": ["{{base_url}}"],
+							"path": ["api", "exams"],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								},
+								{
+									"key": "published",
+									"value": "true"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Exam by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/exams/{{exam_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "exams", "{{exam_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Update Exam",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Updated Exam Name\",\n  \"description\": \"Updated description\",\n  \"timeLimit\": 150,\n  \"isPasswordProtected\": false,\n  \"instructions\": \"Updated instructions\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/exams/{{exam_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "exams", "{{exam_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Delete Exam",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/exams/{{exam_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "exams", "{{exam_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Publish Exam",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"isPublished\": true\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/exams/{{exam_id}}/publish",
+							"host": ["{{base_url}}"],
+							"path": ["api", "exams", "{{exam_id}}", "publish"]
+						}
+					}
+				},
+				{
+					"name": "Validate Exam Password",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"password\": \"exam123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/exams/{{exam_id}}/validate-password",
+							"host": ["{{base_url}}"],
+							"path": ["api", "exams", "{{exam_id}}", "validate-password"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "📑 Exam Sections",
+			"item": [
+				{
+					"name": "Create Section",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Algebra Section\",\n  \"description\": \"Questions related to algebraic concepts\",\n  \"timeLimit\": 45,\n  \"marks\": 50\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/exams/{{exam_id}}/sections",
+							"host": ["{{base_url}}"],
+							"path": ["api", "exams", "{{exam_id}}", "sections"]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Section created\", function () {",
+									"    pm.response.to.have.status(201);",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.success).to.be.true;",
+									"    pm.environment.set(\"section_id\", jsonData.data.id);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Get Exam Sections",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/exams/{{exam_id}}/sections",
+							"host": ["{{base_url}}"],
+							"path": ["api", "exams", "{{exam_id}}", "sections"]
+						}
+					}
+				},
+				{
+					"name": "Get Section Details",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/exams/exam/{{exam_id}}/sections/{{section_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "exams", "exam", "{{exam_id}}", "sections", "{{section_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Update Section",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Updated Section Name\",\n  \"description\": \"Updated description\",\n  \"timeLimit\": 60,\n  \"marks\": 75\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/exams/exam/{{exam_id}}/sections/{{section_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "exams", "exam", "{{exam_id}}", "sections", "{{section_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Delete Section",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/exams/exam/{{exam_id}}/sections/{{section_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "exams", "exam", "{{exam_id}}", "sections", "{{section_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Add Questions to Section",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"questions\": [\n    {\n      \"questionId\": \"{{question_id}}\",\n      \"order\": 1\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/exams/exam/{{exam_id}}/sections/{{section_id}}/questions",
+							"host": ["{{base_url}}"],
+							"path": ["api", "exams", "exam", "{{exam_id}}", "sections", "{{section_id}}", "questions"]
+						}
+					}
+				},
+				{
+					"name": "Remove Question from Section",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/exams/exam/{{exam_id}}/sections/{{section_id}}/questions/{{question_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "exams", "exam", "{{exam_id}}", "sections", "{{section_id}}", "questions", "{{question_id}}"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "📝 Submissions",
+			"item": [
+				{
+					"name": "Get All Submissions",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/submissions?page=1&limit=10",
+							"host": ["{{base_url}}"],
+							"path": ["api", "submissions"],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Submission Details",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/submissions/{{submission_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "submissions", "{{submission_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Update Submission",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"answers\": {\n    \"question-id-1\": 2,\n    \"question-id-2\": 0,\n    \"question-id-3\": 1\n  },\n  \"timeSpent\": 1200,\n  \"isSubmitted\": false\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/submissions/{{submission_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "submissions", "{{submission_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Delete Submission (Admin)",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/submissions/{{submission_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "submissions", "{{submission_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Submit Exam",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"answers\": {\n    \"{{question_id}}\": 1\n  },\n  \"timeSpent\": 3600,\n  \"isSubmitted\": true\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/exams/{{exam_id}}/submissions",
+							"host": ["{{base_url}}"],
+							"path": ["api", "exams", "{{exam_id}}", "submissions"]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Exam submitted\", function () {",
+									"    pm.response.to.have.status(201);",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.success).to.be.true;",
+									"    pm.environment.set(\"submission_id\", jsonData.data.id);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Get Exam Submissions (Admin)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/exams/{{exam_id}}/submissions",
+							"host": ["{{base_url}}"],
+							"path": ["api", "exams", "{{exam_id}}", "submissions"]
+						}
+					}
+				},
+				{
+					"name": "Get User Submissions",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/submissions/user/{{user_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "submissions", "user", "{{user_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Get Draft Submissions",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/submissions/draft",
+							"host": ["{{base_url}}"],
+							"path": ["api", "submissions", "draft"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "🏆 Rankings",
+			"item": [
+				{
+					"name": "Get Global Rankings",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/rankings/global?page=1&limit=50&timeframe=30d",
+							"host": ["{{base_url}}"],
+							"path": ["api", "rankings", "global"],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "50"
+								},
+								{
+									"key": "timeframe",
+									"value": "30d"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Exam Rankings",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/rankings/exam/{{exam_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "rankings", "exam", "{{exam_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Get Student Ranking",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/student/ranking",
+							"host": ["{{base_url}}"],
+							"path": ["api", "student", "ranking"]
+						}
+					}
+				},
+				{
+					"name": "Get General Rankings",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/rankings",
+							"host": ["{{base_url}}"],
+							"path": ["api", "rankings"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "⚙️ Admin",
+			"item": [
+				{
+					"name": "Get Dashboard Stats",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/admin/stats?timeframe=30d&includeRecent=true",
+							"host": ["{{base_url}}"],
+							"path": ["api", "admin", "stats"],
+							"query": [
+								{
+									"key": "timeframe",
+									"value": "30d"
+								},
+								{
+									"key": "includeRecent",
+									"value": "true"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Admin stats retrieved\", function () {",
+									"    pm.response.to.have.status(200);",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.success).to.be.true;",
+									"    pm.expect(jsonData.data).to.have.property('overview');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Get Analytics",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/admin/analytics?timeframe=30d&includeCharts=true",
+							"host": ["{{base_url}}"],
+							"path": ["api", "admin", "analytics"],
+							"query": [
+								{
+									"key": "timeframe",
+									"value": "30d"
+								},
+								{
+									"key": "includeCharts",
+									"value": "true"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Admin Overview",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/admin/overview",
+							"host": ["{{base_url}}"],
+							"path": ["api", "admin", "overview"]
+						}
+					}
+				},
+				{
+					"name": "Get Admin Users Data",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/admin/users",
+							"host": ["{{base_url}}"],
+							"path": ["api", "admin", "users"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "📤 Upload",
+			"item": [
+				{
+					"name": "Upload Profile Image",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/api/upload/profile-image",
+							"host": ["{{base_url}}"],
+							"path": ["api", "upload", "profile-image"]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Profile image uploaded\", function () {",
+									"    pm.response.to.have.status(200);",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.success).to.be.true;",
+									"    pm.expect(jsonData.data).to.have.property('imageUrl');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Upload Question Image",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": []
+								},
+								{
+									"key": "questionId",
+									"value": "{{question_id}}",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/api/upload/question-image",
+							"host": ["{{base_url}}"],
+							"path": ["api", "upload", "question-image"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "🔍 Search",
+			"item": [
+				{
+					"name": "Search Questions",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/search/questions?q=mathematics&subjects=Mathematics&difficulties=EASY,MEDIUM&page=1&limit=10",
+							"host": ["{{base_url}}"],
+							"path": ["api", "search", "questions"],
+							"query": [
+								{
+									"key": "q",
+									"value": "mathematics"
+								},
+								{
+									"key": "subjects",
+									"value": "Mathematics"
+								},
+								{
+									"key": "difficulties",
+									"value": "EASY,MEDIUM"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Question search successful\", function () {",
+									"    pm.response.to.have.status(200);",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.success).to.be.true;",
+									"    pm.expect(jsonData.data.questions).to.be.an('array');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Search Exams",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/search/exams?q=mathematics&published=true&subjects=Mathematics&page=1&limit=10",
+							"host": ["{{base_url}}"],
+							"path": ["api", "search", "exams"],
+							"query": [
+								{
+									"key": "q",
+									"value": "mathematics"
+								},
+								{
+									"key": "published",
+									"value": "true"
+								},
+								{
+									"key": "subjects",
+									"value": "Mathematics"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						}
+					}
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Auto-add common headers",
+					"if (pm.request.method !== 'GET' && pm.request.body && pm.request.body.mode === 'raw') {",
+					"    pm.request.headers.add({",
+					"        key: 'Content-Type',",
+					"        value: 'application/json'",
+					"    });",
+					"}",
+					"",
+					"// Log request for debugging",
+					"console.log('Making request to:', pm.request.url.toString());"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Common test validations",
+					"pm.test(\"Status code is not 500\", function () {",
+					"    pm.response.to.not.have.status(500);",
+					"});",
+					"",
+					"// Log response for debugging",
+					"if (pm.response.code >= 400) {",
+					"    console.log('Error response:', pm.response.text());",
+					"}",
+					"",
+					"// Auto-refresh token if expired",
+					"if (pm.response.code === 401) {",
+					"    console.log('Token expired, need to re-authenticate');",
+					"}"
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:3000",
+			"type": "string"
+		},
+		{
+			"key": "auth_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "user_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "exam_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "question_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "submission_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "section_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "user_id_to_delete",
+			"value": "",
+			"type": "string"
+		}
+	]
+}

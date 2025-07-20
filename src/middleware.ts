@@ -6,83 +6,36 @@ export function middleware(request: NextRequest) {
   
   console.log('🔥 Middleware called for:', pathname)
 
-  // Define protected routes directly here
-  const protectedRoutes = [
-    // User Management Routes
-    '/api/users/all',
-    '/api/users/admins',
-    '/api/users/updateuserprofile',
-    '/api/users/me',
-    { path: '/api/users/', dynamic: true },
-    
-    // Question Management Routes
-    '/api/questions',
-    '/api/questions/create',
-    '/api/questions/subjects',
-    '/api/questions/topics',
-    { path: '/api/questions/', dynamic: true },
-    
-    // Exam Management Routes
-    '/api/exams',
-    { path: '/api/exams/', dynamic: true },
-    
-    // Submission Routes
-    '/api/submissions',
-    { path: '/api/submissions/', dynamic: true },
-    
-    // Ranking Routes
-    '/api/rankings',
-    '/api/rankings/global',
-    { path: '/api/rankings/', dynamic: true },
-    
-    // Admin Routes (Require Admin Role)
-    { path: '/api/admin/', dynamic: true },
-    
-    // Search Routes
-    { path: '/api/search/', dynamic: true },
-    
-    // Upload Routes
-    { path: '/api/upload/', dynamic: true },
-    
-    // Student Routes
-    { path: '/api/student/', dynamic: true }
+  // Define routes that DON'T require authentication (public routes)
+  const publicRoutes = [
+    '/api/users/login',
+    '/api/users/signup',
+    '/api/users/logout',
+    '/api/example'
   ]
 
-  // Check if this is a protected route
-  const isProtected = protectedRoutes.some(route => {
-    if (typeof route === 'string') {
-      return pathname === route
-    } else if (route.dynamic) {
-      // For dynamic routes, check if it starts with the path and has additional segments
-      return pathname.startsWith(route.path) && 
-             pathname !== route.path && // Not just the base path
-             !pathname.includes('/login') && 
-             !pathname.includes('/logout') && 
-             !pathname.includes('/signup') &&
-             !pathname.includes('/register')
-    }
-    return false
-  })
+  // Check if this is a public route
+  const isPublicRoute = publicRoutes.some(route => pathname === route)
   
-  // Also check for exact matches with protected base routes
-  const exactProtectedRoutes = [
-    '/api/questions',
-    '/api/exams', 
-    '/api/submissions',
-    '/api/rankings'
-  ]
-  
-  const isExactProtected = exactProtectedRoutes.includes(pathname)
-  
-  if (!isProtected && !isExactProtected) {
-    console.log('❌ Route not protected, skipping auth:', pathname)
+  if (isPublicRoute) {
+    console.log('🌐 Public route, no auth required:', pathname)
     return NextResponse.next()
   }
 
-  console.log('✅ Route is protected, checking auth:', pathname)
+  // All other /api routes require authentication
+  if (pathname.startsWith('/api/')) {
+    console.log('🔒 Protected API route, checking auth:', pathname)
+  } else {
+    // Not an API route, let it pass
+    return NextResponse.next()
+  }
 
-  // Get token from cookies
-  const token = request.cookies.get('token')?.value
+  // Get token from cookies or Authorization header
+  const cookieToken = request.cookies.get('token')?.value
+  const authHeader = request.headers.get('authorization')
+  const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null
+  
+  const token = bearerToken || cookieToken
 
   if (!token) {
     console.log('❌ No token found')
@@ -94,8 +47,14 @@ export function middleware(request: NextRequest) {
 
   console.log('✅ Token found, proceeding')
   
+  // Forward the token in both x-auth-token header (for legacy routes) and keep Authorization header
   const requestHeaders = new Headers(request.headers)
   requestHeaders.set('x-auth-token', token)
+  
+  // Ensure Authorization header is preserved for Bearer token routes
+  if (bearerToken && !requestHeaders.has('authorization')) {
+    requestHeaders.set('authorization', `Bearer ${token}`)
+  }
 
   return NextResponse.next({
     request: {
@@ -106,42 +65,7 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // User Management
-    '/api/users/all',
-    '/api/users/admins', 
-    '/api/users/updateuserprofile',
-    '/api/users/me',
-    '/api/users/:path*',
-    
-    // Questions API
-    '/api/questions',
-    '/api/questions/:path*',
-    
-    // Exams API
-    '/api/exams',
-    '/api/exams/:path*',
-    
-    // Submissions API
-    '/api/submissions',
-    '/api/submissions/:path*',
-    
-    // Rankings API
-    '/api/rankings',
-    '/api/rankings/:path*',
-    
-    // Admin API
-    '/api/admin/:path*',
-    
-    // Search API
-    '/api/search/:path*',
-    
-    // Upload API
-    '/api/upload/:path*',
-    
-    // Student API
-    '/api/student/:path*',
-    
-    // Legacy routes
-    '/api/QuestionBank/:path*'
+    // Match ALL API routes except public ones
+    '/api/((?!users/login|users/signup|users/logout|example).*)',
   ]
 }
