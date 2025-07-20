@@ -10,8 +10,6 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-// import BreakTimer from '../BreakTimer';
-// import { Progress } from '@/components/ui/progress';
 import {
   Clock,
   ChevronLeft,
@@ -26,14 +24,11 @@ import {
   Circle,
   AlertTriangle,
   BookOpen,
-  // AlertCircle,
-  // Pause,
-  // Timer,
-  // Users,
-  // BarChart3,
-  // FileText,
-  Target } from
-'lucide-react';
+  Eye,
+  EyeOff,
+  Target
+} from
+  'lucide-react';
 import { useAuth } from '@hooks/useMockAuth';
 import { mockDataService, Exam, ExamSection, Question, QuestionStatus } from '@services/mockData';
 import { toast } from '@/hooks/use-toast';
@@ -55,8 +50,10 @@ const MultiSectionExamInterface: React.FC<MultiSectionExamInterfaceProps> = ({ e
   const [timeLeft, setTimeLeft] = useState(0);
   const [isOnBreak, setIsOnBreak] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
-  const [showBreakModal, setShowBreakModal] = useState(false);
   const [password, setPassword] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [showBreakModal, setShowBreakModal] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
   const [loading, setLoading] = useState(true);
   const [examStarted, setExamStarted] = useState(false);
@@ -185,28 +182,33 @@ const MultiSectionExamInterface: React.FC<MultiSectionExamInterfaceProps> = ({ e
     router,
     updateQuestionTimeSpent,
   ]);
-  
+
   const getCurrentSection = useCallback((): ExamSection | null => {
     if (!exam || !exam.sections || exam.sections.length === 0) return null;
     return exam.sections[currentSectionIndex] || null;
   }, [exam, currentSectionIndex]);
 
-  // Timer effect - now safe
+  // Timer effect
   useEffect(() => {
-    if (examStarted && timeLeft > 0 && !isOnBreak) {
+    if (examStarted && startTime && exam?.timeLimit) {
       const timer = setInterval(() => {
-        setTimeLeft((prev) => {
-          if (prev <= 1) {
-            handleSubmitExam();
-            return 0;
-          }
-          return prev - 1;
-        });
+        const now = new Date();
+        const elapsedSeconds = Math.floor((now.getTime() - startTime.getTime()) / 1000);
+        const totalAllowedSeconds = exam.timeLimit * 60;
+        const remainingSeconds = totalAllowedSeconds - elapsedSeconds;
+
+        if (remainingSeconds <= 0) {
+          clearInterval(timer);
+          setTimeLeft(0);
+          handleSubmitExam();
+        } else {
+          setTimeLeft(remainingSeconds);
+        }
       }, 1000);
 
       return () => clearInterval(timer);
     }
-  }, [examStarted, timeLeft, isOnBreak, handleSubmitExam]);
+  }, [examStarted, startTime, exam?.timeLimit, handleSubmitExam]);
 
   // Track question time start
   useEffect(() => {
@@ -234,12 +236,9 @@ const MultiSectionExamInterface: React.FC<MultiSectionExamInterfaceProps> = ({ e
       setStartTime(new Date());
       setQuestionStartTime(new Date());
       setPassword("");
+      setPasswordError(""); // Clear any previous error
     } else {
-      toast({
-        title: "Error",
-        description: "Incorrect password",
-        variant: "destructive",
-      });
+      setPasswordError("Incorrect password. Please try again.");
     }
   };
 
@@ -343,9 +342,10 @@ const MultiSectionExamInterface: React.FC<MultiSectionExamInterfaceProps> = ({ e
 
   const getTimeColor = () => {
     if (timeLeft <= 300)
-      return "text-red-600 bg-red-50 border-red-200 animate-pulse"; // 5 minutes
+      // 5 minutes or less
+      return "text-red-600 bg-red-50 border-red-200 animate-pulse";
     if (timeLeft <= 600)
-      return "text-yellow-600 bg-yellow-50 border-yellow-200"; // 10 minutes
+      return "text-yellow-600 bg-yellow-50 border-yellow-200"; // 10 minutes or less
     return "text-green-600 bg-green-50 border-green-200";
   };
 
@@ -487,16 +487,6 @@ const MultiSectionExamInterface: React.FC<MultiSectionExamInterfaceProps> = ({ e
               >
                 {exam.name}
               </h1>
-              {hasMultipleSections && (
-                <Badge
-                  variant="outline"
-                  className="ml-4"
-                  data-id="hdx6xb8v3"
-                  data-path="src/components/MultiSectionExamInterface.tsx"
-                >
-                  Section {currentSectionIndex + 1} of {exam.sections.length}
-                </Badge>
-              )}
             </div>
             <div
               className="flex items-center space-x-4"
@@ -520,6 +510,7 @@ const MultiSectionExamInterface: React.FC<MultiSectionExamInterfaceProps> = ({ e
                   <Button
                     variant="outline"
                     size="sm"
+                    className='cursor-pointer'
                     onClick={handleTakeBreak}
                     disabled={isOnBreak}
                     data-id="bo158kl3w"
@@ -549,7 +540,11 @@ const MultiSectionExamInterface: React.FC<MultiSectionExamInterfaceProps> = ({ e
       {/* Password Modal */}
       <Dialog
         open={showPasswordModal}
-        onOpenChange={() => {}}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) {
+            router.push("/student/dashboard"); // Redirect when dialog closes
+          }
+        }}
         data-id="2cdsxas3z"
         data-path="src/components/MultiSectionExamInterface.tsx"
       >
@@ -594,6 +589,7 @@ const MultiSectionExamInterface: React.FC<MultiSectionExamInterfaceProps> = ({ e
               </p>
             </div>
             <div
+              className="relative"
               data-id="5g5o5karr"
               data-path="src/components/MultiSectionExamInterface.tsx"
             >
@@ -606,7 +602,7 @@ const MultiSectionExamInterface: React.FC<MultiSectionExamInterfaceProps> = ({ e
               </Label>
               <Input
                 id="exam-password"
-                type="password"
+                type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter password"
@@ -614,10 +610,20 @@ const MultiSectionExamInterface: React.FC<MultiSectionExamInterfaceProps> = ({ e
                 data-id="9axkxlx4o"
                 data-path="src/components/MultiSectionExamInterface.tsx"
               />
+              {passwordError && (
+                <p className="text-sm text-red-600 mt-1">{passwordError}</p>
+              )}
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-[34px] text-gray-600 cursor-pointer"
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
             </div>
             <Button
               onClick={handlePasswordSubmit}
-              className="w-full"
+              className="w-full cursor-pointer"
               data-id="qohr1rs2m"
               data-path="src/components/MultiSectionExamInterface.tsx"
             >
@@ -628,21 +634,14 @@ const MultiSectionExamInterface: React.FC<MultiSectionExamInterfaceProps> = ({ e
       </Dialog>
 
       {/* Break Modal */}
-      
-      {/* {showBreakModal && (
-        <BreakTimer
-          timeRemaining={timeLeft}
-          onReturnToExam={handleResumeExam}
-        />
-      )} */}
-
       <Dialog
         open={showBreakModal}
-        onOpenChange={() => {}}
+        onOpenChange={() => { }}
         data-id="8aiswuxat"
         data-path="src/components/MultiSectionExamInterface.tsx"
       >
         <DialogContent
+          className="[&>button]:hidden"
           data-id="6ts7eub41"
           data-path="src/components/MultiSectionExamInterface.tsx"
         >
@@ -669,12 +668,12 @@ const MultiSectionExamInterface: React.FC<MultiSectionExamInterfaceProps> = ({ e
             data-path="src/components/MultiSectionExamInterface.tsx"
           >
             <div
-              className="p-4 bg-blue-50 rounded-lg"
+              className="p-4 bg-gray-100 rounded-lg"
               data-id="juulsf1ry"
               data-path="src/components/MultiSectionExamInterface.tsx"
             >
               <p
-                className="text-sm text-blue-800"
+                className="text-sm text-yellow-600"
                 data-id="t6yqmb33i"
                 data-path="src/components/MultiSectionExamInterface.tsx"
               >
@@ -702,16 +701,16 @@ const MultiSectionExamInterface: React.FC<MultiSectionExamInterfaceProps> = ({ e
             </div>
             <Button
               onClick={handleResumeExam}
-              className="w-full"
+              className="w-full cursor-pointer"
               data-id="68ftev4kg"
               data-path="src/components/MultiSectionExamInterface.tsx"
             >
               <Play
-                className="h-4 w-4 mr-2"
+                className="h-4 w-4 mr-2 mt-[2px]"
                 data-id="3z8xj4f2x"
                 data-path="src/components/MultiSectionExamInterface.tsx"
               />
-              Resume Exam
+              Back To Exam
             </Button>
           </div>
         </DialogContent>
@@ -806,6 +805,7 @@ const MultiSectionExamInterface: React.FC<MultiSectionExamInterfaceProps> = ({ e
                   data-path="src/components/MultiSectionExamInterface.tsx"
                 >
                   <CardHeader
+                    className="flex flex-row justify-between"
                     data-id="wqzygi1x9"
                     data-path="src/components/MultiSectionExamInterface.tsx"
                   >
@@ -815,12 +815,22 @@ const MultiSectionExamInterface: React.FC<MultiSectionExamInterfaceProps> = ({ e
                       data-path="src/components/MultiSectionExamInterface.tsx"
                     >
                       <BookOpen
-                        className="h-5 w-5 mr-2"
+                        className="h-5 w-5 mr-2 mb-[-3px]"
                         data-id="nzzytysb1"
                         data-path="src/components/MultiSectionExamInterface.tsx"
                       />
                       Section Navigation
                     </CardTitle>
+                    {hasMultipleSections && (
+                      <Badge
+                        variant="outline"
+                        className="ml-4"
+                        data-id="hdx6xb8v3"
+                        data-path="src/components/MultiSectionExamInterface.tsx"
+                      >
+                        Section {currentSectionIndex + 1} of {exam.sections.length}
+                      </Badge>
+                    )}
                   </CardHeader>
                   <CardContent
                     data-id="1sk1ucrl0"
@@ -835,7 +845,7 @@ const MultiSectionExamInterface: React.FC<MultiSectionExamInterfaceProps> = ({ e
                       data-path="src/components/MultiSectionExamInterface.tsx"
                     >
                       <TabsList
-                        className="grid w-full grid-cols-4"
+                        className={`grid w-full h-full gap-2 grid-cols-${exam.sections.length}`}
                         data-id="jx2bl6vmn"
                         data-path="src/components/MultiSectionExamInterface.tsx"
                       >
@@ -843,12 +853,12 @@ const MultiSectionExamInterface: React.FC<MultiSectionExamInterfaceProps> = ({ e
                           <TabsTrigger
                             key={section.id}
                             value={index.toString()}
-                            className="relative"
+                            className="relative flex-col cursor-pointer border-[1px]"
                             data-id="11pcqsfs4"
                             data-path="src/components/MultiSectionExamInterface.tsx"
                           >
                             <div
-                              className="flex flex-col items-center"
+                              className="items-center"
                               data-id="kbxw4bo5h"
                               data-path="src/components/MultiSectionExamInterface.tsx"
                             >
@@ -859,20 +869,20 @@ const MultiSectionExamInterface: React.FC<MultiSectionExamInterfaceProps> = ({ e
                               >
                                 {section.name}
                               </span>
+                            </div>
+                            <div
+                              className="w-full bg-gray-200 rounded-full h-1 mt-1 mb-[1px]"
+                              data-id="2b190pltr"
+                              data-path="src/components/MultiSectionExamInterface.tsx"
+                            >
                               <div
-                                className="w-full bg-gray-200 rounded-full h-1 mt-1"
-                                data-id="2b190pltr"
+                                className="bg-blue-600 h-1 rounded-full transition-all duration-300"
+                                style={{
+                                  width: `${getSectionProgress(section)}%`,
+                                }}
+                                data-id="havxut9ae"
                                 data-path="src/components/MultiSectionExamInterface.tsx"
-                              >
-                                <div
-                                  className="bg-blue-600 h-1 rounded-full transition-all duration-300"
-                                  style={{
-                                    width: `${getSectionProgress(section)}%`,
-                                  }}
-                                  data-id="havxut9ae"
-                                  data-path="src/components/MultiSectionExamInterface.tsx"
-                                ></div>
-                              </div>
+                              ></div>
                             </div>
                           </TabsTrigger>
                         ))}
@@ -979,8 +989,7 @@ const MultiSectionExamInterface: React.FC<MultiSectionExamInterfaceProps> = ({ e
                               {currentSection?.name}
                             </Badge>
                           )}
-                          {questionStatuses[currentQuestion.id]?.status ===
-                            "marked-for-review" && (
+                          {questionStatuses?.[currentQuestion.id]?.status === "marked-for-review" && (
                             <Bookmark
                               className="h-4 w-4 ml-2 text-yellow-600"
                               data-id="4cquuvh29"
@@ -1035,26 +1044,28 @@ const MultiSectionExamInterface: React.FC<MultiSectionExamInterfaceProps> = ({ e
                       </div>
 
                       <RadioGroup
-                        value={answers[currentQuestion.id]?.toString()}
+                        value={
+                          answers[currentQuestion.id] !== undefined
+                            ? String(answers[currentQuestion.id])
+                            : ""
+                        }
                         onValueChange={(value) =>
-                          handleAnswerChange(
-                            currentQuestion.id,
-                            parseInt(value)
-                          )
+                          handleAnswerChange(currentQuestion.id, parseInt(value))
                         }
                         data-id="vngqxx6s6"
                         data-path="src/components/MultiSectionExamInterface.tsx"
                       >
                         {currentQuestion.options.map((option, index) => (
                           <div
-                            key={index}
-                            className="flex items-center space-x-3 p-3 rounded-lg border hover:bg-gray-50"
+                            key={`${currentQuestion.id}-${index}`}
+                            className="flex items-center space-x-3 p-3 rounded-lg border hover:bg-gray-100"
                             data-id="uoi6toeai"
                             data-path="src/components/MultiSectionExamInterface.tsx"
                           >
                             <RadioGroupItem
                               value={index.toString()}
                               id={`option-${index}`}
+                              className="cursor-pointer"
                               data-id="ab9jz89lr"
                               data-path="src/components/MultiSectionExamInterface.tsx"
                             />
@@ -1094,6 +1105,7 @@ const MultiSectionExamInterface: React.FC<MultiSectionExamInterfaceProps> = ({ e
                 >
                   <Button
                     variant="outline"
+                    className='cursor-pointer'
                     onClick={handlePrevQuestion}
                     disabled={
                       currentSectionIndex === 0 && currentQuestionIndex === 0
@@ -1110,6 +1122,7 @@ const MultiSectionExamInterface: React.FC<MultiSectionExamInterfaceProps> = ({ e
                   </Button>
                   <Button
                     variant="outline"
+                    className='cursor-pointer'
                     onClick={() =>
                       currentQuestion && handleMarkForReview(currentQuestion.id)
                     }
@@ -1132,6 +1145,7 @@ const MultiSectionExamInterface: React.FC<MultiSectionExamInterfaceProps> = ({ e
                 >
                   {isLastQuestion() ? (
                     <Button
+                      className='cursor-pointer'
                       onClick={() => setShowSubmitDialog(true)}
                       data-id="3g7yd55ce"
                       data-path="src/components/MultiSectionExamInterface.tsx"
@@ -1145,6 +1159,7 @@ const MultiSectionExamInterface: React.FC<MultiSectionExamInterfaceProps> = ({ e
                     </Button>
                   ) : (
                     <Button
+                      className='cursor-pointer'
                       onClick={handleNextQuestion}
                       data-id="absdg0un5"
                       data-path="src/components/MultiSectionExamInterface.tsx"
@@ -1245,12 +1260,12 @@ const MultiSectionExamInterface: React.FC<MultiSectionExamInterfaceProps> = ({ e
                                 key={question.id}
                                 variant={
                                   sectionIdx === currentSectionIndex &&
-                                  qIdx === currentQuestionIndex
+                                    qIdx === currentQuestionIndex
                                     ? "default"
                                     : "outline"
                                 }
                                 size="sm"
-                                className={`h-8 w-8 p-0 text-xs ${getQuestionStatusColor(
+                                className={`h-8 w-8 p-0 text-xs cursor-pointer ${getQuestionStatusColor(
                                   question.id
                                 )}`}
                                 onClick={() => {
@@ -1295,7 +1310,7 @@ const MultiSectionExamInterface: React.FC<MultiSectionExamInterfaceProps> = ({ e
                               : "outline"
                           }
                           size="sm"
-                          className={`h-10 w-10 p-0 text-xs ${getQuestionStatusColor(
+                          className={`h-10 w-10 p-0 text-xs cursor-pointer ${getQuestionStatusColor(
                             question.id
                           )}`}
                           onClick={() => handleQuestionNavigation(index)}

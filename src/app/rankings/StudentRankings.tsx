@@ -226,7 +226,7 @@ const StudentRankings: React.FC = () => {
                     router.push("/student/dashboard");
                   }
                 }}
-                className="mr-4"
+                className="mr-4 cursor-pointer"
                 data-id="0yjyp3nuq"
                 data-path="src/components/StudentRankings.tsx"
               >

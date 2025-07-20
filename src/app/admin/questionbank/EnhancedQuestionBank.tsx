@@ -296,8 +296,8 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
           <Button
             variant="outline"
             size="sm"
+            className="cursor-pointer ml-2"
             onClick={handleUndoDeleteQuestion}
-            className="ml-2"
           >
             <Undo2 className="h-4 w-4 mr-1" />
             Undo
@@ -458,7 +458,7 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" data-id="2dz0oykfc" data-path="src/components/EnhancedQuestionBank.tsx">
           <div className="flex justify-between items-center h-16" data-id="q5yzp8815" data-path="src/components/EnhancedQuestionBank.tsx">
             <div className="flex items-center" data-id="iso2jjawo" data-path="src/components/EnhancedQuestionBank.tsx">
-              <Button variant="ghost" size="sm" onClick={onBack} data-id="wdjqvvcqc" data-path="src/components/EnhancedQuestionBank.tsx">
+              <Button variant="ghost" size="sm" className='cursor-pointer' onClick={onBack} data-id="wdjqvvcqc" data-path="src/components/EnhancedQuestionBank.tsx">
                 <ArrowLeft className="h-4 w-4 mr-2" data-id="6nxcyu7no" data-path="src/components/EnhancedQuestionBank.tsx" />
                 Back
               </Button>
@@ -473,6 +473,7 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
                 <Button
                   variant={viewMode === 'list' ? 'default' : 'outline'}
                   size="sm"
+                  className='cursor-pointer'
                   onClick={() => setViewMode('list')} data-id="1cyadockx" data-path="src/components/EnhancedQuestionBank.tsx">
 
                   <List className="h-4 w-4" data-id="rgemf8zdc" data-path="src/components/EnhancedQuestionBank.tsx" />
@@ -480,16 +481,17 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
                 <Button
                   variant={viewMode === 'grid' ? 'default' : 'outline'}
                   size="sm"
+                  className='cursor-pointer'
                   onClick={() => setViewMode('grid')} data-id="2ol15e6cx" data-path="src/components/EnhancedQuestionBank.tsx">
 
                   <Grid className="h-4 w-4" data-id="5ztbnor0f" data-path="src/components/EnhancedQuestionBank.tsx" />
                 </Button>
               </div>
-              <Button variant="outline" size="sm" onClick={() => setShowBulkUpload(true)} data-id="hvyl5fhb5" data-path="src/components/EnhancedQuestionBank.tsx">
+              <Button variant="outline" size="sm" className='cursor-pointer' onClick={() => setShowBulkUpload(true)} data-id="hvyl5fhb5" data-path="src/components/EnhancedQuestionBank.tsx">
                 <Upload className="h-4 w-4 mr-2" data-id="odggljoo1" data-path="src/components/EnhancedQuestionBank.tsx" />
                 Bulk Upload
               </Button>
-              <Button size="sm" onClick={() => setShowAddQuestion(true)} data-id="j562uja25" data-path="src/components/EnhancedQuestionBank.tsx">
+              <Button size="sm" className='cursor-pointer' onClick={() => setShowAddQuestion(true)} data-id="j562uja25" data-path="src/components/EnhancedQuestionBank.tsx">
                 <Plus className="h-4 w-4 mr-2" data-id="epa0pzuhw" data-path="src/components/EnhancedQuestionBank.tsx" />
                 Add Question
               </Button>
@@ -512,12 +514,13 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
                   <Button
                     variant="outline"
                     size="sm"
+                    className='cursor-pointer'
                     onClick={() => setShowFilters(!showFilters)} data-id="bzcun7bi6" data-path="src/components/EnhancedQuestionBank.tsx">
 
                     <Filter className="h-4 w-4 mr-2" data-id="df4qvjqkt" data-path="src/components/EnhancedQuestionBank.tsx" />
                     {showFilters ? 'Hide Filters' : 'Show Filters'}
                   </Button>
-                  <Button variant="outline" size="sm" onClick={clearFilters} data-id="vrphz3o0f" data-path="src/components/EnhancedQuestionBank.tsx">
+                  <Button variant="outline" size="sm" className='cursor-pointer' onClick={clearFilters} data-id="vrphz3o0f" data-path="src/components/EnhancedQuestionBank.tsx">
                     <RefreshCw className="h-4 w-4 mr-2" data-id="w8ot30r0d" data-path="src/components/EnhancedQuestionBank.tsx" />
                     Clear Filters
                   </Button>
@@ -590,6 +593,7 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
 
                     <Button
                       variant="outline"
+                      className='cursor-pointer'
                       onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')} data-id="s8sbgi24h" data-path="src/components/EnhancedQuestionBank.tsx">
 
                       {sortOrder === 'asc' ?
@@ -610,6 +614,7 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
                           key={tag}
                           variant={filters.tags.includes(tag) ? 'default' : 'outline'}
                           size="sm"
+                          className='cursor-pointer'
                           onClick={() => handleTagFilter(tag)} data-id="e3x3wwy39" data-path="src/components/EnhancedQuestionBank.tsx">
 
                           <Tag className="h-3 w-3 mr-1" data-id="yr7qty3oc" data-path="src/components/EnhancedQuestionBank.tsx" />
@@ -785,7 +790,7 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
 
                   {/* Submit Button */}
                   <Button
-                    className="w-full"
+                    className="w-full cursor-pointer"
                     onClick={() => {
                       if (!editingQuestion) return;
                       handleEditQuestion(editingQuestion.id, {
@@ -831,15 +836,15 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
                         </div>
 
                         <div className="flex items-center space-x-2" data-id="1pvfhl2ad" data-path="src/components/EnhancedQuestionBank.tsx">
-                          <Button variant="ghost" size="sm" onClick={() => handleDuplicateQuestion(question.id)} data-id="n8xjrp414" data-path="src/components/EnhancedQuestionBank.tsx">
+                          <Button variant="ghost" size="sm" className='cursor-pointer' onClick={() => handleDuplicateQuestion(question.id)} data-id="n8xjrp414" data-path="src/components/EnhancedQuestionBank.tsx">
                             <Copy className="h-4 w-4" data-id="k0tskqwh9" data-path="src/components/EnhancedQuestionBank.tsx" />
                           </Button>
 
-                          <Button variant="ghost" size="sm" onClick={() => setEditingQuestion(question)} data-id="a6xmu57kx" data-path="src/components/EnhancedQuestionBank.tsx">
+                          <Button variant="ghost" size="sm" className='cursor-pointer' onClick={() => setEditingQuestion(question)} data-id="a6xmu57kx" data-path="src/components/EnhancedQuestionBank.tsx">
                             <Edit className="h-4 w-4" data-id="l7a5uj3tu" data-path="src/components/EnhancedQuestionBank.tsx" />
                           </Button>
 
-                          <Button variant="ghost" size="sm" onClick={() => handleDeleteQuestion(question.id)} data-id="wb3u6wxwg" data-path="src/components/EnhancedQuestionBank.tsx">
+                          <Button variant="ghost" size="sm" className='cursor-pointer' onClick={() => handleDeleteQuestion(question.id)} data-id="wb3u6wxwg" data-path="src/components/EnhancedQuestionBank.tsx">
                             <Trash2 className="h-4 w-4" data-id="plm03ky1o" data-path="src/components/EnhancedQuestionBank.tsx" />
                           </Button>
                         </div>
@@ -888,7 +893,7 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
               <CardContent className="text-center py-8" data-id="8851jtvyj" data-path="src/components/EnhancedQuestionBank.tsx">
                 <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" data-id="454n09i5l" data-path="src/components/EnhancedQuestionBank.tsx" />
                 <p className="text-gray-600" data-id="1neoh0ydb" data-path="src/components/EnhancedQuestionBank.tsx">No questions found matching your criteria</p>
-                <Button variant="outline" className="mt-4" onClick={clearFilters} data-id="kfjp2qh87" data-path="src/components/EnhancedQuestionBank.tsx">
+                <Button variant="outline" className="mt-4 cursor-pointer" onClick={clearFilters} data-id="kfjp2qh87" data-path="src/components/EnhancedQuestionBank.tsx">
                   Clear Filters
                 </Button>
               </CardContent>
@@ -1007,10 +1012,10 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
             </div>
 
             <div className="flex justify-end space-x-2" data-id="cgp1khzvn" data-path="src/components/EnhancedQuestionBank.tsx">
-              <Button variant="outline" onClick={() => setShowAddQuestion(false)} data-id="4f7d0g8lg" data-path="src/components/EnhancedQuestionBank.tsx">
+              <Button variant="outline" className='cursor-pointer' onClick={() => setShowAddQuestion(false)} data-id="4f7d0g8lg" data-path="src/components/EnhancedQuestionBank.tsx">
                 Cancel
               </Button>
-              <Button onClick={handleAddQuestion} data-id="w7285sqln" data-path="src/components/EnhancedQuestionBank.tsx">
+              <Button className='cursor-pointer' onClick={handleAddQuestion} data-id="w7285sqln" data-path="src/components/EnhancedQuestionBank.tsx">
                 Add Question
               </Button>
             </div>
@@ -1032,7 +1037,7 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
               <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" data-id="os3kngjxb" data-path="src/components/EnhancedQuestionBank.tsx" />
               <p className="text-gray-600 mb-2" data-id="di2k6l02f" data-path="src/components/EnhancedQuestionBank.tsx">Drop your file here or click to browse</p>
               <p className="text-sm text-gray-500" data-id="5b1q1vazy" data-path="src/components/EnhancedQuestionBank.tsx">Supports CSV and Excel files</p>
-              <Button variant="outline" className="mt-4" data-id="jgiobwfux" data-path="src/components/EnhancedQuestionBank.tsx">
+              <Button variant="outline" className="mt-4 cursor-pointer" data-id="jgiobwfux" data-path="src/components/EnhancedQuestionBank.tsx">
                 Choose File
               </Button>
             </div>
@@ -1051,10 +1056,10 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
             </div>
 
             <div className="flex justify-end space-x-2" data-id="gpt8pm999" data-path="src/components/EnhancedQuestionBank.tsx">
-              <Button variant="outline" onClick={() => setShowBulkUpload(false)} data-id="72wimhfnj" data-path="src/components/EnhancedQuestionBank.tsx">
+              <Button variant="outline" className='cursor-pointer' onClick={() => setShowBulkUpload(false)} data-id="72wimhfnj" data-path="src/components/EnhancedQuestionBank.tsx">
                 Cancel
               </Button>
-              <Button data-id="s8zuoj4vj" data-path="src/components/EnhancedQuestionBank.tsx">
+              <Button className='cursor-pointer' data-id="s8zuoj4vj" data-path="src/components/EnhancedQuestionBank.tsx">
                 Upload Questions
               </Button>
             </div>
