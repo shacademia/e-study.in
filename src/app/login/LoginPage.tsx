@@ -125,7 +125,7 @@ const LoginPage: React.FC = () => {
                         required
                       />
                     </div>
-                    <Button type="submit" className="w-full" disabled={loadingSubmit}>
+                    <Button type="submit" className="w-full cursor-pointer" disabled={loadingSubmit}>
                       {loadingSubmit ? 'Signing in...' : 'Sign In'}
                     </Button>
                   </form>
@@ -193,7 +193,7 @@ const LoginPage: React.FC = () => {
                         required
                       />
                     </div>
-                    <Button type="submit" className="w-full" disabled={loadingSubmit}>
+                    <Button type="submit" className="w-full cursor-pointer" disabled={loadingSubmit}>
                       {loadingSubmit ? 'Creating account...' : 'Sign Up'}
                     </Button>
                   </form>

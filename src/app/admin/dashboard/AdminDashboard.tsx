@@ -263,7 +263,7 @@ const AdminDashboard: React.FC = () => {
           variant="outline"
           size="sm"
           onClick={handleUndoDeleteQuestion}
-          className="ml-2" data-id="0sposwo3c" data-path="src/components/AdminDashboard.tsx">
+          className="ml-2 cursor-pointer" data-id="0sposwo3c" data-path="src/components/AdminDashboard.tsx">
 
             <Undo2 className="h-4 w-4 mr-1" data-id="86mtgxhkq" data-path="src/components/AdminDashboard.tsx" />
             Undo
@@ -388,7 +388,7 @@ const AdminDashboard: React.FC = () => {
             </div>
             <div className="flex items-center space-x-4" data-id="nuvwnqeea" data-path="src/components/AdminDashboard.tsx">
               <Badge variant="outline" data-id="s09w41gss" data-path="src/components/AdminDashboard.tsx">{user?.name}</Badge>
-              <Button variant="outline" size="sm" onClick={handleLogout} data-id="j5rgmjj0h" data-path="src/components/AdminDashboard.tsx">
+              <Button variant="outline" size="sm" className='cursor-pointer' onClick={handleLogout} data-id="j5rgmjj0h" data-path="src/components/AdminDashboard.tsx">
                 <LogOut className="h-4 w-4 mr-2" data-id="fvrgm0z68" data-path="src/components/AdminDashboard.tsx" />
                 Logout
               </Button>
@@ -481,13 +481,13 @@ const AdminDashboard: React.FC = () => {
                 <div className="flex justify-between items-center" data-id="jashzh9wk" data-path="src/components/AdminDashboard.tsx">
                   <h2 className="text-2xl font-bold" data-id="3dfwnzxp7" data-path="src/components/AdminDashboard.tsx">Exam Management</h2>
                   <div className="flex space-x-2" data-id="y1towoot3" data-path="src/components/AdminDashboard.tsx">
-                    <Button variant="outline" onClick={() => setShowQuestionBank(true)} data-id="44qcee5pl" data-path="src/components/AdminDashboard.tsx">
+                    <Button variant="outline" className='cursor-pointer' onClick={() => setShowQuestionBank(true)} data-id="44qcee5pl" data-path="src/components/AdminDashboard.tsx">
                       <BookOpen className="h-4 w-4 mr-2" data-id="gy34as799" data-path="src/components/AdminDashboard.tsx" />
                       Question Bank
                     </Button>
                     <Dialog open={showCreateExam} onOpenChange={setShowCreateExam} data-id="e46uu5j9z" data-path="src/components/AdminDashboard.tsx">
                       <DialogTrigger asChild data-id="sj6wucftz" data-path="src/components/AdminDashboard.tsx">
-                        <Button data-id="a9d337j06" data-path="src/components/AdminDashboard.tsx">
+                        <Button className='cursor-pointer' data-id="a9d337j06" data-path="src/components/AdminDashboard.tsx">
                           <Plus className="h-4 w-4 mr-2" data-id="bh61i5qdt" data-path="src/components/AdminDashboard.tsx" />
                           Create Exam
                         </Button>
@@ -553,7 +553,7 @@ const AdminDashboard: React.FC = () => {
 
                             </div>
                           }
-                          <Button onClick={handleCreateExam} className="w-full" data-id="9yzmjz9ld" data-path="src/components/AdminDashboard.tsx">
+                          <Button onClick={handleCreateExam} className="w-full cursor-pointer" data-id="9yzmjz9ld" data-path="src/components/AdminDashboard.tsx">
                             Create Exam
                           </Button>
                         </div>
@@ -587,6 +587,7 @@ const AdminDashboard: React.FC = () => {
                             </Badge>
                             <Button
                             variant="outline"
+                            className='cursor-pointer'
                             size="sm"
                             onClick={() => handleTogglePublish(exam.id, !exam.isPublished)} data-id="b9irbdk42" data-path="src/components/AdminDashboard.tsx">
 
@@ -604,6 +605,7 @@ const AdminDashboard: React.FC = () => {
                             </Button>
                             <Button
                             variant="outline"
+                            className='cursor-pointer'
                             size="sm"
                             onClick={() => handleDuplicateExam(exam.id)} data-id="u5thkck0e" data-path="src/components/AdminDashboard.tsx">
 
@@ -621,6 +623,7 @@ const AdminDashboard: React.FC = () => {
                             </Button>
                             <Button
                             variant="outline"
+                            className='cursor-pointer'
                             size="sm"
                             onClick={() => handleDeleteExam(exam.id)} data-id="5yvp6ybwv" data-path="src/components/AdminDashboard.tsx">
 
@@ -660,7 +663,7 @@ const AdminDashboard: React.FC = () => {
                 <h2 className="text-2xl font-bold" data-id="tafhfzq9t" data-path="src/components/AdminDashboard.tsx">Question Bank</h2>
                 <Dialog open={showCreateQuestion} onOpenChange={setShowCreateQuestion} data-id="q8q3x9dki" data-path="src/components/AdminDashboard.tsx">
                   <DialogTrigger asChild data-id="yhv9ss0cn" data-path="src/components/AdminDashboard.tsx">
-                    <Button data-id="remtp8vqc" data-path="src/components/AdminDashboard.tsx">
+                    <Button className='cursor-pointer' data-id="remtp8vqc" data-path="src/components/AdminDashboard.tsx">
                       <Plus className="h-4 w-4 mr-2" data-id="xxvtf1c8y" data-path="src/components/AdminDashboard.tsx" />
                       Add Question
                     </Button>
@@ -755,7 +758,7 @@ const AdminDashboard: React.FC = () => {
                           </Select>
                         </div>
                       </div>
-                      <Button onClick={handleCreateQuestion} className="w-full" data-id="4c46isisq" data-path="src/components/AdminDashboard.tsx">
+                      <Button onClick={handleCreateQuestion} className="w-full cursor-pointer" data-id="4c46isisq" data-path="src/components/AdminDashboard.tsx">
                         Add Question
                       </Button>
                     </div>
@@ -850,16 +853,18 @@ const AdminDashboard: React.FC = () => {
                         <div className="flex items-center gap-2" data-id="vr1rpawlz" data-path="src/components/AdminDashboard.tsx">
                           <Button
                           variant="outline"
+                          className='cursor-pointer'
                           size="sm"
                           onClick={() => handleDuplicateQuestion(question.id)} data-id="f17o2d5db" data-path="src/components/AdminDashboard.tsx">
 
                             <Copy className="h-4 w-4" data-id="ihrdrn9tf" data-path="src/components/AdminDashboard.tsx" />
                           </Button>
-                          <Button variant="outline" size="sm" data-id="qtypugh2e" data-path="src/components/AdminDashboard.tsx">
+                          <Button variant="outline" className='cursor-pointer' size="sm" data-id="qtypugh2e" data-path="src/components/AdminDashboard.tsx">
                             <Edit className="h-4 w-4" data-id="t79vo10n3" data-path="src/components/AdminDashboard.tsx" />
                           </Button>
                           <Button
                           variant="outline"
+                          className='cursor-pointer'
                           size="sm"
                           onClick={() => handleDeleteQuestion(question.id)} data-id="7en9f2r7m" data-path="src/components/AdminDashboard.tsx">
 

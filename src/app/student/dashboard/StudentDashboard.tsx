@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Clock, BookOpen, Trophy, User, LogOut, Play, Lock, Award, Target, Users } from 'lucide-react';
+import { Clock, BookOpen, Trophy, User, LogOut, Play, Lock, Award, Goal, Users } from 'lucide-react';
 import { useAuth } from '@hooks/useMockAuth';
 import { mockDataService, Exam, UserStats, Ranking } from '@services/mockData';
 
@@ -81,6 +81,7 @@ const StudentDashboard: React.FC = () => {
               <Button
                 variant="outline"
                 size="sm"
+                className='cursor-pointer'
                 onClick={() => router.push('/rankings')} data-id="eutl428n1" data-path="src/components/StudentDashboard.tsx">
 
                 <Trophy className="h-4 w-4 mr-2" data-id="cf64zxn0a" data-path="src/components/StudentDashboard.tsx" />
@@ -89,6 +90,7 @@ const StudentDashboard: React.FC = () => {
               <Button
                 variant="outline"
                 size="sm"
+                className='cursor-pointer'
                 onClick={handleLogout} data-id="jse02euxe" data-path="src/components/StudentDashboard.tsx">
 
                 <LogOut className="h-4 w-4 mr-2" data-id="9xquuayor" data-path="src/components/StudentDashboard.tsx" />
@@ -108,65 +110,55 @@ const StudentDashboard: React.FC = () => {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8" data-id="7m1ah7aaw" data-path="src/components/StudentDashboard.tsx">
-          <Card data-id="6rp9pbktu" data-path="src/components/StudentDashboard.tsx">
-            <CardHeader className="pb-3" data-id="5bp08em9n" data-path="src/components/StudentDashboard.tsx">
-              <CardTitle className="text-sm font-medium text-gray-600" data-id="0cimijxg8" data-path="src/components/StudentDashboard.tsx">Exams Attended</CardTitle>
-            </CardHeader>
-            <CardContent data-id="foolgx06h" data-path="src/components/StudentDashboard.tsx">
-              <div className="flex items-center" data-id="rmd3tm6zg" data-path="src/components/StudentDashboard.tsx">
-                <BookOpen className="h-8 w-8 text-blue-600 mr-3" data-id="iu3nmwnwb" data-path="src/components/StudentDashboard.tsx" />
-                <div data-id="mb2e8mh24" data-path="src/components/StudentDashboard.tsx">
-                  <p className="text-2xl font-bold text-gray-900" data-id="lz0q5u7fo" data-path="src/components/StudentDashboard.tsx">{userStats?.totalExamsAttended || 0}</p>
-                  <p className="text-sm text-gray-600" data-id="51m3p2cnv" data-path="src/components/StudentDashboard.tsx">Total completed</p>
-                </div>
+          <Card className="bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200" data-id="s5z7wkw1r" data-path="src/components/AdminDashboard.tsx">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2" data-id="6rvlspzlv" data-path="src/components/AdminDashboard.tsx">
+              <CardTitle className="text-sm font-medium text-blue-600" data-id="6xxk38u23" data-path="src/components/AdminDashboard.tsx">Exams Attended</CardTitle>
+              <div className="h-8 w-8 bg-blue-500 rounded-full flex items-center justify-center" data-id="za698udhb" data-path="src/components/AdminDashboard.tsx">
+                <BookOpen className="h-4 w-4 text-white" data-id="mz4npxq6m" data-path="src/components/AdminDashboard.tsx" />
               </div>
+            </CardHeader>
+            <CardContent data-id="afi2wbc6u" data-path="src/components/AdminDashboard.tsx">
+              <div className="text-2xl font-bold text-blue-600" data-id="7xuzewo68" data-path="src/components/AdminDashboard.tsx">{userStats?.totalExamsAttended || 0}</div>
+              <p className="text-xs text-blue-600 mt-1" data-id="1h0zeldzj" data-path="src/components/AdminDashboard.tsx">Total completed</p>
             </CardContent>
           </Card>
 
-          <Card data-id="kq2mzoyqe" data-path="src/components/StudentDashboard.tsx">
-            <CardHeader className="pb-3" data-id="3k2wr2mzq" data-path="src/components/StudentDashboard.tsx">
-              <CardTitle className="text-sm font-medium text-gray-600" data-id="pn3s6c2nl" data-path="src/components/StudentDashboard.tsx">Highest Score</CardTitle>
-            </CardHeader>
-            <CardContent data-id="x4j5et62b" data-path="src/components/StudentDashboard.tsx">
-              <div className="flex items-center" data-id="z2owuahwe" data-path="src/components/StudentDashboard.tsx">
-                <Target className="h-8 w-8 text-green-600 mr-3" data-id="ksuk44cd4" data-path="src/components/StudentDashboard.tsx" />
-                <div data-id="28sozdgtw" data-path="src/components/StudentDashboard.tsx">
-                  <p className="text-2xl font-bold text-gray-900" data-id="0c68puj7e" data-path="src/components/StudentDashboard.tsx">{userStats?.highestScore || 0}</p>
-                  <p className="text-sm text-gray-600" data-id="qnv4759cc" data-path="src/components/StudentDashboard.tsx">Best performance</p>
-                </div>
+          <Card className="bg-gradient-to-r from-green-50 to-green-100 border-green-200" data-id="s5z7wkw1r" data-path="src/components/AdminDashboard.tsx">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2" data-id="6rvlspzlv" data-path="src/components/AdminDashboard.tsx">
+              <CardTitle className="text-sm font-medium text-green-600" data-id="6xxk38u23" data-path="src/components/AdminDashboard.tsx">Highest Score</CardTitle>
+              <div className="h-8 w-8 bg-green-500 rounded-full flex items-center justify-center" data-id="za698udhb" data-path="src/components/AdminDashboard.tsx">
+                <Goal className="h-4 w-4 text-white" data-id="mz4npxq6m" data-path="src/components/AdminDashboard.tsx" />
               </div>
+            </CardHeader>
+            <CardContent data-id="afi2wbc6u" data-path="src/components/AdminDashboard.tsx">
+              <div className="text-2xl font-bold text-green-600" data-id="7xuzewo68" data-path="src/components/AdminDashboard.tsx">{userStats?.highestScore || 0}</div>
+              <p className="text-xs text-green-600 mt-1" data-id="1h0zeldzj" data-path="src/components/AdminDashboard.tsx">Best performance</p>
             </CardContent>
           </Card>
 
-          <Card data-id="pkjoeakx9" data-path="src/components/StudentDashboard.tsx">
-            <CardHeader className="pb-3" data-id="grje3xiuj" data-path="src/components/StudentDashboard.tsx">
-              <CardTitle className="text-sm font-medium text-gray-600" data-id="2k1w4a6vg" data-path="src/components/StudentDashboard.tsx">Current Rank</CardTitle>
-            </CardHeader>
-            <CardContent data-id="ss5gi69lx" data-path="src/components/StudentDashboard.tsx">
-              <div className="flex items-center" data-id="euucxsmfg" data-path="src/components/StudentDashboard.tsx">
-                <Award className="h-8 w-8 text-purple-600 mr-3" data-id="rsajmr5bk" data-path="src/components/StudentDashboard.tsx" />
-                <div data-id="pqhypln6d" data-path="src/components/StudentDashboard.tsx">
-                  <p className="text-2xl font-bold text-gray-900" data-id="lqh8jwei0" data-path="src/components/StudentDashboard.tsx">
-                    {userRanking?.rank ? `#${userRanking.rank}` : 'N/A'}
-                  </p>
-                  <p className="text-sm text-gray-600" data-id="i6pjjj141" data-path="src/components/StudentDashboard.tsx">Among students</p>
-                </div>
+          <Card className="bg-gradient-to-r from-purple-50 to-purple-100 border-purple-200" data-id="s5z7wkw1r" data-path="src/components/AdminDashboard.tsx">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2" data-id="6rvlspzlv" data-path="src/components/AdminDashboard.tsx">
+              <CardTitle className="text-sm font-medium text-purple-600" data-id="6xxk38u23" data-path="src/components/AdminDashboard.tsx">Current Rank</CardTitle>
+              <div className="h-8 w-8 bg-purple-500 rounded-full flex items-center justify-center" data-id="za698udhb" data-path="src/components/AdminDashboard.tsx">
+                <Award className="h-4 w-4 text-white" data-id="mz4npxq6m" data-path="src/components/AdminDashboard.tsx" />
               </div>
+            </CardHeader>
+            <CardContent data-id="afi2wbc6u" data-path="src/components/AdminDashboard.tsx">
+              <div className="text-2xl font-bold text-purple-600" data-id="7xuzewo68" data-path="src/components/AdminDashboard.tsx">{userRanking?.rank ? `#${userRanking.rank}` : 'N/A'}</div>
+              <p className="text-xs text-purple-600 mt-1" data-id="1h0zeldzj" data-path="src/components/AdminDashboard.tsx">Among students</p>
             </CardContent>
           </Card>
 
-          <Card data-id="5tv3lqb1o" data-path="src/components/StudentDashboard.tsx">
-            <CardHeader className="pb-3" data-id="50q9oq27t" data-path="src/components/StudentDashboard.tsx">
-              <CardTitle className="text-sm font-medium text-gray-600" data-id="cp5wwv63h" data-path="src/components/StudentDashboard.tsx">Total Students</CardTitle>
-            </CardHeader>
-            <CardContent data-id="0ibtvxmwu" data-path="src/components/StudentDashboard.tsx">
-              <div className="flex items-center" data-id="gklfw83i9" data-path="src/components/StudentDashboard.tsx">
-                <Users className="h-8 w-8 text-orange-600 mr-3" data-id="6kp4uvho0" data-path="src/components/StudentDashboard.tsx" />
-                <div data-id="k65c74232" data-path="src/components/StudentDashboard.tsx">
-                  <p className="text-2xl font-bold text-gray-900" data-id="pfmj0gssz" data-path="src/components/StudentDashboard.tsx">{userStats?.totalStudents || 0}</p>
-                  <p className="text-sm text-gray-600" data-id="67hd3773m" data-path="src/components/StudentDashboard.tsx">In the system</p>
-                </div>
+          <Card className="bg-gradient-to-r from-orange-50 to-orange-100 border-orange-200" data-id="s5z7wkw1r" data-path="src/components/AdminDashboard.tsx">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2" data-id="6rvlspzlv" data-path="src/components/AdminDashboard.tsx">
+              <CardTitle className="text-sm font-medium text-orange-500" data-id="6xxk38u23" data-path="src/components/AdminDashboard.tsx">Total Students</CardTitle>
+              <div className="h-8 w-8 bg-orange-600 rounded-full flex items-center justify-center" data-id="za698udhb" data-path="src/components/AdminDashboard.tsx">
+                <Users className="h-4 w-4 text-white" data-id="mz4npxq6m" data-path="src/components/AdminDashboard.tsx" />
               </div>
+            </CardHeader>
+            <CardContent data-id="afi2wbc6u" data-path="src/components/AdminDashboard.tsx">
+              <div className="text-2xl font-bold text-orange-500" data-id="7xuzewo68" data-path="src/components/AdminDashboard.tsx">{userStats?.totalStudents || 0}</div>
+              <p className="text-xs text-orange-500 mt-1" data-id="1h0zeldzj" data-path="src/components/AdminDashboard.tsx">In the system</p>
             </CardContent>
           </Card>
         </div>
@@ -297,7 +289,7 @@ const StudentDashboard: React.FC = () => {
                           <div className="flex space-x-2" data-id="aihlg9mbr" data-path="src/components/StudentDashboard.tsx">
                             <Button
                               onClick={() => handleStartExam(exam.id)}
-                              className="flex items-center" data-id="abi2sip24" data-path="src/components/StudentDashboard.tsx">
+                              className="flex items-center cursor-pointer" data-id="abi2sip24" data-path="src/components/StudentDashboard.tsx">
 
                               <Play className="h-4 w-4 mr-2" data-id="8n0u2wd1f" data-path="src/components/StudentDashboard.tsx" />
                               Start Exam
@@ -356,6 +348,7 @@ const StudentDashboard: React.FC = () => {
                             <div className="flex space-x-2" data-id="b2cei6eot" data-path="src/components/StudentDashboard.tsx">
                               <Button
                                 variant="outline"
+                                className='cursor-pointer'
                                 onClick={() => handleViewResults(exam.id)} data-id="0n9odoucl" data-path="src/components/StudentDashboard.tsx">
 
                                 View Results

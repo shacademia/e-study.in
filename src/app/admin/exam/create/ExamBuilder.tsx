@@ -364,6 +364,7 @@ const ExamBuilder: React.FC<ExamBuilderProps> = ({ onBack, editingExam }) => {
               <Button
                 variant="ghost"
                 size="sm"
+                className="cursor-pointer"
                 onClick={onBack}
                 data-id="pa1os2of9"
                 data-path="src/components/ExamBuilder.tsx"
@@ -396,6 +397,7 @@ const ExamBuilder: React.FC<ExamBuilderProps> = ({ onBack, editingExam }) => {
               <Button
                 variant="outline"
                 size="sm"
+                className="cursor-pointer"
                 onClick={() => handleSaveExam("draft")}
                 data-id="czirpr9no"
                 data-path="src/components/ExamBuilder.tsx"
@@ -773,6 +775,7 @@ const ExamBuilder: React.FC<ExamBuilderProps> = ({ onBack, editingExam }) => {
                       <Button
                         variant="ghost"
                         size="sm"
+                        className="cursor-pointer"
                         onClick={() => handleDeleteSection(section.id)}
                         disabled={sections.length === 1}
                         data-id="ex16qlc6c"
@@ -789,8 +792,8 @@ const ExamBuilder: React.FC<ExamBuilderProps> = ({ onBack, editingExam }) => {
                   <Button
                     variant="outline"
                     size="sm"
+                    className="cursor-pointer w-full"
                     onClick={handleAddSection}
-                    className="w-full"
                     data-id="8rpu276za"
                     data-path="src/components/ExamBuilder.tsx"
                   >
@@ -973,7 +976,7 @@ const ExamBuilder: React.FC<ExamBuilderProps> = ({ onBack, editingExam }) => {
                           <Button
                             size="sm"
                             onClick={() => setShowQuestionSelector(true)}
-                            className="bg-blue-600 hover:bg-blue-700"
+                            className="bg-blue-600 hover:bg-blue-700 cursor-pointer"
                             data-id="1azdnauc2"
                             data-path="src/components/ExamBuilder.tsx"
                           >
@@ -1050,6 +1053,7 @@ const ExamBuilder: React.FC<ExamBuilderProps> = ({ onBack, editingExam }) => {
                                   <Button
                                     variant="ghost"
                                     size="sm"
+                                    className="cursor-pointer"
                                     onClick={() =>
                                       handleRemoveQuestion(
                                         section.id,
@@ -1090,7 +1094,7 @@ const ExamBuilder: React.FC<ExamBuilderProps> = ({ onBack, editingExam }) => {
                             <Button
                               variant="outline"
                               size="sm"
-                              className="mt-2"
+                              className="mt-2 cursor-pointer"
                               onClick={() => setShowQuestionSelector(true)}
                               data-id="hbg5q4nzl"
                               data-path="src/components/ExamBuilder.tsx"
@@ -1312,6 +1316,7 @@ const ExamBuilder: React.FC<ExamBuilderProps> = ({ onBack, editingExam }) => {
               >
                 <Button
                   variant="outline"
+                  className="cursor-pointer"
                   onClick={() => setShowQuestionSelector(false)}
                   data-id="f8bkf53fx"
                   data-path="src/components/ExamBuilder.tsx"
@@ -1319,6 +1324,7 @@ const ExamBuilder: React.FC<ExamBuilderProps> = ({ onBack, editingExam }) => {
                   Cancel
                 </Button>
                 <Button
+                  className="cursor-pointer"
                   onClick={handleAddSelectedQuestions}
                   disabled={selectedQuestions.size === 0}
                   data-id="qj3hmnedn"

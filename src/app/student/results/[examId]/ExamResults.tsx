@@ -68,8 +68,8 @@ const ExamResults: React.FC<ExamResultsProps> = ({ examId }) => {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => router.push('/dashboard')}
-                className="mr-4" data-id="5afuhyzlw" data-path="src/components/ExamResults.tsx">
+                onClick={() => router.push('/student/dashboard')}
+                className="mr-4 cursor-pointer" data-id="5afuhyzlw" data-path="src/components/ExamResults.tsx">
 
                 <ArrowLeft className="h-4 w-4 mr-2" data-id="1csmscihc" data-path="src/components/ExamResults.tsx" />
                 Back to Dashboard
@@ -204,12 +204,14 @@ const ExamResults: React.FC<ExamResultsProps> = ({ examId }) => {
           <div className="flex justify-center space-x-4" data-id="q8x1f64xx" data-path="src/components/ExamResults.tsx">
             <Button
               variant="outline"
-              onClick={() => router.push('/dashboard')} data-id="ntj9grn45" data-path="src/components/ExamResults.tsx">
+              className='cursor-pointer'
+              onClick={() => router.push('/student/dashboard')} data-id="ntj9grn45" data-path="src/components/ExamResults.tsx">
 
               <BookOpen className="h-4 w-4 mr-2" data-id="m8psxvyxf" data-path="src/components/ExamResults.tsx" />
               Back to Dashboard
             </Button>
             <Button
+              className='cursor-pointer'
               onClick={() => router.push('/rankings')} data-id="2uo3av98a" data-path="src/components/ExamResults.tsx">
 
               <Trophy className="h-4 w-4 mr-2" data-id="8qvx0pdkt" data-path="src/components/ExamResults.tsx" />
