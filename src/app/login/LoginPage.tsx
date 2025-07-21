@@ -27,6 +27,7 @@ import { useAuth } from '../../hooks/useMockAuth';
 const LoginPage: React.FC = () => {
   const router = useRouter();
   const { signIn, signUp, user, loading } = useAuth();
+  const [userRole, setUserRole] = useState<string | null>(null);
   const [loadingSubmit, setLoadingSubmit] = useState(false);
 
   const [signInData, setSignInData] = useState({ email: '', password: '' });
@@ -57,6 +58,10 @@ const LoginPage: React.FC = () => {
       if (!response.ok) {
         throw new Error('Sign in failed');
       }
+      const data = await response.json();
+
+        setUserRole(data.user.role);
+      // router.push('/');
 
       // await signIn(signInData.email, signInData.password);
     } catch (error) {
@@ -100,12 +105,12 @@ const LoginPage: React.FC = () => {
   };
 
   useEffect(() => {
-    if (!loading && user) {
-      router.push(user.role === 'admin' ? '/admin/dashboard' : '/student/dashboard');
+    if (userRole && !loading) {
+      router.push(userRole === 'ADMIN' ? '/admin/dashboard' : '/student/dashboard');
     }
-  }, [user, loading, router]);
+  }, [user, loading, router, userRole]);
 
-  if (!loading && user) {
+  if (!loading && userRole) {
     // prevent flicker when already logged in
     return null;
   }
