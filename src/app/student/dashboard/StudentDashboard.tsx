@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,6 +18,7 @@ const StudentDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!user?.id) return; // Prevent API call when user is not ready
     const loadData = async () => {
       try {
         const [examData, statsData, rankingData] = await Promise.all([
@@ -56,11 +57,25 @@ const StudentDashboard: React.FC = () => {
   };
   
   // Filter exams based on completed submissions
-  const completedExamIds = userStats?.recentSubmissions.map((sub) => sub.examId) || [];
-  // Separate available and completed exams
-  const availableExams = exams.filter((exam) => !completedExamIds.includes(exam.id));
-  // Completed exams are those that have been submitted by the user
-  const completedExams = exams.filter((exam) => completedExamIds.includes(exam.id));
+  const completedExamIds = useMemo(() => userStats?.recentSubmissions.map(sub => sub.examId) || [], [userStats]);
+
+  const availableExams = useMemo(
+    () => exams.filter((exam) => !completedExamIds.includes(exam.id)),
+    [exams, completedExamIds]
+  );
+
+  const completedExams = useMemo(
+    () => exams.filter((exam) => completedExamIds.includes(exam.id)),
+    [exams, completedExamIds]
+  );
+
+  // If user is not logged in, show a message
+  if (!user) {
+    <div className="text-center mt-10 space-y-4">
+      <p>Please log in to access the dashboard.</p>
+      <Button onClick={() => router.push('/login')}>Login</Button>
+    </div>
+  }
 
   // If loading, show a loading state
   if (loading) {
@@ -75,7 +90,7 @@ const StudentDashboard: React.FC = () => {
           <div className="flex justify-between items-center h-16" data-id="x2k6iw089" data-path="src/components/StudentDashboard.tsx">
             <div className="flex items-center" data-id="ff196ap4x" data-path="src/components/StudentDashboard.tsx">
               <BookOpen className="h-8 w-8 text-blue-600 mr-3" data-id="19mczx8ba" data-path="src/components/StudentDashboard.tsx" />
-              <h1 className="text-xl font-bold text-gray-900" data-id="6ividrgod" data-path="src/components/StudentDashboard.tsx">ExamPortal</h1>
+              <h1 className="text-xl font-bold text-gray-900" data-id="6ividrgod" data-path="src/components/StudentDashboard.tsx">Student Dashboard</h1>
             </div>
             <div className="flex items-center space-x-4" data-id="z56qj7usv" data-path="src/components/StudentDashboard.tsx">
               <Button
@@ -105,7 +120,7 @@ const StudentDashboard: React.FC = () => {
         {/* Welcome Section */}
         <div className="mb-8" data-id="jx44x3omn" data-path="src/components/StudentDashboard.tsx">
           <h2 className="text-3xl font-bold text-gray-900 mb-2" data-id="uxzgbt3u7" data-path="src/components/StudentDashboard.tsx">Welcome back, {user?.name}!</h2>
-          <p className="text-gray-600" data-id="e7cvpgr9m" data-path="src/components/StudentDashboard.tsx">Here&apos; an overview of your academic progress</p>
+          <p className="text-gray-600" data-id="e7cvpgr9m" data-path="src/components/StudentDashboard.tsx">Here&apos;s an overview of your academic progress</p>
         </div>
 
         {/* Stats Cards */}
@@ -220,19 +235,33 @@ const StudentDashboard: React.FC = () => {
               </CardHeader>
               <CardContent data-id="7yus9duxf" data-path="src/components/StudentDashboard.tsx">
                 <div className="space-y-3" data-id="jm193b7bx" data-path="src/components/StudentDashboard.tsx">
-                  {userStats?.recentSubmissions.slice(0, 3).map((submission, index) => {
+                  {userStats?.recentSubmissions.slice(0, 3).map((submission) => {
                     const exam = exams.find((e) => e.id === submission.examId);
                     return (
-                      <div key={submission.id} className="flex items-center justify-between p-2 bg-gray-50 rounded" data-id="138ywudx3" data-path="src/components/StudentDashboard.tsx">
-                        <div data-id="4poa5iqih" data-path="src/components/StudentDashboard.tsx">
-                          <p className="text-sm font-medium" data-id="d6mk2kw0n" data-path="src/components/StudentDashboard.tsx">{exam?.name}</p>
-                          <p className="text-xs text-gray-600" data-id="v6uz1juap" data-path="src/components/StudentDashboard.tsx">
-                            {new Date(submission.completedAt).toLocaleDateString()}
+                      <div
+                        key={submission.id}
+                        className="flex items-center justify-between p-3 bg-gray-50 rounded-md shadow-sm"
+                        data-id="138ywudx3"
+                        data-path="src/components/StudentDashboard.tsx"
+                      >
+                        <div className="flex flex-col" data-id="4poa5iqih" data-path="src/components/StudentDashboard.tsx">
+                          <p className="text-sm font-semibold" data-id="d6mk2kw0n" data-path="src/components/StudentDashboard.tsx">
+                            {exam?.name || "Unknown Exam"}
+                          </p>
+                          <p className="text-xs text-gray-500" data-id="v6uz1juap" data-path="src/components/StudentDashboard.tsx">
+                            {submission.completedAt ? new Date(submission.completedAt).toLocaleDateString() : "N/A"}
                           </p>
                         </div>
-                        <Badge variant="outline" data-id="dxplqqv3a" data-path="src/components/StudentDashboard.tsx">{submission.score} pts</Badge>
-                      </div>);
-
+                        <Badge
+                          variant="outline"
+                          className="text-xs px-2 py-1"
+                          data-id="dxplqqv3a"
+                          data-path="src/components/StudentDashboard.tsx"
+                        >
+                          {submission.score} pts
+                        </Badge>
+                      </div>
+                    );
                   })}
                 </div>
               </CardContent>

@@ -455,16 +455,16 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
     <div className="min-h-screen bg-gray-50" data-id="bmtk6oo2y" data-path="src/components/EnhancedQuestionBank.tsx">
       {/* Header */}
       <header className="bg-white shadow-sm border-b" data-id="d3iretmkk" data-path="src/components/EnhancedQuestionBank.tsx">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" data-id="2dz0oykfc" data-path="src/components/EnhancedQuestionBank.tsx">
+        <div className="w-full mx-auto px-4 sm:px-6 lg:px-16" data-id="2dz0oykfc" data-path="src/components/EnhancedQuestionBank.tsx">
           <div className="flex justify-between items-center h-16" data-id="q5yzp8815" data-path="src/components/EnhancedQuestionBank.tsx">
             <div className="flex items-center" data-id="iso2jjawo" data-path="src/components/EnhancedQuestionBank.tsx">
               <Button variant="ghost" size="sm" className='cursor-pointer' onClick={onBack} data-id="wdjqvvcqc" data-path="src/components/EnhancedQuestionBank.tsx">
-                <ArrowLeft className="h-4 w-4 mr-2" data-id="6nxcyu7no" data-path="src/components/EnhancedQuestionBank.tsx" />
+                <ArrowLeft className="h-4 w-4 mr-1" data-id="6nxcyu7no" data-path="src/components/EnhancedQuestionBank.tsx" />
                 Back
               </Button>
-              <BookOpen className="h-8 w-8 text-blue-600 mr-3 ml-4" data-id="0wlp7uwhh" data-path="src/components/EnhancedQuestionBank.tsx" />
+              <BookOpen className="h-10 w-10 text-blue-600 mr-3 ml-4 mt-1" data-id="0wlp7uwhh" data-path="src/components/EnhancedQuestionBank.tsx" />
               <div data-id="cv3b7ci3q" data-path="src/components/EnhancedQuestionBank.tsx">
-                <h1 className="text-xl font-bold text-gray-900" data-id="dq5y6ktiw" data-path="src/components/EnhancedQuestionBank.tsx">Enhanced Question Bank</h1>
+                <h1 className="text-xl font-bold text-gray-900" data-id="dq5y6ktiw" data-path="src/components/EnhancedQuestionBank.tsx">Question Bank</h1>
                 <p className="text-sm text-gray-600" data-id="8r65aps22" data-path="src/components/EnhancedQuestionBank.tsx">{filteredQuestions.length} questions available</p>
               </div>
             </div>
@@ -859,8 +859,8 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
                           <div
                             key={index}
                             className={`p-2 rounded border text-sm ${index === question.correctOption ?
-                                'bg-green-50 border-green-200 text-green-800' :
-                                'bg-gray-50 border-gray-200'}`
+                              'bg-green-50 border-green-200 text-green-800' :
+                              'bg-gray-50 border-gray-200'}`
                             } data-id="vjx0xide6" data-path="src/components/EnhancedQuestionBank.tsx">
 
                             {String.fromCharCode(65 + index)}. {option}

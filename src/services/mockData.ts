@@ -875,6 +875,14 @@ export const mockDataService = {
     }
     return Promise.reject(new Error("Exam not found"));
   },
+  restoreExam: (exam: Exam) => {
+    const exists = mockExams.find((e) => e.id === exam.id);
+    if (exists) {
+      return Promise.reject(new Error("Exam with this ID already exists"));
+    }
+    mockExams.push({ ...exam, updatedAt: new Date() });
+    return Promise.resolve(exam);
+  },
   duplicateExam: (id: string) => {
     const exam = mockExams.find((exam) => exam.id === id);
     if (exam) {
