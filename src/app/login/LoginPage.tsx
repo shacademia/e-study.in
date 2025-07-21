@@ -41,7 +41,24 @@ const LoginPage: React.FC = () => {
     e.preventDefault();
     setLoadingSubmit(true);
     try {
-      await signIn(signInData.email, signInData.password);
+
+      const response = await fetch('/api/users/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          email: signInData.email,
+          password: signInData.password
+        })
+      });
+
+      // Check if the response is successful
+      if (!response.ok) {
+        throw new Error('Sign in failed');
+      }
+
+      // await signIn(signInData.email, signInData.password);
     } catch (error) {
       console.error('Sign in error:', error);
     } finally {
@@ -57,7 +74,24 @@ const LoginPage: React.FC = () => {
     }
     setLoadingSubmit(true);
     try {
-      await signUp(signUpData.email, signUpData.password, signUpData.name);
+
+      const response = await fetch('/api/users/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          // name: signUpData.name,
+          email: signUpData.email,
+          password: signUpData.password
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Sign up failed');
+      }
+
+      // await signUp(signUpData.email, signUpData.password, signUpData.name);
     } catch (error) {
       console.error('Sign up error:', error);
     } finally {
