@@ -35,7 +35,7 @@ export async function GET(
     const decoded = jwt.verify(token, JWT_SECRET) as { id: string; email: string };
     const currentUserId = decoded.id;
 
-    const { userId } = params;
+    const { userId } = await params;
     const { searchParams } = new URL(request.url);
     const queryParams = Object.fromEntries(searchParams.entries());
 
@@ -99,7 +99,7 @@ export async function GET(
     }
 
     // Build where clause
-    const where: any = { userId };
+    const where: Record<string, unknown> = { userId };
 
     // Filter by exam if specified
     if (examId) {

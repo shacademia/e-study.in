@@ -6,38 +6,82 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Clock, BookOpen, Trophy, User, LogOut, Play, Lock, Award, Goal, Users } from 'lucide-react';
-import { useAuth } from '@hooks/useMockAuth';
-import { mockDataService, Exam, UserStats, Ranking } from '@services/mockData';
+import { useAuth } from '@/hooks/useApiAuth';
+import { useExams, useSubmissions, useRankings } from '@/hooks/useApiServices';
+import { Exam, Submission, StudentRanking } from '@/constants/types';
 
 const StudentDashboard: React.FC = () => {
   const router = useRouter();
-  const { user, signOut } = useAuth();
+  const { user, logout } = useAuth();
+  
+  // API hooks
+  const examsApi = useExams();
+  const submissionsApi = useSubmissions();
+  const rankingsApi = useRankings();
+  
+  // Local state
   const [exams, setExams] = useState<Exam[]>([]);
-  const [userStats, setUserStats] = useState<UserStats | null>(null);
-  const [userRanking, setUserRanking] = useState<Ranking | undefined>(undefined);
+  const [userSubmissions, setUserSubmissions] = useState<Submission[]>([]);
+  const [userRanking, setUserRanking] = useState<StudentRanking | null>(null);
   const [loading, setLoading] = useState(true);
+  const [dataLoaded, setDataLoaded] = useState(false);
 
   useEffect(() => {
-    if (!user?.id) return; // Prevent API call when user is not ready
+    if (!user?.id || dataLoaded) return;
+    
     const loadData = async () => {
       try {
-        const [examData, statsData, rankingData] = await Promise.all([
-          mockDataService.getExams(),
-          mockDataService.getUserStats(user?.id || ''),
-          mockDataService.getUserRank(user?.id || '')]
-        );
-        setExams(examData);
-        setUserStats(statsData);
-        setUserRanking(rankingData);
+        setLoading(true);
+        setDataLoaded(true); // Set this early to prevent multiple calls
+        
+        // Load all dashboard data in parallel
+        const [examResult, submissionResult, rankingResult] = await Promise.allSettled([
+          examsApi.getAllExams({ page: 1, limit: 50, published: true }),
+          submissionsApi.getUserSubmissions(user.id, { page: 1, limit: 50 }),
+          rankingsApi.getStudentRanking({ userId: user.id })
+        ]);
+
+        // Handle exams result
+        if (examResult.status === 'fulfilled') {
+          console.log('Exam API Response:', examResult.value);
+          const examData = examResult.value as { data: Exam[] };
+          setExams(Array.isArray(examData.data) ? examData.data : []);
+        } else {
+          console.error('Failed to load exams:', examResult.reason);
+          setExams([]);
+        }
+
+        // Handle submissions result - Note: API returns { submissions: Submission[] }
+        if (submissionResult.status === 'fulfilled') {
+          console.log('Submissions API Response:', submissionResult.value);
+          const submissionData = submissionResult.value as { data: { submissions: Submission[] } };
+          const submissions = submissionData?.data?.submissions || [];
+          setUserSubmissions(Array.isArray(submissions) ? submissions : []);
+        } else {
+          console.error('Failed to load submissions:', submissionResult.reason);
+          setUserSubmissions([]);
+        }
+
+        // Handle ranking result - Note: API returns StudentRanking directly in data
+        if (rankingResult.status === 'fulfilled') {
+          console.log('Ranking API Response:', rankingResult.value);
+          const rankingData = rankingResult.value as { data: StudentRanking };
+          setUserRanking(rankingData?.data || null);
+        } else {
+          console.error('Failed to load ranking:', rankingResult.reason);
+          setUserRanking(null);
+        }
+
       } catch (error) {
-        console.error('Error loading data:', error);
+        console.error('Error loading dashboard data:', error);
       } finally {
         setLoading(false);
       }
     };
 
     loadData();
-  }, [user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, dataLoaded]); // Only run when user.id changes or if data hasn't been loaded
 
   const handleStartExam = (examId: string) => {
     router.push(`/student/exam/${examId}`);
@@ -49,15 +93,52 @@ const StudentDashboard: React.FC = () => {
 
   const handleLogout = async () => {
     try {
-      await signOut();
+      await logout();
       router.push('/login');
     } catch (error) {
       console.error('Logout error:', error);
     }
   };
   
+  // Calculate user statistics from submissions
+  const userStats = useMemo(() => {
+    // Ensure userSubmissions is an array
+    const submissions = Array.isArray(userSubmissions) ? userSubmissions : [];
+    
+    if (submissions.length === 0) {
+      return {
+        totalExams: 0,
+        averageScore: 0,
+        totalQuestions: 0,
+        correctAnswers: 0,
+        highestScore: 0,
+        totalExamsAttended: 0,
+        totalStudents: userRanking?.totalStudents || 0
+      };
+    }
+
+    const totalScore = submissions.reduce((sum, sub) => sum + (sub.score || 0), 0);
+    const totalQuestions = submissions.reduce((sum, sub) => sum + (sub.totalQuestions || 0), 0);
+    const correctAnswers = submissions.reduce((sum, sub) => sum + (sub.statistics?.correctAnswers || 0), 0);
+    const highestScore = Math.max(...submissions.map(sub => sub.score || 0));
+
+    return {
+      totalExams: submissions.length,
+      totalExamsAttended: submissions.length,
+      averageScore: submissions.length > 0 ? Math.round(totalScore / submissions.length) : 0,
+      totalQuestions,
+      correctAnswers,
+      highestScore,
+      totalStudents: userRanking?.totalStudents || 0,
+      recentSubmissions: submissions.slice(0, 3) // Add recent submissions for compatibility
+    };
+  }, [userSubmissions, userRanking]);
+  
   // Filter exams based on completed submissions
-  const completedExamIds = useMemo(() => userStats?.recentSubmissions.map(sub => sub.examId) || [], [userStats]);
+  const completedExamIds = useMemo(() => {
+    const submissions = Array.isArray(userSubmissions) ? userSubmissions : [];
+    return submissions.map(sub => sub.examId) || [];
+  }, [userSubmissions]);
 
   const availableExams = useMemo(
     () => exams.filter((exam) => !completedExamIds.includes(exam.id)),
@@ -161,7 +242,7 @@ const StudentDashboard: React.FC = () => {
               </div>
             </CardHeader>
             <CardContent data-id="afi2wbc6u" data-path="src/components/AdminDashboard.tsx">
-              <div className="text-2xl font-bold text-purple-600" data-id="7xuzewo68" data-path="src/components/AdminDashboard.tsx">{userRanking?.rank ? `#${userRanking.rank}` : 'N/A'}</div>
+              <div className="text-2xl font-bold text-purple-600" data-id="7xuzewo68" data-path="src/components/AdminDashboard.tsx">{userRanking?.globalRank ? `#${userRanking.globalRank}` : 'N/A'}</div>
               <p className="text-xs text-purple-600 mt-1" data-id="1h0zeldzj" data-path="src/components/AdminDashboard.tsx">Among students</p>
             </CardContent>
           </Card>
@@ -219,10 +300,10 @@ const StudentDashboard: React.FC = () => {
                   {userRanking &&
                     <div className="p-3 bg-purple-50 rounded-lg" data-id="wwx9ks0qn" data-path="src/components/StudentDashboard.tsx">
                       <p className="text-sm font-medium text-purple-800" data-id="ermgf4bqu" data-path="src/components/StudentDashboard.tsx">
-                        Current Rank: #{userRanking.rank}
+                        Current Rank: #{userRanking.globalRank}
                       </p>
                       <p className="text-sm text-purple-600" data-id="cdgjb1s6t" data-path="src/components/StudentDashboard.tsx">
-                        Last exam: {userRanking.examName}
+                        Last exam: {userRanking.recentPerformance[0]?.examName || 'No recent exams'}
                       </p>
                     </div>
                   }
@@ -237,7 +318,7 @@ const StudentDashboard: React.FC = () => {
               </CardHeader>
               <CardContent data-id="7yus9duxf" data-path="src/components/StudentDashboard.tsx">
                 <div className="space-y-3" data-id="jm193b7bx" data-path="src/components/StudentDashboard.tsx">
-                  {userStats?.recentSubmissions.slice(0, 3).map((submission) => {
+                  {userStats?.recentSubmissions?.slice(0, 3).map((submission) => {
                     const exam = exams.find((e) => e.id === submission.examId);
                     return (
                       <div
@@ -304,7 +385,7 @@ const StudentDashboard: React.FC = () => {
                               <span className="font-medium" data-id="1qpo7n4cu" data-path="src/components/StudentDashboard.tsx">{exam.totalMarks}</span> marks
                             </div>
                             <div className="text-sm text-gray-600" data-id="5uisegmf4" data-path="src/components/StudentDashboard.tsx">
-                              <span className="font-medium" data-id="jxo9kqfyd" data-path="src/components/StudentDashboard.tsx">{exam.questions.length}</span> questions
+                              <span className="font-medium" data-id="jxo9kqfyd" data-path="src/components/StudentDashboard.tsx">{exam.questions?.length || exam.questionsCount || 0}</span> questions
                             </div>
                           </div>
 
@@ -339,7 +420,7 @@ const StudentDashboard: React.FC = () => {
                   <h2 className="text-2xl font-bold text-gray-900 mb-6" data-id="dby06kjih" data-path="src/components/StudentDashboard.tsx">Completed Exams</h2>
                   <div className="space-y-4" data-id="99c5pud3w" data-path="src/components/StudentDashboard.tsx">
                     {completedExams.map((exam) => {
-                      const submission = userStats?.recentSubmissions.find((sub) => sub.examId === exam.id);
+                      const submission = userStats?.recentSubmissions?.find((sub) => sub.examId === exam.id);
                       return (
                         <Card key={exam.id} className="hover:shadow-md transition-shadow" data-id="ctmnmoidb" data-path="src/components/StudentDashboard.tsx">
                           <CardHeader data-id="tffkk817y" data-path="src/components/StudentDashboard.tsx">
@@ -361,7 +442,7 @@ const StudentDashboard: React.FC = () => {
                                 <span className="font-medium" data-id="8agfl4huw" data-path="src/components/StudentDashboard.tsx">{exam.totalMarks}</span> marks
                               </div>
                               <div className="text-sm text-gray-600" data-id="hkgszd8xl" data-path="src/components/StudentDashboard.tsx">
-                                <span className="font-medium" data-id="gb6oy569p" data-path="src/components/StudentDashboard.tsx">{exam.questions.length}</span> questions
+                                <span className="font-medium" data-id="gb6oy569p" data-path="src/components/StudentDashboard.tsx">{exam.questions?.length || exam.questionsCount || 0}</span> questions
                               </div>
                             </div>
 
@@ -371,7 +452,7 @@ const StudentDashboard: React.FC = () => {
                                   Score: {submission.score} marks ({Math.round(submission.score / exam.totalMarks * 100)}%)
                                 </p>
                                 <p className="text-sm text-green-600" data-id="m19eyh27x" data-path="src/components/StudentDashboard.tsx">
-                                  Completed on: {new Date(submission.completedAt).toLocaleDateString()}
+                                  Completed on: {submission.completedAt ? new Date(submission.completedAt).toLocaleDateString() : 'N/A'}
                                 </p>
                               </div>
                             }
