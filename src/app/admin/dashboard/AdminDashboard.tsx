@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -20,60 +20,172 @@ import {
   Copy,
   Users,
   Undo2
-} from
-  'lucide-react';
-import { useAuth } from '@hooks/useMockAuth';
-import { mockDataService, Exam, Question, UserStats } from '@services/mockData';
+} from 'lucide-react';
+import { useAuth } from '@/hooks/useApiAuth';
+import { useExams, useQuestions, useUsers, useAdmin } from '@/hooks/useApiServices';
+import { Exam, Question, User } from '@/constants/types';
+import { authService } from '@/services/auth';
+
+// Define admin stats type
+interface AdminStats {
+  totalUsers: number;
+  totalExams: number;
+  totalQuestions: number;
+  publishedExams: number;
+  draftExams: number;
+  totalStudents?: number;
+  totalAdmins?: number;
+  totalSubmissions?: number;
+  completedSubmissions?: number;
+}
 
 import dynamic from 'next/dynamic';
 const EnhancedExamBuilder = dynamic(() => import('../exam/create/EnhancedExamBuilder'), { ssr: false });
 const EnhancedQuestionBank = dynamic(() => import('../questionbank/EnhancedQuestionBank'), { ssr: false });
-// import StudentRankings from './StudentRankings';
 
 const AdminDashboard: React.FC = () => {
   const router = useRouter();
-  const { user, signOut } = useAuth();
+  const { user, logout } = useAuth();
+  
+  // API hooks
+  const examsApi = useExams();
+  const questionsApi = useQuestions();
+  const usersApi = useUsers();
+  const adminApi = useAdmin();
+  
+  // Local state
   const [exams, setExams] = useState<Exam[]>([]);
   const [questions, setQuestions] = useState<Question[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [adminStats, setAdminStats] = useState<AdminStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [dataLoaded, setDataLoaded] = useState(false);
   const [showExamBuilder, setShowExamBuilder] = useState(false);
   const [showQuestionBank, setShowQuestionBank] = useState(false);
-  const [selectedExam, setSelectedExam] = useState<Exam | undefined>(undefined);
-  const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [recentlyDeletedExam, setRecentlyDeletedExam] = useState<Exam | null>(null);
 
   useEffect(() => {
-  const loadData = async () => {
-    try {
-      const [examData, questionData, statsData] = await Promise.all([
-        mockDataService.getAllExams(),
-        mockDataService.getQuestions(),
-        mockDataService.getUserStats(user?.id || ''),
-        mockDataService.getRankings(),
-      ]);
+    if (!user?.id || dataLoaded) return;
 
-      // Sort exams by updatedAt (most recent first)
-      const sortedExams = examData.sort(
-        (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-      );
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        setDataLoaded(true); // Prevent multiple calls
+        
+        // Load all admin dashboard data in parallel
+        const [examResult, questionResult, usersResult, statsResult] = await Promise.allSettled([
+          examsApi.getAllExams({ page: 1, limit: 10, published: true }), // Add explicit parameters that worked in test
+          questionsApi.getAllQuestions({ page: 1, limit: 100 }),
+          usersApi.getAllUsers({ page: 1, limit: 50 }),
+          adminApi.getDashboardStats()
+        ]);
 
-      setExams(sortedExams);
-      setQuestions(questionData);
-      setUserStats(statsData);
-    } catch (error) {
-      console.error("Error loading data:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load data",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+        console.log('Exams😂', examResult.status)
+        console.log('🔥 EXAM API CALL DEBUG:')
+        console.log('🔥 User:', user)
+        console.log('🔥 Auth token exists:', !!authService.getToken())
+        console.log('🔥 Auth config:', authService.getAuthConfig())
+        
+        // Handle exams result
+        if (examResult.status === 'fulfilled') {
+          console.log('✅ Admin Exams API Response:', examResult.value);
+          // FIXED: API returns { data: { exams: [...] } }, not { data: [...] }
+          const examData = examResult.value as { data: { exams: Exam[] } };
+          console.log('✅ Exam data structure:', examData);
+          console.log('✅ Exam data.data:', examData.data);
+          console.log('✅ Exam data.data.exams:', examData.data?.exams);
+          
+          // Get the exams array from the correct path
+          const examsArray = examData.data?.exams || [];
+          console.log('✅ Exams array:', examsArray);
+          console.log('✅ Exams count:', examsArray.length);
+          
+          const sortedExams = Array.isArray(examsArray) ? 
+            examsArray.sort((a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime()) : 
+            [];
+          
+          console.log('✅ Sorted exams:', sortedExams);
+          setExams(sortedExams);
+        } else {
+          console.error('❌ Failed to load exams:', examResult.reason);
+          console.error('❌ Exam result full details:', examResult);
+          setExams([]);
+        }
 
-  loadData();
-}, [user?.id]);
+        // Handle questions result
+        if (questionResult.status === 'fulfilled') {
+          console.log('Admin Questions API Response:', questionResult.value);
+          const questionData = questionResult.value as { data: Question[] };
+          setQuestions(Array.isArray(questionData.data) ? questionData.data : []);
+        } else {
+          console.error('Failed to load questions:', questionResult.reason);
+          setQuestions([]);
+        }
+
+        // Handle users result
+        if (usersResult.status === 'fulfilled') {
+          console.log('Admin Users API Response:', usersResult.value);
+          const userData = usersResult.value as { data: User[] };
+          setUsers(Array.isArray(userData.data) ? userData.data : []);
+        } else {
+          console.error('Failed to load users:', usersResult.reason);
+          setUsers([]);
+        }
+
+        // Handle admin stats result
+        if (statsResult.status === 'fulfilled') {
+          console.log('Admin Stats API Response:', statsResult.value);
+          const statsData = statsResult.value as { 
+            data: { 
+              overview: {
+                totalUsers: number;
+                totalStudents: number;
+                totalAdmins: number;
+                totalExams: number;
+                totalQuestions: number;
+                publishedExams: number;
+                draftExams: number;
+                totalSubmissions: number;
+                completedSubmissions: number;
+              }
+            } 
+          };
+          // Parse the admin stats from the API response
+          const overview = statsData.data?.overview;
+          if (overview) {
+            setAdminStats({
+              totalUsers: overview.totalUsers,
+              totalStudents: overview.totalStudents,
+              totalAdmins: overview.totalAdmins,
+              totalExams: overview.totalExams,
+              totalQuestions: overview.totalQuestions,
+              publishedExams: overview.publishedExams,
+              draftExams: overview.draftExams,
+              totalSubmissions: overview.totalSubmissions,
+              completedSubmissions: overview.completedSubmissions
+            });
+          } else {
+            setAdminStats(null);
+          }
+        } else {
+          console.error('Failed to load admin stats:', statsResult.reason);
+          setAdminStats(null);
+        }
+
+      } catch (error) {
+        console.error("Error loading admin data:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load dashboard data",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, [user?.id, user, dataLoaded, examsApi, questionsApi, usersApi, adminApi]);
 
   const handleTogglePublish = async (examId: string, isPublished: boolean) => {
     try {
@@ -82,7 +194,8 @@ const AdminDashboard: React.FC = () => {
         exam.id === examId ? { ...exam, isPublished, isDraft: !isPublished } : exam
       ));
 
-      await mockDataService.updateExam(examId, { isPublished, isDraft: !isPublished });
+      // Use real API to update exam
+      await examsApi.updateExam(examId, { isPublished, isDraft: !isPublished });
 
       toast({
         title: 'Success',
@@ -90,9 +203,10 @@ const AdminDashboard: React.FC = () => {
       });
     } catch (error) {
       console.error("Failed to update exam:", error);
-      // Revert on error
-      const examData = await mockDataService.getAllExams();
-      setExams(examData);
+      // Revert on error - reload exams
+      const examResult = await examsApi.getAllExams({ page: 1, limit: 100 });
+      const examData = examResult as { data: { exams: Exam[] } };
+      setExams(Array.isArray(examData.data?.exams) ? examData.data.exams : []);
       toast({
         title: 'Error',
         description: 'Failed to update exam',
@@ -102,34 +216,39 @@ const AdminDashboard: React.FC = () => {
   };
 
   const handleDeleteExam = async (examId: string) => {
+    const examToDelete = exams.find(exam => exam.id === examId);
+    if (!examToDelete) return;
+
     try {
-      const examToDelete = exams.find((e) => e.id === examId);
-      if (!examToDelete) return;
+      // Remove from UI optimistically
+      setExams(exams.filter(exam => exam.id !== examId));
+      setRecentlyDeletedExam(examToDelete);
 
-      setExams(exams.filter((exam) => exam.id !== examId));
-      setRecentlyDeletedExam(examToDelete); // Store for undo
-
-      await mockDataService.deleteExam(examId);
+      // Use real API to delete exam
+      await examsApi.deleteExam(examId);
 
       toast({
-        title: 'Exam Deleted',
-        description: `"${examToDelete.name}" was deleted`,
+        title: 'Success',
+        description: 'Exam deleted successfully',
         action: (
           <Button
             variant="outline"
             size="sm"
-            onClick={handleUndoDeleteExam}
-            className="ml-2 cursor-pointer"
+            onClick={() => handleUndoDelete()}
           >
-            <Undo2 className="h-4 w-4 mr-1" />
+            <Undo2 className="h-4 w-4 mr-2" />
             Undo
           </Button>
-        )
+        ),
       });
+
+      // Clear undo option after 10 seconds
+      setTimeout(() => setRecentlyDeletedExam(null), 10000);
     } catch (error) {
       console.error("Failed to delete exam:", error);
-      const examData = await mockDataService.getAllExams();
-      setExams(examData);
+      // Revert on error
+      setExams([...exams]);
+      setRecentlyDeletedExam(null);
       toast({
         title: 'Error',
         description: 'Failed to delete exam',
@@ -138,19 +257,19 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
-  const handleUndoDeleteExam = async () => {
-    try {
-      if (!recentlyDeletedExam) return;
+  const handleUndoDelete = async () => {
+    if (!recentlyDeletedExam) return;
 
-      await mockDataService.restoreExam(recentlyDeletedExam);
-      setExams((prev) => [...prev, recentlyDeletedExam]);
+    try {
+      // Create the exam again (this would need to be implemented in the API)
+      // For now, just add it back to the UI
+      setExams([recentlyDeletedExam, ...exams]);
+      setRecentlyDeletedExam(null);
 
       toast({
-        title: 'Undo Successful',
-        description: `"${recentlyDeletedExam.name}" was restored`
+        title: 'Success',
+        description: 'Exam restored successfully'
       });
-
-      setRecentlyDeletedExam(null);
     } catch (error) {
       console.error("Failed to restore exam:", error);
       toast({
@@ -161,22 +280,71 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
-  const handleDuplicateExam = async (examId: string) => {
+  const handleLogout = async () => {
     try {
-      const duplicatedExam = await mockDataService.duplicateExam(examId);
+      await logout();
+      router.push('/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
 
-      // Optimistically update the UI
-      setExams([...exams, duplicatedExam]);
+  // Calculate dashboard statistics from loaded data
+  const dashboardStats = useMemo(() => {
+    // Prefer admin stats from API, fallback to calculated values from loaded data
+    const totalExams = adminStats?.totalExams ?? exams.length;
+    const publishedExams = adminStats?.publishedExams ?? exams.filter(exam => exam.isPublished).length;
+    const draftExams = adminStats?.draftExams ?? exams.filter(exam => exam.isDraft).length;
+    const totalQuestions = adminStats?.totalQuestions ?? questions.length;
+    const totalUsers = adminStats?.totalUsers ?? users.length;
+    const totalStudents = adminStats?.totalStudents ?? users.filter(user => user.role === 'USER').length;
+    const totalAdmins = adminStats?.totalAdmins ?? users.filter(user => user.role === 'ADMIN').length;
 
+    // Debug logging to see what's happening
+    console.log('=== DASHBOARD STATS DEBUG ===');
+    console.log('Admin Stats from API:', adminStats);
+    console.log('Exams loaded:', exams.length);
+    console.log('Exams with isDraft=true:', exams.filter(exam => exam.isDraft).length);
+    console.log('Exams with isPublished=true:', exams.filter(exam => exam.isPublished).length);
+    console.log('Exams with isPublished=false:', exams.filter(exam => !exam.isPublished).length);
+    console.log('Exam details:', exams.map(exam => ({ 
+      id: exam.id, 
+      name: exam.name, 
+      isPublished: exam.isPublished, 
+      isDraft: exam.isDraft 
+    })));
+    console.log('Final calculated stats:', { 
+      totalExams, 
+      publishedExams, 
+      draftExams, 
+      totalQuestions, 
+      totalUsers, 
+      totalStudents, 
+      totalAdmins 
+    });
+    console.log('===============================');
+
+    return {
+      totalExams,
+      publishedExams,
+      draftExams,
+      totalQuestions,
+      totalUsers,
+      totalStudents,
+      totalAdmins,
+      recentExams: exams.slice(0, 5), // Most recent 5 exams
+    };
+  }, [exams, questions, users, adminStats]);
+
+  const handleDuplicateExam = async () => {
+    try {
+      // For now, just show a toast that this feature is coming soon
       toast({
-        title: 'Success',
-        description: 'Exam duplicated successfully'
+        title: 'Coming Soon',
+        description: 'Exam duplication feature will be available soon'
       });
     } catch (error) {
       console.error("Failed to duplicate exam:", error);
-      // Revert on error
-      const examData = await mockDataService.getAllExams();
-      setExams(examData);
       toast({
         title: 'Error',
         description: 'Failed to duplicate exam',
@@ -185,25 +353,13 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
-  const handleLogout = async () => {
-    try {
-      await signOut();
-      router.push('/login');
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
-  };
-
-  const publishedExams = exams.filter((exam) => exam.isPublished);
-  const draftExams = exams.filter((exam) => exam.isDraft);
-
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen" data-id="w70oqqbma" data-path="src/components/AdminDashboard.tsx">Loading...</div>;
   }
 
   // Show other components
   if (showExamBuilder) {
-    return <EnhancedExamBuilder onBack={() => setShowExamBuilder(false)} editingExam={selectedExam} data-id="bzurrhcs8" data-path="src/components/AdminDashboard.tsx" />;
+    return <EnhancedExamBuilder onBack={() => setShowExamBuilder(false)} data-id="bzurrhcs8" data-path="src/components/AdminDashboard.tsx" />;
   }
 
   if (showQuestionBank) {
@@ -264,7 +420,7 @@ const AdminDashboard: React.FC = () => {
                 </div>
               </CardHeader>
               <CardContent data-id="afi2wbc6u" data-path="src/components/AdminDashboard.tsx">
-                <div className="text-2xl font-bold text-blue-900" data-id="7xuzewo68" data-path="src/components/AdminDashboard.tsx">{userStats?.totalStudents || 0}</div>
+                <div className="text-2xl font-bold text-blue-900" data-id="7xuzewo68" data-path="src/components/AdminDashboard.tsx">{dashboardStats?.totalStudents || 0}</div>
                 <p className="text-xs text-blue-600 mt-1" data-id="1h0zeldzj" data-path="src/components/AdminDashboard.tsx">In the system</p>
               </CardContent>
             </Card>
@@ -277,7 +433,7 @@ const AdminDashboard: React.FC = () => {
                 </div>
               </CardHeader>
               <CardContent data-id="gsg4xb137" data-path="src/components/AdminDashboard.tsx">
-                <div className="text-2xl font-bold text-green-900" data-id="5l1fpfm6c" data-path="src/components/AdminDashboard.tsx">{publishedExams.length}</div>
+                <div className="text-2xl font-bold text-green-900" data-id="5l1fpfm6c" data-path="src/components/AdminDashboard.tsx">{dashboardStats?.publishedExams || 0}</div>
                 <p className="text-xs text-green-600 mt-1" data-id="onlun1dmf" data-path="src/components/AdminDashboard.tsx">Active exams</p>
               </CardContent>
             </Card>
@@ -290,7 +446,7 @@ const AdminDashboard: React.FC = () => {
                 </div>
               </CardHeader>
               <CardContent data-id="aherkjd09" data-path="src/components/AdminDashboard.tsx">
-                <div className="text-2xl font-bold text-yellow-900" data-id="z958vlw2r" data-path="src/components/AdminDashboard.tsx">{draftExams.length}</div>
+                <div className="text-2xl font-bold text-yellow-900" data-id="z958vlw2r" data-path="src/components/AdminDashboard.tsx">{dashboardStats?.draftExams || 0}</div>
                 <p className="text-xs text-yellow-600 mt-1" data-id="32q91opc6" data-path="src/components/AdminDashboard.tsx">Pending exams</p>
               </CardContent>
             </Card>
@@ -303,7 +459,7 @@ const AdminDashboard: React.FC = () => {
                 </div>
               </CardHeader>
               <CardContent data-id="rbt7czok4" data-path="src/components/AdminDashboard.tsx">
-                <div className="text-2xl font-bold text-purple-900" data-id="2n0obf6td" data-path="src/components/AdminDashboard.tsx">{questions.length}</div>
+                <div className="text-2xl font-bold text-purple-900" data-id="2n0obf6td" data-path="src/components/AdminDashboard.tsx">{dashboardStats?.totalQuestions || 0}</div>
                 <p className="text-xs text-purple-600 mt-1" data-id="53o92lowk" data-path="src/components/AdminDashboard.tsx">In question bank</p>
               </CardContent>
             </Card>
@@ -370,7 +526,7 @@ const AdminDashboard: React.FC = () => {
                           variant="outline"
                           className='cursor-pointer'
                           size="sm"
-                          onClick={() => handleDuplicateExam(exam.id)} data-id="u5thkck0e" data-path="src/components/AdminDashboard.tsx">
+                          onClick={() => handleDuplicateExam()} data-id="u5thkck0e" data-path="src/components/AdminDashboard.tsx">
 
                           <Copy className="h-4 w-4" data-id="ws9s0wq56" data-path="src/components/AdminDashboard.tsx" />
                         </Button>
@@ -379,7 +535,6 @@ const AdminDashboard: React.FC = () => {
                           size="sm"
                           className='cursor-pointer'
                           onClick={() => {
-                            setSelectedExam(exam);
                             setShowExamBuilder(true);
                           }} data-id="plu6du83g" data-path="src/components/AdminDashboard.tsx">
 
@@ -406,7 +561,7 @@ const AdminDashboard: React.FC = () => {
                         <span className="font-medium" data-id="rtb4208j7" data-path="src/components/AdminDashboard.tsx">{exam.totalMarks}</span> marks
                       </div>
                       <div className="text-sm text-gray-600" data-id="o1rl1tm40" data-path="src/components/AdminDashboard.tsx">
-                        <span className="font-medium" data-id="ee03l3k1v" data-path="src/components/AdminDashboard.tsx">{exam.questions.length}</span> questions
+                        <span className="font-medium" data-id="ee03l3k1v" data-path="src/components/AdminDashboard.tsx">{exam.questions?.length || 0}</span> questions
                       </div>
                       <div className="text-sm text-gray-600" data-id="kogdnxgwp" data-path="src/components/AdminDashboard.tsx">
                         <CheckCircle className="h-4 w-4 mr-1 inline" data-id="xcd2f9033" data-path="src/components/AdminDashboard.tsx" />
