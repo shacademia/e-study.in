@@ -748,8 +748,8 @@ const generateAdditionalSubmissions = (): Submission[] => {
   const submissions: Submission[] = [];
   const examIds = ["exam-1", "exam-2", "exam-3"];
 
-  mockUsers.slice(1, 10).forEach((user, index) => {
-    examIds.forEach((examId, examIndex) => {
+  mockUsers.slice(1, 10).forEach((user) => {
+    examIds.forEach((examId) => {
       const score = Math.floor(Math.random() * 40) + 60; // Random score between 60-100
       const exam = mockExams.find((e) => e.id === examId);
       if (exam) {
@@ -794,7 +794,7 @@ export const mockRankings: Ranking[] = mockSubmissions
       rank: index + 1,
       totalQuestions: submission.totalQuestions,
       percentage: Math.round(
-        (submission.score / (submission.totalQuestions * 10)) * 100
+        (submission.score / (submission.totalQuestions * 1)) * 100
       ),
       completedAt: submission.completedAt,
     };

@@ -71,10 +71,12 @@ const StudentDashboard: React.FC = () => {
 
   // If user is not logged in, show a message
   if (!user) {
-    <div className="text-center mt-10 space-y-4">
+    return (
+      <div className="text-center mt-10 space-y-4">
       <p>Please log in to access the dashboard.</p>
       <Button onClick={() => router.push('/login')}>Login</Button>
     </div>
+    )
   }
 
   // If loading, show a loading state
