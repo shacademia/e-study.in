@@ -27,6 +27,7 @@ import { useAuth } from '../../hooks/useMockAuth';
 const LoginPage: React.FC = () => {
   const router = useRouter();
   const { signIn, signUp, user, loading } = useAuth();
+  const [userRole, setUserRole] = useState<string | null>(null);
   const [loadingSubmit, setLoadingSubmit] = useState(false);
 
   const [signInData, setSignInData] = useState({ email: '', password: '' });
@@ -41,7 +42,28 @@ const LoginPage: React.FC = () => {
     e.preventDefault();
     setLoadingSubmit(true);
     try {
-      await signIn(signInData.email, signInData.password);
+
+      const response = await fetch('/api/users/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          email: signInData.email,
+          password: signInData.password
+        })
+      });
+
+      // Check if the response is successful
+      if (!response.ok) {
+        throw new Error('Sign in failed');
+      }
+      const data = await response.json();
+
+        setUserRole(data.user.role);
+      // router.push('/');
+
+      // await signIn(signInData.email, signInData.password);
     } catch (error) {
       console.error('Sign in error:', error);
     } finally {
@@ -57,7 +79,24 @@ const LoginPage: React.FC = () => {
     }
     setLoadingSubmit(true);
     try {
-      await signUp(signUpData.email, signUpData.password, signUpData.name);
+
+      const response = await fetch('/api/users/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          // name: signUpData.name,
+          email: signUpData.email,
+          password: signUpData.password
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Sign up failed');
+      }
+
+      // await signUp(signUpData.email, signUpData.password, signUpData.name);
     } catch (error) {
       console.error('Sign up error:', error);
     } finally {
@@ -66,12 +105,12 @@ const LoginPage: React.FC = () => {
   };
 
   useEffect(() => {
-    if (!loading && user) {
-      router.push(user.role === 'admin' ? '/admin/dashboard' : '/student/dashboard');
+    if (userRole && !loading) {
+      router.push(userRole === 'ADMIN' ? '/admin/dashboard' : '/student/dashboard');
     }
-  }, [user, loading, router]);
+  }, [user, loading, router, userRole]);
 
-  if (!loading && user) {
+  if (!loading && userRole) {
     // prevent flicker when already logged in
     return null;
   }

@@ -1,3 +1,5 @@
+import fs from 'fs';
+import type { File as FormidableFile } from 'formidable';
 import { supabase } from '@/config/supabase';
 
 // Storage bucket names
@@ -25,24 +27,22 @@ export const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'
 export const DOCUMENT_TYPES = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
 
 // Upload profile picture
-export const uploadProfilePicture = async (userId: string, file: File): Promise<string> => {
-  validateFile(file, 5 * 1024 * 1024, IMAGE_TYPES);
-
-  const fileExt = file.name.split('.').pop();
-  const fileName = `${userId}/avatar.${fileExt}`;
+export async function uploadProfilePicture(userId: string, file: FormidableFile): Promise<string> {
+  const fileStream = fs.createReadStream(file.filepath);
+  const path = `avatars/${userId}/profile-image`;
 
   const { error } = await supabase.storage
-    .from(STORAGE_BUCKETS.PROFILE_PICTURES)
-    .upload(fileName, file, { upsert: true });
+    .from('avatars')
+    .upload(path, fileStream, {
+      contentType: file.mimetype || 'image/jpeg',
+      upsert: true,
+    });
 
-  if (error) throw error;
+  if (error) throw new Error(error.message);
 
-  const { data: urlData } = supabase.storage
-    .from(STORAGE_BUCKETS.PROFILE_PICTURES)
-    .getPublicUrl(fileName);
-
-  return urlData.publicUrl;
-};
+  const publicUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${path}`;
+  return publicUrl;
+}
 
 // Upload question image
 export const uploadQuestionImage = async (questionId: string, file: File): Promise<string> => {
