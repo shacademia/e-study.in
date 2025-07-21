@@ -71,10 +71,10 @@ const ExamResults: React.FC<ExamResultsProps> = ({ examId }) => {
                 onClick={() => router.push('/student/dashboard')}
                 className="mr-4 cursor-pointer" data-id="5afuhyzlw" data-path="src/components/ExamResults.tsx">
 
-                <ArrowLeft className="h-4 w-4 mr-2" data-id="1csmscihc" data-path="src/components/ExamResults.tsx" />
+                <ArrowLeft className="h-4 w-4 mr-1" data-id="1csmscihc" data-path="src/components/ExamResults.tsx" />
                 Back to Dashboard
               </Button>
-              <h1 className="text-xl font-bold text-gray-900" data-id="kh031mvwh" data-path="src/components/ExamResults.tsx">Exam Results</h1>
+              <h1 className="text-xl font-bold text-gray-900 flex justify-center" data-id="kh031mvwh" data-path="src/components/ExamResults.tsx">Exam Results</h1>
             </div>
           </div>
         </div>

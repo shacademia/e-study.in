@@ -5,8 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 // import { CardDescription } from '@/components/ui/card';
 // import { Checkbox } from '@/components/ui/checkbox';
@@ -542,52 +542,40 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
               {/* Advanced Filters */}
               {showFilters &&
                 <div className="space-y-4" data-id="teulaprj8" data-path="src/components/EnhancedQuestionBank.tsx">
-                  <div className="grid grid-cols-1 md:grid-cols-5 gap-4" data-id="rp4j0b0rl" data-path="src/components/EnhancedQuestionBank.tsx">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4" data-id="rp4j0b0rl" data-path="src/components/EnhancedQuestionBank.tsx">
                     <Select value={filters.subject} onValueChange={(value) => setFilters({ ...filters, subject: value })} data-id="5lhiyhtxj" data-path="src/components/EnhancedQuestionBank.tsx">
-                      <SelectTrigger data-id="jh24u9afx" data-path="src/components/EnhancedQuestionBank.tsx">
+                      <SelectTrigger className="cursor-pointer pl-5" data-id="jh24u9afx" data-path="src/components/EnhancedQuestionBank.tsx">
                         <SelectValue placeholder="All Subjects" data-id="j8g375c4l" data-path="src/components/EnhancedQuestionBank.tsx" />
                       </SelectTrigger>
                       <SelectContent data-id="xbub134mn" data-path="src/components/EnhancedQuestionBank.tsx">
-                        <SelectItem value="all" data-id="ua6ypfbbt" data-path="src/components/EnhancedQuestionBank.tsx">All Subjects</SelectItem>
+                        <SelectItem value="all" className='pl-4' data-id="ua6ypfbbt" data-path="src/components/EnhancedQuestionBank.tsx">All Subjects</SelectItem>
                         {subjects.map((subject) =>
-                          <SelectItem key={subject} value={subject} data-id="8jilwtf56" data-path="src/components/EnhancedQuestionBank.tsx">{subject}</SelectItem>
+                          <SelectItem key={subject} value={subject} className="cursor-pointer pl-4" data-id="8jilwtf56" data-path="src/components/EnhancedQuestionBank.tsx">{subject}</SelectItem>
                         )}
                       </SelectContent>
                     </Select>
 
                     <Select value={filters.difficulty} onValueChange={(value) => setFilters({ ...filters, difficulty: value })} data-id="7keqrfyyo" data-path="src/components/EnhancedQuestionBank.tsx">
-                      <SelectTrigger data-id="lsr3t5ufu" data-path="src/components/EnhancedQuestionBank.tsx">
+                      <SelectTrigger className="cursor-pointer pl-5" data-id="lsr3t5ufu" data-path="src/components/EnhancedQuestionBank.tsx">
                         <SelectValue placeholder="All Difficulties" data-id="81e24n7x4" data-path="src/components/EnhancedQuestionBank.tsx" />
                       </SelectTrigger>
                       <SelectContent data-id="pb0uolcbf" data-path="src/components/EnhancedQuestionBank.tsx">
-                        <SelectItem value="all" data-id="fg9ea70dk" data-path="src/components/EnhancedQuestionBank.tsx">All Difficulties</SelectItem>
-                        <SelectItem value="easy" data-id="bqybcpy1f" data-path="src/components/EnhancedQuestionBank.tsx">Easy</SelectItem>
-                        <SelectItem value="medium" data-id="r80lbfyd7" data-path="src/components/EnhancedQuestionBank.tsx">Medium</SelectItem>
-                        <SelectItem value="hard" data-id="2013t7hla" data-path="src/components/EnhancedQuestionBank.tsx">Hard</SelectItem>
+                        <SelectItem className="cursor-pointer pl-4" value="all" data-id="fg9ea70dk" data-path="src/components/EnhancedQuestionBank.tsx">All Difficulties</SelectItem>
+                        <SelectItem className="cursor-pointer pl-4" value="easy" data-id="bqybcpy1f" data-path="src/components/EnhancedQuestionBank.tsx">Easy</SelectItem>
+                        <SelectItem className="cursor-pointer pl-4" value="medium" data-id="r80lbfyd7" data-path="src/components/EnhancedQuestionBank.tsx">Medium</SelectItem>
+                        <SelectItem className="cursor-pointer pl-4" value="hard" data-id="2013t7hla" data-path="src/components/EnhancedQuestionBank.tsx">Hard</SelectItem>
                       </SelectContent>
                     </Select>
 
                     <Select value={filters.topic} onValueChange={(value) => setFilters({ ...filters, topic: value })} data-id="bk82qa4vk" data-path="src/components/EnhancedQuestionBank.tsx">
-                      <SelectTrigger data-id="dkjk5xt1r" data-path="src/components/EnhancedQuestionBank.tsx">
+                      <SelectTrigger className="cursor-pointer pl-5" data-id="dkjk5xt1r" data-path="src/components/EnhancedQuestionBank.tsx">
                         <SelectValue placeholder="All Topics" data-id="wc49zruqk" data-path="src/components/EnhancedQuestionBank.tsx" />
                       </SelectTrigger>
                       <SelectContent data-id="l8l7mwiim" data-path="src/components/EnhancedQuestionBank.tsx">
-                        <SelectItem value="all" data-id="1efk0ic42" data-path="src/components/EnhancedQuestionBank.tsx">All Topics</SelectItem>
+                        <SelectItem value="all" className='pl-4' data-id="1efk0ic42" data-path="src/components/EnhancedQuestionBank.tsx">All Topics</SelectItem>
                         {topics.map((topic) =>
-                          <SelectItem key={topic} value={topic} data-id="0cciyz9ec" data-path="src/components/EnhancedQuestionBank.tsx">{topic}</SelectItem>
+                          <SelectItem key={topic} value={topic} className="cursor-pointer pl-4" data-id="0cciyz9ec" data-path="src/components/EnhancedQuestionBank.tsx">{topic}</SelectItem>
                         )}
-                      </SelectContent>
-                    </Select>
-
-                    <Select value={sortBy} onValueChange={(value: typeof sortBy) => setSortBy(value)} data-id="bg01i6877" data-path="src/components/EnhancedQuestionBank.tsx">
-                      <SelectTrigger data-id="y3l8buaj2" data-path="src/components/EnhancedQuestionBank.tsx">
-                        <SelectValue placeholder="Sort by" data-id="vbapatog7" data-path="src/components/EnhancedQuestionBank.tsx" />
-                      </SelectTrigger>
-                      <SelectContent data-id="4hmti6am5" data-path="src/components/EnhancedQuestionBank.tsx">
-                        <SelectItem value="date" data-id="uex2w63tx" data-path="src/components/EnhancedQuestionBank.tsx">Date Created</SelectItem>
-                        <SelectItem value="difficulty" data-id="86d3vmhkp" data-path="src/components/EnhancedQuestionBank.tsx">Difficulty</SelectItem>
-                        <SelectItem value="subject" data-id="liv1qge9s" data-path="src/components/EnhancedQuestionBank.tsx">Subject</SelectItem>
-                        <SelectItem value="topic" data-id="nl8756gmc" data-path="src/components/EnhancedQuestionBank.tsx">Topic</SelectItem>
                       </SelectContent>
                     </Select>
 

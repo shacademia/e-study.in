@@ -9,7 +9,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-// import { DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
@@ -17,92 +16,23 @@ import {
   ArrowLeft,
   Plus,
   Search,
-  // Filter,
   Edit,
   Trash2,
   Save,
   Eye,
-  // Clock,
   BookOpen,
   CheckCircle,
   Settings,
-  // Timer,
-  // Users,
-  // FileText,
   Lock
 } from
   'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { mockDataService, Exam, ExamSection, Question } from '../../../../services/mockData';
+import { mockDataService, mockQuestions, Exam, ExamSection, Question } from '../../../../services/mockData';
 
 interface EnhancedExamBuilderProps {
   onBack: () => void;
   editingExam?: Partial<Exam>;
 }
-
-// Mock questions for selection
-const mockQuestions: Question[] = [
-  {
-    id: '1',
-    content: 'What is 15% of 200?',
-    options: ['25', '30', '35', '40'],
-    correctOption: 1,
-    difficulty: 'easy',
-    subject: 'Mathematics',
-    topic: 'Percentage',
-    tags: ['percentage', 'basic-math'],
-    createdAt: new Date(),
-    updatedAt: new Date()
-  },
-  {
-    id: '2',
-    content: 'If a = 5 and b = 3, what is a² + b²?',
-    options: ['25', '34', '30', '28'],
-    correctOption: 1,
-    difficulty: 'medium',
-    subject: 'Mathematics',
-    topic: 'Algebra',
-    tags: ['algebra', 'squares'],
-    createdAt: new Date(),
-    updatedAt: new Date()
-  },
-  {
-    id: '3',
-    content: 'Who is the current President of India?',
-    options: ['Ram Nath Kovind', 'Droupadi Murmu', 'A.P.J. Abdul Kalam', 'Pranab Mukherjee'],
-    correctOption: 1,
-    difficulty: 'easy',
-    subject: 'General Knowledge',
-    topic: 'Current Affairs',
-    tags: ['current-affairs', 'politics'],
-    createdAt: new Date(),
-    updatedAt: new Date()
-  },
-  {
-    id: '4',
-    content: 'Which is the largest planet in our solar system?',
-    options: ['Earth', 'Mars', 'Jupiter', 'Saturn'],
-    correctOption: 2,
-    difficulty: 'easy',
-    subject: 'Science',
-    topic: 'Astronomy',
-    tags: ['astronomy', 'planets'],
-    createdAt: new Date(),
-    updatedAt: new Date()
-  },
-  {
-    id: '5',
-    content: 'If BOOK is coded as 2663, then COOK is coded as?',
-    options: ['2663', '3663', '3553', '2553'],
-    correctOption: 1,
-    difficulty: 'medium',
-    subject: 'Reasoning',
-    topic: 'Coding-Decoding',
-    tags: ['coding', 'reasoning'],
-    createdAt: new Date(),
-    updatedAt: new Date()
-  }
-];
 
 const EnhancedExamBuilder: React.FC<EnhancedExamBuilderProps> = ({ onBack, editingExam }) => {
   const [examDetails, setExamDetails] = useState({
@@ -133,6 +63,7 @@ const EnhancedExamBuilder: React.FC<EnhancedExamBuilderProps> = ({ onBack, editi
   const [searchTerm, setSearchTerm] = useState('');
   const [filterSubject, setFilterSubject] = useState('all');
   const [filterDifficulty, setFilterDifficulty] = useState('all');
+  const [filterTopic, setFilterTopic] = useState('all');
 
   // Load editing exam data
   useEffect(() => {
@@ -154,15 +85,20 @@ const EnhancedExamBuilder: React.FC<EnhancedExamBuilderProps> = ({ onBack, editi
   }, [editingExam]);
 
   const filteredQuestions = mockQuestions.filter((q) => {
-    const matchesSearch = q.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const matchesSearch =
+      q.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
       q.subject.toLowerCase().includes(searchTerm.toLowerCase());
+
     const matchesSubject = filterSubject === 'all' || q.subject === filterSubject;
     const matchesDifficulty = filterDifficulty === 'all' || q.difficulty === filterDifficulty;
-    return matchesSearch && matchesSubject && matchesDifficulty;
+    const matchesTopic = filterTopic === 'all' || q.topic === filterTopic;
+
+    return matchesSearch && matchesSubject && matchesDifficulty && matchesTopic;
   });
 
   const subjects = [...new Set(mockQuestions.map((q) => q.subject))];
   const difficulties = ['easy', 'medium', 'hard'];
+  const topics = [...new Set(mockQuestions.map((q) => q.topic))];
 
   const handleAddSection = () => {
     const newSection: ExamSection = {
@@ -208,7 +144,7 @@ const EnhancedExamBuilder: React.FC<EnhancedExamBuilderProps> = ({ onBack, editi
     ).filter(Boolean) as Question[];
 
     const updatedQuestions = [...currentSection.questions, ...questionsToAdd];
-    const updatedMarks = updatedQuestions.length * 10; // 10 marks per question
+    const updatedMarks = updatedQuestions.length * 1; // 10 marks per question
 
     handleUpdateSection(currentSection.id, {
       questions: updatedQuestions,
@@ -470,7 +406,7 @@ const EnhancedExamBuilder: React.FC<EnhancedExamBuilderProps> = ({ onBack, editi
                 <Tabs value={activeSection.toString()} onValueChange={(value) => setActiveSection(parseInt(value))} data-id="6qrh6x77c" data-path="src/components/EnhancedExamBuilder.tsx">
                   <TabsList className="grid w-full grid-cols-1 md:grid-cols-3 lg:grid-cols-4" data-id="4u8anaq2a" data-path="src/components/EnhancedExamBuilder.tsx">
                     {sections.map((section, index) =>
-                      <TabsTrigger key={section.id} value={index.toString()} data-id="z0sbx3a98" data-path="src/components/EnhancedExamBuilder.tsx">
+                      <TabsTrigger key={section.id} value={index.toString()} className='cursor-pointer' data-id="z0sbx3a98" data-path="src/components/EnhancedExamBuilder.tsx">
                         {section.name}
                       </TabsTrigger>
                     )}
@@ -580,37 +516,61 @@ const EnhancedExamBuilder: React.FC<EnhancedExamBuilderProps> = ({ onBack, editi
           <div className="space-y-4" data-id="jvqq2oza3" data-path="src/components/EnhancedExamBuilder.tsx">
             {/* Search and Filter */}
             <div className="flex space-x-4" data-id="9ovky4cng" data-path="src/components/EnhancedExamBuilder.tsx">
+              {/* Search Input */}
               <div className="flex-1 relative" data-id="mp08bn6yb" data-path="src/components/EnhancedExamBuilder.tsx">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" data-id="8r9vf0gz1" data-path="src/components/EnhancedExamBuilder.tsx" />
                 <Input
                   placeholder="Search questions..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10" data-id="1slkjifx6" data-path="src/components/EnhancedExamBuilder.tsx" />
-
+                  className="pl-10"
+                  data-id="1slkjifx6"
+                  data-path="src/components/EnhancedExamBuilder.tsx"
+                />
               </div>
+
+              {/* Subject Filter */}
               <Select value={filterSubject} onValueChange={setFilterSubject} data-id="e23tgbfb7" data-path="src/components/EnhancedExamBuilder.tsx">
                 <SelectTrigger className="w-48" data-id="ntf99xd2t" data-path="src/components/EnhancedExamBuilder.tsx">
                   <SelectValue placeholder="All Subjects" data-id="iyq1m6dux" data-path="src/components/EnhancedExamBuilder.tsx" />
                 </SelectTrigger>
                 <SelectContent data-id="bjhhmipd1" data-path="src/components/EnhancedExamBuilder.tsx">
                   <SelectItem value="all" data-id="4tfiauig6" data-path="src/components/EnhancedExamBuilder.tsx">All Subjects</SelectItem>
-                  {subjects.map((subject) =>
-                    <SelectItem key={subject} value={subject} data-id="q40len0dg" data-path="src/components/EnhancedExamBuilder.tsx">{subject}</SelectItem>
-                  )}
+                  {subjects.map((subject) => (
+                    <SelectItem key={subject} value={subject} data-id="q40len0dg" data-path="src/components/EnhancedExamBuilder.tsx">
+                      {subject}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
+
+              {/* Difficulty Filter */}
               <Select value={filterDifficulty} onValueChange={setFilterDifficulty} data-id="mtic2gtus" data-path="src/components/EnhancedExamBuilder.tsx">
                 <SelectTrigger className="w-48" data-id="7v7l7mevl" data-path="src/components/EnhancedExamBuilder.tsx">
                   <SelectValue placeholder="All Difficulties" data-id="lblqmoic2" data-path="src/components/EnhancedExamBuilder.tsx" />
                 </SelectTrigger>
                 <SelectContent data-id="1g1fefcjn" data-path="src/components/EnhancedExamBuilder.tsx">
                   <SelectItem value="all" data-id="1eazg4pwg" data-path="src/components/EnhancedExamBuilder.tsx">All Difficulties</SelectItem>
-                  {difficulties.map((difficulty) =>
+                  {difficulties.map((difficulty) => (
                     <SelectItem key={difficulty} value={difficulty} data-id="fnwik3lbg" data-path="src/components/EnhancedExamBuilder.tsx">
                       {difficulty.charAt(0).toUpperCase() + difficulty.slice(1)}
                     </SelectItem>
-                  )}
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {/* Topic Filter */}
+              <Select value={filterTopic} onValueChange={setFilterTopic} data-id="add-topic-select" data-path="src/components/EnhancedExamBuilder.tsx">
+                <SelectTrigger className="w-48" data-id="topic-trigger" data-path="src/components/EnhancedExamBuilder.tsx">
+                  <SelectValue placeholder="All Topics" data-id="topic-placeholder" data-path="src/components/EnhancedExamBuilder.tsx" />
+                </SelectTrigger>
+                <SelectContent data-id="topic-content" data-path="src/components/EnhancedExamBuilder.tsx">
+                  <SelectItem value="all" data-id="topic-all" data-path="src/components/EnhancedExamBuilder.tsx">All Topics</SelectItem>
+                  {topics.map((topic) => (
+                    <SelectItem key={topic} value={topic} data-id="topic-item" data-path="src/components/EnhancedExamBuilder.tsx">
+                      {topic}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -621,7 +581,7 @@ const EnhancedExamBuilder: React.FC<EnhancedExamBuilderProps> = ({ onBack, editi
                 <div key={question.id} className="flex items-start space-x-3 p-3 border rounded-lg" data-id="5y5siwuct" data-path="src/components/EnhancedExamBuilder.tsx">
                   <Checkbox
                     checked={selectedQuestions.has(question.id)}
-                    onCheckedChange={() => handleSelectQuestion(question.id)} data-id="3tkjazgg2" data-path="src/components/EnhancedExamBuilder.tsx" />
+                    onCheckedChange={() => handleSelectQuestion(question.id)} className='cursor-pointer' data-id="3tkjazgg2" data-path="src/components/EnhancedExamBuilder.tsx" />
 
                   <div className="flex-1" data-id="kppcxzhca" data-path="src/components/EnhancedExamBuilder.tsx">
                     <div className="flex items-center space-x-2 mb-1" data-id="02t3m1607" data-path="src/components/EnhancedExamBuilder.tsx">
