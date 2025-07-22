@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -19,12 +19,15 @@ import {
   CheckCircle,
   Copy,
   Users,
-  Undo2
+  Undo2,
+  RefreshCw
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useApiAuth';
 import { useExams, useQuestions, useUsers, useAdmin } from '@/hooks/useApiServices';
 import { Exam, Question, User } from '@/constants/types';
 import { authService } from '@/services/auth';
+import { useExamStore } from '@/store/slices/examStore';
+import { useUIStore } from '@/store/slices/uiStore';
 
 // Define admin stats type
 interface AdminStats {
@@ -42,6 +45,7 @@ interface AdminStats {
 import dynamic from 'next/dynamic';
 const EnhancedExamBuilder = dynamic(() => import('../exam/create/EnhancedExamBuilder'), { ssr: false });
 const EnhancedQuestionBank = dynamic(() => import('../questionbank/EnhancedQuestionBank'), { ssr: false });
+const AddQuestionsDemo = dynamic(() => import('../exam/components/AddQuestionsDemo'), { ssr: false });
 
 const AdminDashboard: React.FC = () => {
   const router = useRouter();
@@ -53,28 +57,171 @@ const AdminDashboard: React.FC = () => {
   const usersApi = useUsers();
   const adminApi = useAdmin();
   
+  // Store hook for clearing exam data
+  const clearExamForEdit = useExamStore((state) => state.clearExamForEdit);
+  const clearSelectedQuestions = useUIStore((state) => state.clearSelectedQuestions);
+  
+  // Use ref to track if data has been loaded to prevent infinite loops
+  const dataLoadedRef = useRef(false);
+  
   // Local state
   const [exams, setExams] = useState<Exam[]>([]);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [adminStats, setAdminStats] = useState<AdminStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [dataLoaded, setDataLoaded] = useState(false);
   const [showExamBuilder, setShowExamBuilder] = useState(false);
   const [showQuestionBank, setShowQuestionBank] = useState(false);
+  const [showAddQuestionsDemo, setShowAddQuestionsDemo] = useState(false);
   const [recentlyDeletedExam, setRecentlyDeletedExam] = useState<Exam | null>(null);
+  const [publishingExamId, setPublishingExamId] = useState<string | null>(null);
+  const [editingExam, setEditingExam] = useState<Exam | null>(null);
+  const [examFilter, setExamFilter] = useState<'all' | 'published' | 'draft'>('all');
+  const [refreshingData, setRefreshingData] = useState(false);
+  const [deletingAllExams, setDeletingAllExams] = useState(false);
+
+  // Function to fetch exam data based on filter
+  const fetchExamsByFilter = async (filter: 'all' | 'published' | 'draft') => {
+    if (!user?.id) return;
+    
+    try {
+      setRefreshingData(true);
+      console.log(`🔄 Fetching ${filter} exams...`);
+      
+      let examResult;
+      
+      if (filter === 'all') {
+        // Fetch all exams (both published and unpublished)
+        examResult = await examsApi.getAllExams({ page: 1, limit: 100, published: false });
+      } else if (filter === 'published') {
+        // Fetch only published exams
+        examResult = await examsApi.getAllExams({ page: 1, limit: 100, published: true });
+      } else if (filter === 'draft') {
+        // Fetch only draft/unpublished exams
+        examResult = await examsApi.getAllExams({ page: 1, limit: 100, published: false });
+      }
+      
+      if (examResult) {
+        console.log(`✅ ${filter} Exams API Response:`, examResult);
+        const examData = examResult as { data: { exams: Exam[] } };
+        const examsArray = examData.data?.exams || [];
+        
+        let filteredExams = examsArray;
+        
+        // Additional client-side filtering if needed
+        if (filter === 'draft') {
+          // For draft, only show exams that are not published
+          filteredExams = examsArray.filter(exam => exam.isPublished === false || exam.isDraft === true);
+        } else if (filter === 'all') {
+          // For "all", we might need to fetch both published and unpublished
+          // For now, we'll use the unpublished call and show all
+          filteredExams = examsArray;
+        }
+        
+        const sortedExams = Array.isArray(filteredExams) ? 
+          filteredExams.sort((a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime()) : 
+          [];
+        
+        console.log(`✅ ${filter} exams:`, sortedExams);
+        setExams(sortedExams);
+      }
+    } catch (error) {
+      console.error(`❌ Failed to fetch ${filter} exams:`, error);
+    } finally {
+      setRefreshingData(false);
+    }
+  };
+
+  const handleRemoveAllExams = async () => {
+    // Show confirmation dialog
+    const confirmed = window.confirm(
+      `Are you sure you want to delete ALL ${exams.length} exams? This action cannot be undone.`
+    );
+    
+    if (!confirmed) return;
+
+    try {
+      setDeletingAllExams(true);
+      console.log(`🔄 Deleting all ${exams.length} exams...`);
+
+      // Store original exams for potential rollback
+      const originalExams = [...exams];
+
+      // Optimistically clear exams from UI
+      setExams([]);
+
+      // Delete all exams one by one
+      const deletePromises = originalExams.map(async (exam) => {
+        try {
+          await examsApi.deleteExam(exam.id);
+          return { success: true, examId: exam.id };
+        } catch (error) {
+          console.error(`Failed to delete exam ${exam.id}:`, error);
+          return { success: false, examId: exam.id, error };
+        }
+      });
+
+      const results = await Promise.all(deletePromises);
+      
+      // Check for any failures
+      const failures = results.filter(result => !result.success);
+
+      if (failures.length > 0) {
+        console.error(`❌ Failed to delete ${failures.length} exams`);
+        // Revert the UI by restoring failed exams
+        const failedExamIds = failures.map(failure => failure.examId);
+        
+        const survivingExams = originalExams.filter(exam => 
+          failedExamIds.includes(exam.id)
+        );
+        
+        setExams(survivingExams);
+        
+        toast({
+          title: 'Partial Success',
+          description: `Deleted ${originalExams.length - failures.length} out of ${originalExams.length} exams. ${failures.length} exams could not be deleted.`,
+          variant: 'destructive'
+        });
+      } else {
+        console.log('✅ All exams deleted successfully');
+        toast({
+          title: 'Success',
+          description: `All ${originalExams.length} exams have been deleted successfully`
+        });
+      }
+
+      // Refresh dashboard stats
+      await fetchExamsByFilter(examFilter);
+
+    } catch (error) {
+      console.error("Failed to delete all exams:", error);
+      // Refresh data to ensure UI is in sync
+      await fetchExamsByFilter(examFilter);
+      
+      toast({
+        title: 'Error',
+        description: 'Failed to delete all exams. Please try again.',
+        variant: 'destructive'
+      });
+    } finally {
+      setDeletingAllExams(false);
+    }
+  };
 
   useEffect(() => {
-    if (!user?.id || dataLoaded) return;
+    // Only load data once when user is available and data hasn't been loaded yet
+    if (!user?.id || dataLoadedRef.current) return;
 
     const loadData = async () => {
       try {
         setLoading(true);
-        setDataLoaded(true); // Prevent multiple calls
+        dataLoadedRef.current = true; // Prevent multiple calls
+        
+        console.log('🔄 Loading admin dashboard data...');
         
         // Load all admin dashboard data in parallel
         const [examResult, questionResult, usersResult, statsResult] = await Promise.allSettled([
-          examsApi.getAllExams({ page: 1, limit: 10, published: true }), // Add explicit parameters that worked in test
+          examsApi.getAllExams({ page: 1, limit: 100, published: false }), // Load ALL exams, not just published ones
           questionsApi.getAllQuestions({ page: 1, limit: 100 }),
           usersApi.getAllUsers({ page: 1, limit: 50 }),
           adminApi.getDashboardStats()
@@ -115,8 +262,18 @@ const AdminDashboard: React.FC = () => {
         // Handle questions result
         if (questionResult.status === 'fulfilled') {
           console.log('Admin Questions API Response:', questionResult.value);
-          const questionData = questionResult.value as { data: Question[] };
-          setQuestions(Array.isArray(questionData.data) ? questionData.data : []);
+          // FIXED: API returns { data: { questions: [...] } }, not { data: [...] }
+          const questionData = questionResult.value as { data: { questions: Question[] } };
+          console.log('✅ Question data structure:', questionData);
+          console.log('✅ Question data.data:', questionData.data);
+          console.log('✅ Question data.data.questions:', questionData.data?.questions);
+          
+          // Get the questions array from the correct path
+          const questionsArray = questionData.data?.questions || [];
+          console.log('✅ Questions array:', questionsArray);
+          console.log('✅ Questions count:', questionsArray.length);
+          
+          setQuestions(Array.isArray(questionsArray) ? questionsArray : []);
         } else {
           console.error('Failed to load questions:', questionResult.reason);
           setQuestions([]);
@@ -185,17 +342,52 @@ const AdminDashboard: React.FC = () => {
     };
 
     loadData();
-  }, [user?.id, user, dataLoaded, examsApi, questionsApi, usersApi, adminApi]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]); // Only depend on user.id to prevent infinite loops
 
   const handleTogglePublish = async (examId: string, isPublished: boolean) => {
+    // Store the original exam data for potential rollback
+    const originalExam = exams.find(exam => exam.id === examId);
+    if (!originalExam) return;
+
     try {
-      // Optimistically update the UI
-      setExams(exams.map((exam) =>
-        exam.id === examId ? { ...exam, isPublished, isDraft: !isPublished } : exam
+      // Set loading state for this specific exam
+      setPublishingExamId(examId);
+
+      // Optimistically update the UI immediately
+      setExams(prevExams => prevExams.map((exam) =>
+        exam.id === examId 
+          ? { 
+              ...exam, 
+              isPublished, 
+              isDraft: !isPublished,
+              updatedAt: new Date().toISOString()
+            } 
+          : exam
       ));
 
-      // Use real API to update exam
-      await examsApi.updateExam(examId, { isPublished, isDraft: !isPublished });
+      // Optimistically update dashboard stats
+      setAdminStats(prevStats => {
+        if (!prevStats) return prevStats;
+        return {
+          ...prevStats,
+          publishedExams: isPublished ? prevStats.publishedExams + 1 : Math.max(0, prevStats.publishedExams - 1),
+          draftExams: isPublished ? Math.max(0, prevStats.draftExams - 1) : prevStats.draftExams + 1
+        };
+      });
+
+      // Use the correct API endpoint for publishing/unpublishing
+      console.log(`🔄 ${isPublished ? 'Publishing' : 'Unpublishing'} exam:`, examId);
+      const updatedExam = await examsApi.publishExam(examId, { isPublished });
+      console.log('✅ Publish API response:', updatedExam);
+
+      // Update with the actual response from server (in case server adds/modifies fields)
+      setExams(prevExams => prevExams.map((exam) =>
+        exam.id === examId ? { ...exam, ...(updatedExam || {}) } : exam
+      ));
+
+      // Refresh the exam data to get the latest state from server
+      await fetchExamsByFilter(examFilter);
 
       toast({
         title: 'Success',
@@ -203,15 +395,50 @@ const AdminDashboard: React.FC = () => {
       });
     } catch (error) {
       console.error("Failed to update exam:", error);
-      // Revert on error - reload exams
-      const examResult = await examsApi.getAllExams({ page: 1, limit: 100 });
-      const examData = examResult as { data: { exams: Exam[] } };
-      setExams(Array.isArray(examData.data?.exams) ? examData.data.exams : []);
+      console.error("Error details:", error);
+      
+      // Revert the optimistic update by restoring original exam data
+      setExams(prevExams => prevExams.map((exam) =>
+        exam.id === examId ? originalExam : exam
+      ));
+
+      // Revert dashboard stats
+      setAdminStats(prevStats => {
+        if (!prevStats) return prevStats;
+        return {
+          ...prevStats,
+          publishedExams: isPublished ? Math.max(0, prevStats.publishedExams - 1) : prevStats.publishedExams + 1,
+          draftExams: isPublished ? prevStats.draftExams + 1 : Math.max(0, prevStats.draftExams - 1)
+        };
+      });
+
+      // Show specific error message based on the error type
+      let errorMessage = `Failed to ${isPublished ? 'publish' : 'unpublish'} exam. Please try again.`;
+      
+      if (error && typeof error === 'object' && 'response' in error) {
+        const axiosError = error as { response?: { status?: number; data?: { error?: string } } };
+        if (axiosError.response?.status === 400) {
+          const errorData = axiosError.response?.data;
+          if (errorData?.error === 'Cannot publish exam without questions') {
+            errorMessage = 'Cannot publish exam without questions. Please add questions to the exam first.';
+          } else if (errorData?.error) {
+            errorMessage = errorData.error;
+          }
+        } else if (axiosError.response?.status === 403) {
+          errorMessage = 'You do not have permission to publish/unpublish this exam.';
+        } else if (axiosError.response?.status === 404) {
+          errorMessage = 'Exam not found. It may have been deleted.';
+        }
+      }
+
       toast({
         title: 'Error',
-        description: 'Failed to update exam',
+        description: errorMessage,
         variant: 'destructive'
       });
+    } finally {
+      // Clear loading state
+      setPublishingExamId(null);
     }
   };
 
@@ -293,8 +520,8 @@ const AdminDashboard: React.FC = () => {
   const dashboardStats = useMemo(() => {
     // Prefer admin stats from API, fallback to calculated values from loaded data
     const totalExams = adminStats?.totalExams ?? exams.length;
-    const publishedExams = adminStats?.publishedExams ?? exams.filter(exam => exam.isPublished).length;
-    const draftExams = adminStats?.draftExams ?? exams.filter(exam => exam.isDraft).length;
+    const publishedExams = adminStats?.publishedExams ?? exams.filter(exam => exam.isPublished === true).length;
+    const draftExams = adminStats?.draftExams ?? exams.filter(exam => exam.isPublished === false || exam.isDraft === true).length;
     const totalQuestions = adminStats?.totalQuestions ?? questions.length;
     const totalUsers = adminStats?.totalUsers ?? users.length;
     const totalStudents = adminStats?.totalStudents ?? users.filter(user => user.role === 'USER').length;
@@ -307,6 +534,7 @@ const AdminDashboard: React.FC = () => {
     console.log('Exams with isDraft=true:', exams.filter(exam => exam.isDraft).length);
     console.log('Exams with isPublished=true:', exams.filter(exam => exam.isPublished).length);
     console.log('Exams with isPublished=false:', exams.filter(exam => !exam.isPublished).length);
+    console.log('Calculated draft exams (isPublished=false OR isDraft=true):', exams.filter(exam => exam.isPublished === false || exam.isDraft === true).length);
     console.log('Exam details:', exams.map(exam => ({ 
       id: exam.id, 
       name: exam.name, 
@@ -359,11 +587,26 @@ const AdminDashboard: React.FC = () => {
 
   // Show other components
   if (showExamBuilder) {
-    return <EnhancedExamBuilder onBack={() => setShowExamBuilder(false)} data-id="bzurrhcs8" data-path="src/components/AdminDashboard.tsx" />;
+    return (
+      <EnhancedExamBuilder 
+        onBack={() => {
+          setShowExamBuilder(false);
+          setEditingExam(null);
+        }} 
+        editingExam={editingExam || undefined}
+        availableQuestions={questions}
+        data-id="bzurrhcs8" 
+        data-path="src/components/AdminDashboard.tsx" 
+      />
+    );
   }
 
   if (showQuestionBank) {
     return <EnhancedQuestionBank onBack={() => setShowQuestionBank(false)} data-id="viylgv3pn" data-path="src/components/AdminDashboard.tsx" />;
+  }
+
+  if (showAddQuestionsDemo) {
+    return <AddQuestionsDemo onBack={() => setShowAddQuestionsDemo(false)} />;
   }
 
   return (
@@ -468,64 +711,186 @@ const AdminDashboard: React.FC = () => {
           {/* Exam Management */}
           <div className="space-y-6" data-id="d1mscx5d9" data-path="src/components/AdminDashboard.tsx">
             <div className="flex justify-between items-center" data-id="jashzh9wk" data-path="src/components/AdminDashboard.tsx">
-              <h2 className="text-2xl font-bold" data-id="3dfwnzxp7" data-path="src/components/AdminDashboard.tsx">Exam Management</h2>
+              <div className="flex items-center space-x-4">
+                <h2 className="text-2xl font-bold" data-id="3dfwnzxp7" data-path="src/components/AdminDashboard.tsx">Exam Management</h2>
+                <div className="flex space-x-2">
+                  <Button
+                    variant={examFilter === 'all' ? 'default' : 'outline'}
+                    size="sm"
+                    className='cursor-pointer'
+                    disabled={refreshingData}
+                    onClick={() => {
+                      setExamFilter('all');
+                      fetchExamsByFilter('all');
+                    }}
+                  >
+                    {refreshingData && examFilter === 'all' && <Clock className="h-3 w-3 mr-1 animate-spin" />}
+                    All Exams
+                  </Button>
+                  <Button
+                    variant={examFilter === 'published' ? 'default' : 'outline'}
+                    size="sm"
+                    className='cursor-pointer'
+                    disabled={refreshingData}
+                    onClick={() => {
+                      setExamFilter('published');
+                      fetchExamsByFilter('published');
+                    }}
+                  >
+                    {refreshingData && examFilter === 'published' && <Clock className="h-3 w-3 mr-1 animate-spin" />}
+                    Published
+                  </Button>
+                  <Button
+                    variant={examFilter === 'draft' ? 'default' : 'outline'}
+                    size="sm"
+                    className='cursor-pointer'
+                    disabled={refreshingData}
+                    onClick={() => {
+                      setExamFilter('draft');
+                      fetchExamsByFilter('draft');
+                    }}
+                  >
+                    {refreshingData && examFilter === 'draft' && <Clock className="h-3 w-3 mr-1 animate-spin" />}
+                    Draft
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className='cursor-pointer'
+                    disabled={refreshingData}
+                    onClick={() => fetchExamsByFilter(examFilter)}
+                    title="Refresh exam data"
+                  >
+                    <RefreshCw className={`h-3 w-3 ${refreshingData ? 'animate-spin' : ''}`} />
+                  </Button>
+                </div>
+              </div>
               <div className="flex space-x-2" data-id="y1towoot3" data-path="src/components/AdminDashboard.tsx">
                 <Button variant="outline" className='cursor-pointer' onClick={() => setShowQuestionBank(true)} data-id="44qcee5pl" data-path="src/components/AdminDashboard.tsx">
                   <BookOpen className="h-4 w-4 mr-2" data-id="gy34as799" data-path="src/components/AdminDashboard.tsx" />
                   Question Bank
                 </Button>
-                <Button onClick={() => { setShowExamBuilder(true) }} className='cursor-pointer' data-id="a9d337j06" data-path="src/components/AdminDashboard.tsx">
+                <Button variant="outline" className='cursor-pointer' onClick={() => setShowAddQuestionsDemo(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Questions Demo
+                </Button>
+                {exams.length > 0 && (
+                  <Button 
+                    variant="outline" 
+                    className='cursor-pointer text-red-600 hover:text-red-700 hover:bg-red-50' 
+                    onClick={handleRemoveAllExams}
+                    disabled={deletingAllExams || refreshingData}
+                  >
+                    {deletingAllExams ? (
+                      <>
+                        <Clock className="h-4 w-4 mr-2 animate-spin" />
+                        Deleting...
+                      </>
+                    ) : (
+                      <>
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Remove All Exams
+                      </>
+                    )}
+                  </Button>
+                )}
+                <Button onClick={() => { 
+                  setEditingExam(null);
+                  clearExamForEdit(); // Clear any cached exam data
+                  clearSelectedQuestions(); // Clear any selected questions
+                  setShowExamBuilder(true);
+                }} className='cursor-pointer' data-id="a9d337j06" data-path="src/components/AdminDashboard.tsx">
                   <Plus className="h-4 w-4 mr-2" data-id="bh61i5qdt" data-path="src/components/AdminDashboard.tsx" />
                   Create Exam
                 </Button>
               </div>
             </div>
 
-            <div className="grid gap-4" data-id="h1p9ln3of" data-path="src/components/AdminDashboard.tsx">
-              {exams.map((exam) =>
-                <Card key={exam.id} data-id="288xc6cfj" data-path="src/components/AdminDashboard.tsx">
-                  <CardHeader data-id="sfcoervit" data-path="src/components/AdminDashboard.tsx">
-                    <div className="flex justify-between items-start" data-id="8mx9vpvjp" data-path="src/components/AdminDashboard.tsx">
-                      <div data-id="ewweq3v5d" data-path="src/components/AdminDashboard.tsx">
-                        <CardTitle className="flex items-center gap-2" data-id="4d4z5eef1" data-path="src/components/AdminDashboard.tsx">
-                          {exam.name}
-                          {exam.isPasswordProtected &&
-                            <Lock className="h-4 w-4 text-yellow-600" data-id="p9mars6lv" data-path="src/components/AdminDashboard.tsx" />
-                          }
-                        </CardTitle>
-                        <CardDescription data-id="darsto63w" data-path="src/components/AdminDashboard.tsx">{exam.description}</CardDescription>
-                        {exam.isPasswordProtected && exam.password &&
-                          <div className="mt-2" data-id="pj6j29dyn" data-path="src/components/AdminDashboard.tsx">
-                            <Badge variant="outline" data-id="w0e135fwd" data-path="src/components/AdminDashboard.tsx">Password: {exam.password}</Badge>
-                          </div>
+            <div className="grid gap-4 relative" data-id="h1p9ln3of" data-path="src/components/AdminDashboard.tsx">
+              {refreshingData && (
+                <div className="absolute inset-0 bg-white/50 backdrop-blur-sm z-10 flex items-center justify-center rounded-lg">
+                  <div className="flex items-center space-x-2 bg-white px-4 py-2 rounded-full shadow-lg border">
+                    <Clock className="h-4 w-4 animate-spin text-blue-600" />
+                    <span className="text-sm font-medium text-gray-700">Refreshing exam data...</span>
+                  </div>
+                </div>
+              )}
+              {(() => {
+                // Now we display all exams since filtering is done by API calls
+                return exams.length === 0 ? (
+                  <Card>
+                    <CardContent className="text-center py-8">
+                      <p className="text-gray-500">
+                        {examFilter === 'all' 
+                          ? 'No exams found. Create your first exam to get started!'
+                          : `No ${examFilter} exams found.`
                         }
-                      </div>
+                      </p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  exams.map((exam) =>
+                  <Card key={exam.id} data-id="288xc6cfj" data-path="src/components/AdminDashboard.tsx">
+                    <CardHeader data-id="sfcoervit" data-path="src/components/AdminDashboard.tsx">
+                      <div className="flex justify-between items-start" data-id="8mx9vpvjp" data-path="src/components/AdminDashboard.tsx">
+                        <div data-id="ewweq3v5d" data-path="src/components/AdminDashboard.tsx">
+                          <CardTitle className="flex items-center gap-2" data-id="4d4z5eef1" data-path="src/components/AdminDashboard.tsx">
+                            {exam.name}
+                            {exam.isPasswordProtected &&
+                              <Lock className="h-4 w-4 text-yellow-600" data-id="p9mars6lv" data-path="src/components/AdminDashboard.tsx" />
+                            }
+                          </CardTitle>
+                          <CardDescription data-id="darsto63w" data-path="src/components/AdminDashboard.tsx">{exam.description}</CardDescription>
+                          {exam.isPasswordProtected && exam.password &&
+                            <div className="mt-2" data-id="pj6j29dyn" data-path="src/components/AdminDashboard.tsx">
+                              <Badge variant="outline" data-id="w0e135fwd" data-path="src/components/AdminDashboard.tsx">Password: {exam.password}</Badge>
+                            </div>
+                          }
+                        </div>
                       <div className="flex items-center gap-2" data-id="7wy9t45e2" data-path="src/components/AdminDashboard.tsx">
                         <Badge variant={exam.isPublished ? "default" : "secondary"} data-id="og6kohn5n" data-path="src/components/AdminDashboard.tsx">
-                          {exam.isPublished ? "Published" : "Draft"}
+                          {publishingExamId === exam.id ? (
+                            exam.isPublished ? "Unpublishing..." : "Publishing..."
+                          ) : (
+                            exam.isPublished ? "Published" : "Draft"
+                          )}
                         </Badge>
                         <Button
                           variant="outline"
                           className='cursor-pointer'
                           size="sm"
-                          onClick={() => handleTogglePublish(exam.id, !exam.isPublished)} data-id="b9irbdk42" data-path="src/components/AdminDashboard.tsx">
+                          disabled={publishingExamId === exam.id || refreshingData || (!exam.isPublished && (exam._count?.questions || exam.questions?.length || 0) === 0)}
+                          onClick={() => handleTogglePublish(exam.id, !exam.isPublished)} 
+                          title={!exam.isPublished && (exam._count?.questions || exam.questions?.length || 0) === 0 ? 'Add questions before publishing' : ''}
+                          data-id="b9irbdk42" data-path="src/components/AdminDashboard.tsx">
 
-                          {exam.isPublished ?
+                          {publishingExamId === exam.id ? (
+                            <>
+                              <Clock className="h-4 w-4 mr-1 animate-spin" data-id="xhll2oszv" data-path="src/components/AdminDashboard.tsx" />
+                              {exam.isPublished ? 'Unpublishing...' : 'Publishing...'}
+                            </>
+                          ) : refreshingData ? (
+                            <>
+                              <Clock className="h-4 w-4 mr-1 animate-spin" />
+                              Refreshing...
+                            </>
+                          ) : exam.isPublished ? (
                             <>
                               <EyeOff className="h-4 w-4 mr-1" data-id="xhll2oszv" data-path="src/components/AdminDashboard.tsx" />
                               Unpublish
-                            </> :
-
+                            </>
+                          ) : (
                             <>
                               <Eye className="h-4 w-4 mr-1" data-id="t31nduqls" data-path="src/components/AdminDashboard.tsx" />
                               Publish
                             </>
-                          }
+                          )}
                         </Button>
                         <Button
                           variant="outline"
                           className='cursor-pointer'
                           size="sm"
+                          disabled={refreshingData}
                           onClick={() => handleDuplicateExam()} data-id="u5thkck0e" data-path="src/components/AdminDashboard.tsx">
 
                           <Copy className="h-4 w-4" data-id="ws9s0wq56" data-path="src/components/AdminDashboard.tsx" />
@@ -534,7 +899,9 @@ const AdminDashboard: React.FC = () => {
                           variant="outline"
                           size="sm"
                           className='cursor-pointer'
+                          disabled={refreshingData}
                           onClick={() => {
+                            setEditingExam(exam);
                             setShowExamBuilder(true);
                           }} data-id="plu6du83g" data-path="src/components/AdminDashboard.tsx">
 
@@ -544,6 +911,7 @@ const AdminDashboard: React.FC = () => {
                           variant="outline"
                           className='cursor-pointer'
                           size="sm"
+                          disabled={refreshingData}
                           onClick={() => handleDeleteExam(exam.id)} data-id="5yvp6ybwv" data-path="src/components/AdminDashboard.tsx">
 
                           <Trash2 className="h-4 w-4" data-id="hah4mtzt4" data-path="src/components/AdminDashboard.tsx" />
@@ -561,7 +929,12 @@ const AdminDashboard: React.FC = () => {
                         <span className="font-medium" data-id="rtb4208j7" data-path="src/components/AdminDashboard.tsx">{exam.totalMarks}</span> marks
                       </div>
                       <div className="text-sm text-gray-600" data-id="o1rl1tm40" data-path="src/components/AdminDashboard.tsx">
-                        <span className="font-medium" data-id="ee03l3k1v" data-path="src/components/AdminDashboard.tsx">{exam.questions?.length || 0}</span> questions
+                        <span className="font-medium" data-id="ee03l3k1v" data-path="src/components/AdminDashboard.tsx">
+                          {exam._count?.questions || exam.questions?.length || 0}
+                        </span> questions
+                        {(exam._count?.questions || exam.questions?.length || 0) === 0 && !exam.isPublished && (
+                          <span className="text-red-500 text-xs ml-1">(Add questions to publish)</span>
+                        )}
                       </div>
                       <div className="text-sm text-gray-600" data-id="kogdnxgwp" data-path="src/components/AdminDashboard.tsx">
                         <CheckCircle className="h-4 w-4 mr-1 inline" data-id="xcd2f9033" data-path="src/components/AdminDashboard.tsx" />
@@ -570,7 +943,9 @@ const AdminDashboard: React.FC = () => {
                     </div>
                   </CardContent>
                 </Card>
-              )}
+                  )
+                );
+              })()}
             </div>
           </div>
         </div>

@@ -476,6 +476,134 @@ class ExamService {
     
     return false;
   }
+
+  /**
+   * Save exam with sections and questions
+   */
+  async saveExamWithSections(examId: string, data: {
+    exam: {
+      name: string;
+      description?: string;
+      timeLimit: number;
+      isPasswordProtected?: boolean;
+      password?: string;
+      instructions?: string;
+      isPublished?: boolean;
+      isDraft?: boolean;
+    };
+    sections: Array<{
+      id?: string;
+      name: string;
+      description?: string;
+      timeLimit?: number;
+      questions: Array<{
+        questionId: string;
+        order: number;
+        marks: number;
+      }>;
+    }>;
+  }): Promise<Exam> {
+    try {
+      const response = await axios.put(
+        `/api/exams/${examId}/save-with-sections`,
+        data,
+        authService.getAuthConfig()
+      );
+      
+      return response.data.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  /**
+   * Get exam for editing with complete section and question details
+   */
+  async getExamForEdit(examId: string): Promise<{
+    exam: Exam;
+    sections: Array<{
+      id: string;
+      name: string;
+      description?: string;
+      timeLimit?: number;
+      marks?: number;
+      questionsCount: number;
+      questions: Array<{
+        id: string;
+        questionId: string;
+        order: number;
+        marks: number;
+        question: Question;
+      }>;
+      createdAt: string;
+      updatedAt: string;
+    }>;
+    questions: Array<{
+      id: string;
+      questionId: string;
+      order: number;
+      marks: number;
+      question: Question;
+    }>;
+  }> {
+    try {
+      const response = await axios.get(
+        `/api/exams/${examId}/edit`,
+        authService.getAuthConfig()
+      );
+      
+      return response.data.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  /**
+   * Add questions directly to exam (without sections)
+   */
+  async addQuestionsToExam(examId: string, questions: Array<{
+    questionId: string;
+    order: number;
+    marks: number;
+  }>): Promise<Exam> {
+    try {
+      const response = await axios.put(
+        `/api/exams/${examId}/questions`,
+        { questions },
+        authService.getAuthConfig()
+      );
+      
+      return response.data.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  /**
+   * Get all questions for an exam
+   */
+  async getExamQuestions(examId: string): Promise<{
+    examId: string;
+    questions: Array<{
+      id: string;
+      questionId: string;
+      order: number;
+      marks: number;
+      question: Question;
+    }>;
+    totalQuestions: number;
+  }> {
+    try {
+      const response = await axios.get(
+        `/api/exams/${examId}/questions`,
+        authService.getAuthConfig()
+      );
+      
+      return response.data.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
 }
 
 // Export singleton instance
