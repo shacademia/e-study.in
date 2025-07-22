@@ -279,6 +279,8 @@ export interface CreateSubmissionRequest {
   totalTimeSpent?: number;
   isSubmitted?: boolean;
   sectionTimes?: Record<string, number>;
+  totalQuestions: any;
+
 }
 
 export interface UpdateSubmissionRequest {

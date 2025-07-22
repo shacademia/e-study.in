@@ -68,13 +68,30 @@ const MultiSectionExamInterface: React.FC<MultiSectionExamInterfaceProps> = ({ e
       try {
         const examData = await getExamById(examId) as Exam;
 
+        console.log('😒I am here Error:', examData)
+
         if (examData) {
           setExam(examData);
           setTimeLeft(examData.timeLimit * 60); // Convert minutes to seconds
 
           // Initialize question statuses
           const initialStatuses: Record<string, QuestionAnswerStatus> = {};
-          if (examData.questions) {
+          
+          // Handle questions from sections if they exist
+          if (examData.sections && examData.sections.length > 0) {
+            examData.sections.forEach(section => {
+              if (section.questions && section.questions.length > 0) {
+                section.questions.forEach(q => {
+                  initialStatuses[q.id] = {
+                    status: "NOT_ANSWERED",
+                    timeSpent: 0,
+                  };
+                });
+              }
+            });
+          } 
+          // Handle direct questions if they exist
+          else if (examData.questions) {
             examData.questions.forEach((q) => {
               initialStatuses[q.id] = {
                 status: "NOT_ANSWERED",
@@ -82,6 +99,7 @@ const MultiSectionExamInterface: React.FC<MultiSectionExamInterfaceProps> = ({ e
               };
             });
           }
+          
           setQuestionStatuses(initialStatuses);
 
           // Check if exam is password protected
@@ -108,6 +126,8 @@ const MultiSectionExamInterface: React.FC<MultiSectionExamInterfaceProps> = ({ e
     loadExam();
   }, [examId, getExamById]);
 
+  console.log('I dont know 😁', exam)
+
   // Define getCurrentQuestion with useCallback early
   const getCurrentQuestion = useCallback((): Question | null => {
     if (!exam || !exam.sections || exam.sections.length === 0) {
@@ -123,6 +143,11 @@ const MultiSectionExamInterface: React.FC<MultiSectionExamInterfaceProps> = ({ e
     if (!questionStartTime) return;
 
     const currentQuestion = getCurrentQuestion();
+
+    console.log("Fuck YOU React", currentQuestion)
+
+
+
     if (currentQuestion) {
       const timeSpent = Math.floor(
         (new Date().getTime() - questionStartTime.getTime()) / 1000
@@ -137,6 +162,20 @@ const MultiSectionExamInterface: React.FC<MultiSectionExamInterfaceProps> = ({ e
     }
   }, [questionStartTime, getCurrentQuestion]);
 
+  const getTotalQuestions = useCallback(() => {
+    if (!exam) return 0;
+    
+    // If exam has sections, count questions in all sections
+    if (exam.sections && exam.sections.length > 0) {
+      return exam.sections.reduce((total, section) => {
+        return total + (section.questions?.length || 0);
+      }, 0);
+    }
+    
+    // Otherwise count direct questions
+    return exam.questions?.length || 0;
+  }, [exam]);
+
   // Now define handleSubmitExam, after updateQuestionTimeSpent is ready
   const handleSubmitExam = useCallback(async () => {
     if (!exam || !user) return;
@@ -145,11 +184,26 @@ const MultiSectionExamInterface: React.FC<MultiSectionExamInterfaceProps> = ({ e
 
     try {
       let score = 0;
-      exam?.questions?.forEach((question) => {
-        if (answers[question.id] === question.correctOption) {
-          score += 1;
-        }
-      });
+      // Calculate score for questions in sections
+      if (exam.sections && exam.sections.length > 0) {
+        exam.sections.forEach(section => {
+          if (section.questions && section.questions.length > 0) {
+            section.questions.forEach(question => {
+              if (answers[question.id] === question.correctOption) {
+                score += 1;
+              }
+            });
+          }
+        });
+      } 
+      // Or calculate score for direct questions
+      else if (exam.questions && exam.questions.length > 0) {
+        exam.questions.forEach(question => {
+          if (answers[question.id] === question.correctOption) {
+            score += 1;
+          }
+        });
+      }
 
       const totalTimeSpent = startTime
         ? Math.floor((new Date().getTime() - startTime.getTime()) / 1000)
@@ -160,7 +214,7 @@ const MultiSectionExamInterface: React.FC<MultiSectionExamInterfaceProps> = ({ e
         answers,
         questionStatuses,
         score,
-        // totalQuestions: exam.questions.length,
+        totalQuestions: getTotalQuestions(),
         timeSpent: totalTimeSpent,
         isSubmitted: true,
       });
@@ -183,7 +237,8 @@ const MultiSectionExamInterface: React.FC<MultiSectionExamInterfaceProps> = ({ e
     startTime,
     router,
     updateQuestionTimeSpent,
-    submitExam
+    submitExam,
+    getTotalQuestions
   ]);
 
   const getCurrentSection = useCallback((): ExamSection | null => {
@@ -211,7 +266,7 @@ const MultiSectionExamInterface: React.FC<MultiSectionExamInterfaceProps> = ({ e
 
       return () => clearInterval(timer);
     }
-  }, [examStarted, startTime, exam?.timeLimit, handleSubmitExam]);
+  }, [examStarted, startTime, exam, handleSubmitExam]);
 
   // Track question time start
   useEffect(() => {
@@ -397,6 +452,8 @@ const MultiSectionExamInterface: React.FC<MultiSectionExamInterfaceProps> = ({ e
     ).length;
   };
 
+
+
   const getSectionProgress = (section: ExamSection) => {
     const sectionQuestions = (section.questions ?? []).map((q) => q.id);
     const answered = sectionQuestions.filter(
@@ -409,14 +466,24 @@ const MultiSectionExamInterface: React.FC<MultiSectionExamInterfaceProps> = ({ e
     if (!exam) return false;
 
     if (exam.sections && exam.sections.length > 0) {
+      // Check if we're on the last section
       const isLastSection = currentSectionIndex === exam.sections.length - 1;
+      
+      // Get the current section safely
       const currentSection = exam.sections[currentSectionIndex];
-      const isLastQuestionInSection =
-        currentQuestionIndex === (currentSection?.questions?.length ?? 0) - 1;
+      if (!currentSection) return false;
+      
+      // Check if we're on the last question of this section
+      const sectionQuestionsLength = currentSection.questions?.length || 0;
+      const isLastQuestionInSection = sectionQuestionsLength > 0 && 
+        currentQuestionIndex === sectionQuestionsLength - 1;
+        
       return isLastSection && isLastQuestionInSection;
     }
 
-    return currentQuestionIndex === (exam.questions?.length ?? 0) - 1;
+    // If no sections, check if we're on the last direct question
+    const questionsLength = exam.questions?.length || 0;
+    return questionsLength > 0 && currentQuestionIndex === questionsLength - 1;
   };
 
   const getTimeColor = () => {
@@ -508,7 +575,7 @@ const MultiSectionExamInterface: React.FC<MultiSectionExamInterfaceProps> = ({ e
                       data-id="l83hgz3sl"
                       data-path="src/components/MultiSectionExamInterface.tsx"
                     />
-                    ⏱️ {formatTime(timeLeft)}
+                    ⏱️ {formatTime(timeLeft)}{formatTime(timeLeft)}
                   </div>
                   <Button
                     variant="outline"
@@ -533,7 +600,7 @@ const MultiSectionExamInterface: React.FC<MultiSectionExamInterfaceProps> = ({ e
                 data-id="2woi5908q"
                 data-path="src/components/MultiSectionExamInterface.tsx"
               >
-                {getAnsweredCount()}/{exam?.questions?.length ?? 0} Answered
+                {getAnsweredCount()}/{getTotalQuestions()} Answered
               </Badge>
             </div>
           </div>
@@ -749,7 +816,7 @@ const MultiSectionExamInterface: React.FC<MultiSectionExamInterfaceProps> = ({ e
                 data-id="cqg5vxw6n"
                 data-path="src/components/MultiSectionExamInterface.tsx"
               />
-              • Answered: {getAnsweredCount()}/{exam?.questions?.length ?? 0} questions
+              • Answered: {getAnsweredCount()}/{getTotalQuestions()} questions
               <br
                 data-id="jlevnbm34"
                 data-path="src/components/MultiSectionExamInterface.tsx"
@@ -1058,7 +1125,7 @@ const MultiSectionExamInterface: React.FC<MultiSectionExamInterfaceProps> = ({ e
                         data-id="vngqxx6s6"
                         data-path="src/components/MultiSectionExamInterface.tsx"
                       >
-                        {currentQuestion.options.map((option, index) => (
+                        {currentQuestion?.options?.map((option, index) => (
                           <div
                             key={`${currentQuestion.id}-${index}`}
                             className="flex items-center space-x-3 p-3 rounded-lg border hover:bg-gray-100"
@@ -1218,7 +1285,7 @@ const MultiSectionExamInterface: React.FC<MultiSectionExamInterfaceProps> = ({ e
                       data-id="jg8c0eyok"
                       data-path="src/components/MultiSectionExamInterface.tsx"
                     >
-                      {exam.sections?.map((section, sectionIdx) => (
+                      {exam?.sections?.map((section, sectionIdx) => (
                         <div
                           key={section.id}
                           className="space-y-2"
@@ -1304,7 +1371,7 @@ const MultiSectionExamInterface: React.FC<MultiSectionExamInterfaceProps> = ({ e
                       data-id="mj8zsw5po"
                       data-path="src/components/MultiSectionExamInterface.tsx"
                     >
-                      {exam.questions?.map((question, index) => (
+                      {exam?.questions?.map((question, index) => (
                         <Button
                           key={question.id}
                           variant={
