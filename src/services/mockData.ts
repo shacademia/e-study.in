@@ -88,6 +88,10 @@ export interface UserStats {
   recentSubmissions: Submission[];
 }
 
+
+// CUSTOMS DATA STARTS           -------------------------->
+
+
 // Mock users
 export const mockUsers: User[] = [
   {
@@ -742,6 +746,11 @@ export const mockSubmissions: Submission[] = [
     isSubmitted: true,
   },
 ];
+
+
+// CUSTOM DATA ENDS           -------------------------->
+
+
 
 // Generate more submissions for ranking
 const generateAdditionalSubmissions = (): Submission[] => {

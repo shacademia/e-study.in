@@ -329,6 +329,7 @@ export interface ExamRanking {
   userName: string;
   userEmail?: string;
   score: number;
+  totalScore: number;
   percentage: number;
   timeSpent: number;
   completedAt: string;

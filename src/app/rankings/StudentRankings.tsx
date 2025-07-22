@@ -2,23 +2,43 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select';
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trophy, Medal, Award, ArrowLeft, BookOpen, Crown, Star } from "lucide-react";
-import { useAuth } from '@/hooks/useApiAuth';
-import { useExams, useRankings } from '@/hooks/useApiServices';
-import { Exam, StudentRanking } from '@/constants/types';
+import {
+  Trophy,
+  Medal,
+  Award,
+  BookOpen,
+  Crown,
+  ArrowLeft,
+  Star,
+} from "lucide-react";
+import { useAuth } from "@hooks/useApiAuth";
+import { useRankings, useExams } from "@/hooks/useApiServices";
+import { Exam, ExamRanking } from "@/constants/types";
 
 const StudentRankings: React.FC = () => {
   const router = useRouter();
   const { user } = useAuth();
 
-  const { getAllExams } = useExams();
-  const { getExamRankings } = useRankings();
+  const examsApi = useExams();
+  const rankingsApi = useRankings();
 
-  const [rankings, setRankings] = useState<StudentRanking[]>([]);
+  const [rankings, setRankings] = useState<ExamRanking[]>([]);
   const [exams, setExams] = useState<Exam[]>([]);
   const [selectedExam, setSelectedExam] = useState<string>("all");
   const [loading, setLoading] = useState(true);
@@ -26,17 +46,10 @@ const StudentRankings: React.FC = () => {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const examData = await getAllExams() as Exam[];
+        const rankingData = await rankingsApi.getExamRankings("all") as ExamRanking[];
+        const examData = await examsApi.getAllExams() as Exam[];
+        setRankings(rankingData);
         setExams(examData.filter((exam) => exam.isPublished));
-        if (selectedExam === 'all' && examData.length > 0) {
-          const allRankings = await Promise.all(
-            examData.map(exam => getExamRankings(exam.id))
-          );
-          setRankings(allRankings.flat() as StudentRanking[]);
-        } else if (selectedExam !== 'all') {
-          const examRankings = await getExamRankings(selectedExam);
-          setRankings(examRankings as StudentRanking[]);
-        }
       } catch (error) {
         console.error("Error loading data:", error);
       } finally {
@@ -45,78 +58,47 @@ const StudentRankings: React.FC = () => {
     };
 
     loadData();
-  }, [selectedExam, getAllExams, getExamRankings]);
+  }, [examsApi, rankingsApi]);
 
   const getRankBadge = (rank: number) => {
     switch (rank) {
-      case 1:
-        return "🥇";
-      case 2:
-        return "🥈";
-      case 3:
-        return "🥉";
-      default:
-        return `#${rank}`;
+      case 1: return "🥇";
+      case 2: return "🥈";
+      case 3: return "🥉";
+      default: return `#${rank}`;
     }
   };
 
   const getRankIcon = (rank: number) => {
     switch (rank) {
-      case 1:
-        return <Crown className="h-6 w-6 text-yellow-500" />;
-      case 2:
-        return <Medal className="h-6 w-6 text-gray-400" />;
-      case 3:
-        return <Award className="h-6 w-6 text-amber-600" />;
-      default:
-        return <Star className="h-6 w-6 text-gray-500" />;
+      case 1: return <Crown className="h-6 w-6 text-yellow-500" />;
+      case 2: return <Medal className="h-6 w-6 text-gray-400" />;
+      case 3: return <Award className="h-6 w-6 text-amber-600" />;
+      default: return <Star className="h-6 w-6 text-gray-500" />;
     }
   };
 
   const getInitials = (name: string) => {
-    return name.split(" ").map(n => n[0]).join("").toUpperCase();
+    return name.split(" ").map((n) => n[0]).join("").toUpperCase();
   };
 
   const getCardBorder = (rank: number) => {
     switch (rank) {
-      case 1:
-        return "border-2 border-yellow-300 bg-gradient-to-r from-yellow-50 to-yellow-100";
-      case 2:
-        return "border-2 border-gray-300 bg-gradient-to-r from-gray-50 to-gray-100";
-      case 3:
-        return "border-2 border-amber-300 bg-gradient-to-r from-amber-50 to-amber-100";
-      default:
-        return "border border-gray-200 bg-white";
+      case 1: return "border-2 border-yellow-300 bg-gradient-to-r from-yellow-50 to-yellow-100";
+      case 2: return "border-2 border-gray-300 bg-gradient-to-r from-gray-50 to-gray-100";
+      case 3: return "border-2 border-amber-300 bg-gradient-to-r from-amber-50 to-amber-100";
+      default: return "border border-gray-200 bg-white";
     }
   };
 
   const getScoreColor = (rank: number) => {
     switch (rank) {
-      case 1:
-        return "text-yellow-600";
-      case 2:
-        return "text-gray-600";
-      case 3:
-        return "text-amber-600";
-      default:
-        return "text-blue-600";
+      case 1: return "text-yellow-600";
+      case 2: return "text-gray-600";
+      case 3: return "text-amber-600";
+      default: return "text-blue-600";
     }
   };
-
-  // Group rankings by exam name
-  const rankingsByExam = rankings.reduce((acc, ranking) => {
-    if (!acc[ranking.examName]) {
-      acc[ranking.examName] = [];
-    }
-    acc[ranking.examName].push(ranking);
-    return acc;
-  }, {} as Record<string, StudentRanking[]>);
-
-  // Update the sorting to use totalScore instead of score
-  const topRankings = rankings
-    .sort((a, b) => b.totalScore - a.totalScore)
-    .slice(0, 10)
-    .map((ranking, index) => ({ ...ranking, rank: index + 1 }));
 
   if (loading) {
     return (
@@ -129,6 +111,29 @@ const StudentRankings: React.FC = () => {
       </div>
     );
   }
+
+  // Filter rankings based on selected exam
+  const filteredRankings =
+    selectedExam === "all"
+      ? rankings.slice(0, 20)
+      : rankings.filter((r) => r.submission?.id === selectedExam)
+
+  // Group rankings by exam for display
+  const rankingsByExam = filteredRankings.reduce((acc, ranking) => {
+    const examName = exams.find(e => e.id === ranking.submission?.id)?.name || "Unknown Exam";
+
+    if (!acc[examName]) {
+      acc[examName] = [];
+    }
+    acc[examName].push(ranking);
+    return acc;
+  }, {} as Record<string, ExamRanking[]>);
+
+  // Top 10 overall rankings
+  const topRankings = rankings
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 10)
+    .map((ranking, index) => ({ ...ranking, rank: index + 1 }));
 
   return (
     <div
@@ -161,7 +166,7 @@ const StudentRankings: React.FC = () => {
                 variant="ghost"
                 size="sm"
                 onClick={() => {
-                  if (user?.role === "admin") {
+                  if (user?.role === "ADMIN") {
                     router.push("/admin/dashboard");
                   } else {
                     router.push("/student/dashboard");
@@ -312,10 +317,11 @@ const StudentRankings: React.FC = () => {
                         key={`${ranking.userId}-${ranking.rank}`}
                         className={`flex items-center justify-between p-4 rounded-lg transition-all duration-200 hover:shadow-md ${getCardBorder(
                           ranking.rank
-                        )} ${ranking.userId === user?.id
+                        )} ${
+                          ranking.userId === user?.id
                             ? "ring-2 ring-blue-400"
                             : ""
-                          }`}
+                        }`}
                         data-id="sfwsh8wyw"
                         data-path="src/components/StudentRankings.tsx"
                       >
@@ -367,30 +373,25 @@ const StudentRankings: React.FC = () => {
                               {ranking.rank <= 3 && (
                                 <Badge
                                   variant="outline"
-                                  className={`ml-2 ${ranking.rank === 1
+                                  className={`ml-2 ${
+                                    ranking.rank === 1
                                       ? "border-yellow-400 text-yellow-600"
                                       : ranking.rank === 2
-                                        ? "border-gray-400 text-gray-600"
-                                        : "border-amber-400 text-amber-600"
-                                    }`}
+                                      ? "border-gray-400 text-gray-600"
+                                      : "border-amber-400 text-amber-600"
+                                  }`}
                                 >
                                   {ranking.rank === 1
                                     ? "Gold"
                                     : ranking.rank === 2
-                                      ? "Silver"
-                                      : "Bronze"}
+                                    ? "Silver"
+                                    : "Bronze"}
                                 </Badge>
                               )}
                             </div>
-                            <p
-                              className="text-sm text-gray-600"
-                              data-id="nrsa53qtb"
-                              data-path="src/components/StudentRankings.tsx"
-                            >
-                              {ranking.examName} •{" "}
-                              {new Date(
-                                ranking.completedAt
-                              ).toLocaleDateString()}
+                            <p className="text-sm text-gray-600">
+                              {exams.find(e => e.id === ranking.submission?.id)?.name || "Unknown Exam"} •{" "}
+                              {new Date(ranking.completedAt).toLocaleDateString()}
                             </p>
                           </div>
                         </div>
@@ -413,8 +414,7 @@ const StudentRankings: React.FC = () => {
                             data-id="34b8hzcx3"
                             data-path="src/components/StudentRankings.tsx"
                           >
-                            {ranking.percentage}% ({ranking.score}/
-                            {ranking.totalMarks})
+                            {ranking.percentage}% ({ranking.score}/{ranking.totalScore})
                           </p>
                         </div>
                       </div>
@@ -474,13 +474,14 @@ const StudentRankings: React.FC = () => {
                       .slice(0, 10)
                       .map((ranking) => (
                         <div
-                          key={ranking.id}
+                          key={`${ranking.userId}-${ranking.rank}`}
                           className={`flex items-center justify-between p-4 rounded-lg transition-all duration-200 hover:shadow-md ${getCardBorder(
                             ranking.rank
-                          )} ${ranking.userId === user?.id
+                          )} ${
+                            ranking.userId === user?.id
                               ? "ring-2 ring-blue-400"
                               : ""
-                            }`}
+                          }`}
                           data-id="hsbhrxaeo"
                           data-path="src/components/StudentRankings.tsx"
                         >
@@ -543,20 +544,21 @@ const StudentRankings: React.FC = () => {
                                 {ranking.rank <= 3 && (
                                   <Badge
                                     variant="outline"
-                                    className={`ml-2 ${ranking.rank === 1
+                                    className={`ml-2 ${
+                                      ranking.rank === 1
                                         ? "border-yellow-400 text-yellow-600"
                                         : ranking.rank === 2
-                                          ? "border-gray-400 text-gray-600"
-                                          : "border-amber-400 text-amber-600"
-                                      }`}
+                                        ? "border-gray-400 text-gray-600"
+                                        : "border-amber-400 text-amber-600"
+                                    }`}
                                     data-id="2r11u7rii"
                                     data-path="src/components/StudentRankings.tsx"
                                   >
                                     {ranking.rank === 1
                                       ? "Gold"
                                       : ranking.rank === 2
-                                        ? "Silver"
-                                        : "Bronze"}
+                                      ? "Silver"
+                                      : "Bronze"}
                                   </Badge>
                                 )}
                               </div>
@@ -591,8 +593,7 @@ const StudentRankings: React.FC = () => {
                               data-id="yeuj31f23"
                               data-path="src/components/StudentRankings.tsx"
                             >
-                              {ranking.percentage}% ({ranking.score}/
-                              {ranking.totalMarks})
+                              {ranking.percentage}% ({ranking.score}/{ranking.totalScore})
                             </p>
                           </div>
                         </div>
