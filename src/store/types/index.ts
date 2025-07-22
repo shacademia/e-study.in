@@ -1,4 +1,4 @@
-import { Exam, Question, User, CreateExamRequest } from '@/constants/types';
+import { Exam, Question, User, CreateExamRequest, CreateQuestionRequest, UpdateQuestionRequest } from '@/constants/types';
 
 // Payload types for actions
 export interface SaveExamWithSectionsPayload {
@@ -61,10 +61,10 @@ export interface QuestionState {
   error: string | null;
   lastFetch: number | null;
   filters: {
-    search: string;
     subject: string;
     difficulty: string;
     topic: string;
+    search: string;
   };
 }
 
@@ -123,8 +123,13 @@ export interface QuestionActions {
     topic?: string;
   }) => Promise<void>;
   
+  // CRUD actions
+  createQuestion: (data: CreateQuestionRequest) => Promise<Question>;
+  updateQuestion: (id: string, updates: UpdateQuestionRequest) => Promise<Question>;
+  deleteQuestion: (id: string) => Promise<{ message: string }>;
+  
   // Filter actions
-  setFilters: (filters: Partial<QuestionState['filters']>) => void;
+  setFilters: (filters: Partial<QuestionState['filters']>) => Promise<void>;
   resetFilters: () => void;
   
   // State actions

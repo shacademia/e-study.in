@@ -14,7 +14,6 @@ import {
   Eye,
   EyeOff,
   Lock,
-  LogOut,
   Clock,
   CheckCircle,
   Copy,
@@ -28,6 +27,7 @@ import { Exam, Question, User } from '@/constants/types';
 import { authService } from '@/services/auth';
 import { useExamStore } from '@/store/slices/examStore';
 import { useUIStore } from '@/store/slices/uiStore';
+import { UserProfileMenu } from '@/components/UserProfileMenu';
 
 // Define admin stats type
 interface AdminStats {
@@ -49,7 +49,7 @@ const AddQuestionsDemo = dynamic(() => import('../exam/components/AddQuestionsDe
 
 const AdminDashboard: React.FC = () => {
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   
   // API hooks
   const examsApi = useExams();
@@ -507,15 +507,6 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
-  const handleLogout = async () => {
-    try {
-      await logout();
-      router.push('/login');
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
-  };
-
   // Calculate dashboard statistics from loaded data
   const dashboardStats = useMemo(() => {
     // Prefer admin stats from API, fallback to calculated values from loaded data
@@ -636,10 +627,7 @@ const AdminDashboard: React.FC = () => {
                 <Trophy className="h-4 w-4 mr-1" data-id="cf64zxn0a" data-path="src/components/StudentDashboard.tsx" />
                 Rankings
               </Button>
-              <Button variant="outline" size="sm" className='cursor-pointer' onClick={handleLogout} data-id="j5rgmjj0h" data-path="src/components/AdminDashboard.tsx">
-                <LogOut className="h-4 w-4 mr-1" data-id="fvrgm0z68" data-path="src/components/AdminDashboard.tsx" />
-                Logout
-              </Button>
+              {user && <UserProfileMenu user={user} />}
             </div>
           </div>
         </div>

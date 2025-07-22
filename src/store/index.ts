@@ -111,6 +111,9 @@ export const useQuestionFilters = () => useQuestionStore(
 export const useQuestionActions = () => useQuestionStore(
   useShallow(state => ({
     fetchQuestions: state.fetchQuestions,
+    createQuestion: state.createQuestion,
+    updateQuestion: state.updateQuestion,
+    deleteQuestion: state.deleteQuestion,
     setFilters: state.setFilters,
     resetFilters: state.resetFilters,
     clearError: state.clearError

@@ -1,5 +1,5 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -8,6 +8,18 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   ArrowLeft,
   Plus,
@@ -24,7 +36,7 @@ import {
   Copy
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { Question } from '@/constants/types';
+import { Question, CreateQuestionRequest, UpdateQuestionRequest } from '@/constants/types';
 import { 
   useQuestions, 
   useFilteredQuestions, 
@@ -63,18 +75,26 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
 
   // Store hooks
   const questions = useQuestions();
+  console.log('Questions:', questions.length, questions.slice(0, 2)); // Debugging: log first 2 questions
   const filteredQuestions = useFilteredQuestions();
+  console.log('Filtered Questions:', filteredQuestions.length, filteredQuestions.slice(0, 2)); // Debugging: log first 2 filtered questions
   const isLoading = useQuestionsLoading();
   const error = useQuestionsError();
-  const { fetchQuestions, setFilters, resetFilters } = useQuestionActions();
+  const { fetchQuestions, createQuestion, updateQuestion, deleteQuestion, setFilters, resetFilters } = useQuestionActions();
+  // console.log('Question Actions:', { fetchQuestions, setFilters, resetFilters });
+
   const { filters } = useQuestionFilters();
 
   // Local state
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchText, setSearchText] = useState(filters.search || '');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [showAddQuestion, setShowAddQuestion] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const [operationError, setOperationError] = useState<string | null>(null);
 
   // New question form state
   const [newQuestion, setNewQuestion] = useState<NewQuestion>({
@@ -108,20 +128,44 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
       isLoading,
       error,
       filters,
+      searchText,
+      strategy: questions.length === 0 ? 'NETWORK_FETCH' : 'LOCAL_FILTER',
       questions: questions.slice(0, 2), // Show first 2 questions for debugging
     });
-  }, [questions, filteredQuestions, isLoading, error, filters]);
+  }, [questions, filteredQuestions, isLoading, error, filters, searchText]);
+
+  // Debounced search effect
+  useEffect(() => {
+    if (searchText !== filters.search) {
+      setIsSearching(true);
+    }
+    
+    const timeout = setTimeout(async () => {
+      try {
+        await setFilters({ search: searchText.trim() });
+      } catch (error) {
+        console.error('Filter error:', error);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 400); // debounce delay
+
+    return () => {
+      clearTimeout(timeout);
+      setIsSearching(false);
+    };
+  }, [searchText, setFilters, filters.search]);
+
+  // Sync local search text with store filter
+  useEffect(() => {
+    setSearchText(filters.search || '');
+  }, [filters.search]);
 
   // Additional debugging for initial load
   React.useEffect(() => {
     console.log('Component mounted, triggering fetchQuestions...');
     
-    // Reset filters to ensure clean state
-    console.log('Current filters on mount:', filters);
-    if (filters.difficulty !== 'all' || filters.subject !== 'all' || filters.topic !== 'all') {
-      console.log('Filters are not in default state, resetting...');
-      resetFilters();
-    }
+    // Don't reset filters on mount to preserve user's filter state
     
     fetchQuestions().then(() => {
       console.log('fetchQuestions completed');
@@ -134,22 +178,28 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
   // Update store filters when local search changes
   const handleSearchChange = (value: string) => {
     console.log('Search change:', value);
-    setSearchTerm(value);
-    setFilters({ ...filters, search: value });
+    setSearchText(value);
   };
 
   // Handle filter changes
-  const handleFilterChange = (key: string, value: string) => {
+  const handleFilterChange = async (key: string, value: string) => {
     console.log('Filter change:', { key, value, currentFilters: filters });
     const newFilters = { ...filters, [key]: value };
     console.log('New filters:', newFilters);
-    setFilters(newFilters);
+    
+    try {
+      await setFilters(newFilters);
+    } catch (error) {
+      console.error('Filter change error:', error);
+    }
   };
 
   // Handle adding a new question
   const handleAddQuestion = async () => {
     try {
-      const question = {
+      setIsCreating(true);
+      
+      const question: CreateQuestionRequest = {
         content: newQuestion.content,
         options: newQuestion.options,
         correctOption: newQuestion.correctOption,
@@ -159,7 +209,7 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
         tags: newQuestion.tags.split(',').map((t) => t.trim()).filter((t) => t)
       };
 
-      await questionService.createQuestion(question);
+      await createQuestion(question);
 
       toast({
         title: 'Success',
@@ -176,56 +226,191 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
         tags: ''
       });
       setShowAddQuestion(false);
-      await fetchQuestions(); // Reload questions
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to add question:', error);
+      
+      // Clear any previous operation error
+      setOperationError(null);
+      
+      // Show specific error messages based on the error
+      let errorMessage = 'Failed to add question';
+      let errorTitle = 'Error';
+      
+      // Safely extract error message
+      const errorMsg = error instanceof Error ? error.message : 
+                      (error && typeof error === 'object' && 'message' in error) ? 
+                      String((error as { message: unknown }).message) : 
+                      'Unknown error';
+      
+      if (errorMsg.includes('permission') || errorMsg.includes('403')) {
+        errorTitle = 'Permission Denied';
+        errorMessage = 'You do not have permission to create questions. Please contact your administrator to get ADMIN or MODERATOR access.';
+        setOperationError('insufficient_permissions');
+      } else if (errorMsg.includes('401') || errorMsg.includes('Authentication')) {
+        errorTitle = 'Authentication Required';
+        errorMessage = 'Your session has expired. Please log in again.';
+      } else if (errorMsg.includes('validation') || errorMsg.includes('400')) {
+        errorTitle = 'Validation Error';
+        errorMessage = 'Please check that all required fields are filled correctly.';
+      } else {
+        errorMessage = errorMsg || 'An unexpected error occurred while creating the question.';
+      }
+      
       toast({
-        title: 'Error',
-        description: 'Failed to add question',
+        title: errorTitle,
+        description: errorMessage,
         variant: 'destructive'
       });
+    } finally {
+      setIsCreating(false);
     }
   };
 
   // Handle editing question
-  const handleEditQuestion = async (id: string, updates: Partial<Question>) => {
+  const handleEditQuestion = async (question: Question) => {
+    // Validation
+    if (!question.content.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Question content is required",
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    if (question.options.some(option => !option.trim())) {
+      toast({
+        title: "Validation Error", 
+        description: "All answer options are required",
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    if (!question.subject.trim() || !question.topic.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Subject and topic are required",
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setIsUpdating(true);
+    
     try {
-      await questionService.updateQuestion(id, updates);
+      const updates: UpdateQuestionRequest = {
+        content: question.content.trim(),
+        options: question.options.map(opt => opt.trim()),
+        correctOption: question.correctOption,
+        subject: question.subject.trim(),
+        topic: question.topic.trim(),
+        difficulty: question.difficulty,
+        tags: question.tags.filter(tag => tag.trim() !== "")
+      };
+
+      await updateQuestion(question.id, updates);
 
       toast({
-        title: "Updated",
+        title: "Success",
         description: "Question updated successfully"
       });
 
       setEditingQuestion(null);
-      setShowAddQuestion(false);
-      await fetchQuestions(); // Reload questions
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Failed to edit question:", error);
+      
+      // Clear any previous operation error
+      setOperationError(null);
+      
+      // Show specific error messages based on the error
+      let errorMessage = 'Failed to update question';
+      let errorTitle = 'Error';
+      
+      if (error && typeof error === 'object' && 'message' in error) {
+        const errorMsg = (error as { message: string }).message;
+        
+        if (errorMsg.includes('permission') || errorMsg.includes('403')) {
+          errorTitle = 'Permission Denied';
+          errorMessage = 'You do not have permission to edit this question.';
+          setOperationError('insufficient_permissions');
+        } else if (errorMsg.includes('401') || errorMsg.includes('Authentication')) {
+          errorTitle = 'Authentication Required';
+          errorMessage = 'Your session has expired. Please log in again.';
+        } else {
+          errorMessage = errorMsg || 'An unexpected error occurred while updating the question.';
+        }
+      }
+      
       toast({
-        title: "Error",
-        description: "Failed to update question",
+        title: errorTitle,
+        description: errorMessage,
         variant: 'destructive'
       });
+    } finally {
+      setIsUpdating(false);
     }
   };
 
   // Handle deleting question
   const handleDeleteQuestion = async (questionId: string) => {
     try {
-      await questionService.deleteQuestion(questionId);
+      await deleteQuestion(questionId);
       
       toast({
         title: 'Deleted',
         description: 'Question deleted successfully'
       });
-
-      await fetchQuestions(); // Reload questions
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to delete question:', error);
+      
+      // Clear any previous operation error
+      setOperationError(null);
+      
+      // Show specific error messages based on the error
+      let errorMessage = 'Failed to delete question';
+      let errorTitle = 'Error';
+      
+      if (error && typeof error === 'object' && 'message' in error) {
+        const errorMsg = (error as { message: string }).message;
+        
+        if (errorMsg.includes('permission') || errorMsg.includes('403')) {
+          errorTitle = 'Permission Denied';
+          errorMessage = 'You do not have permission to delete this question.';
+          setOperationError('insufficient_permissions');
+        } else if (errorMsg.includes('401') || errorMsg.includes('Authentication')) {
+          errorTitle = 'Authentication Required';
+          errorMessage = 'Your session has expired. Please log in again.';
+        } else if (errorMsg.includes('409') || errorMsg.includes('used in exams') || errorMsg.includes('being used') || errorMsg.includes('QUESTION_IN_USE') || 
+                 (error && typeof error === 'object' && 'code' in error && error.code === 'QUESTION_IN_USE')) {
+          errorTitle = 'Question In Use';
+          errorMessage = 'This question cannot be deleted because it is currently being used in one or more active exams. Please remove it from all exams before deleting.';
+          
+          // Set a specific error type for UI handling
+          setOperationError('question_in_use');
+          
+          // Create a custom alert for this specific error
+          toast({
+            title: "Question In Use",
+            description: (
+              <div className="space-y-2">
+                <p>Cannot delete question that is used in exams.</p>
+                <div className="text-xs text-muted-foreground">
+                  To delete this question, you must first remove it from all exams where it is being used.
+                </div>
+              </div>
+            ),
+            variant: "destructive",
+            duration: 8000 // longer duration to ensure user sees it
+          });
+        } else {
+          errorMessage = errorMsg || 'An unexpected error occurred while deleting the question.';
+        }
+      }
+      
       toast({
-        title: 'Error',
-        description: 'Failed to delete question',
+        title: errorTitle,
+        description: errorMessage,
         variant: 'destructive'
       });
     }
@@ -278,20 +463,37 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
   // Clear all filters
   const clearFilters = () => {
     console.log('Clearing filters...');
+    setSearchText('');
     resetFilters();
-    setSearchTerm('');
-    // Force re-apply filters after reset
-    setTimeout(() => {
-      console.log('Filters after reset:', filters);
-    }, 100);
+    setIsSearching(false);
   };
 
   // Loading state
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <RefreshCw className="h-6 w-6 animate-spin" />
-        <span className="ml-2">Loading questions...</span>
+      <div className="container mx-auto p-6 space-y-6">
+        {/* Header */}
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" onClick={onBack}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold">Question Bank</h1>
+            <p className="text-muted-foreground">Manage your question database</p>
+          </div>
+        </div>
+
+        {/* Loading State */}
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center space-y-4">
+            <RefreshCw className="h-8 w-8 animate-spin mx-auto text-primary" />
+            <div>
+              <p className="text-lg font-medium">Loading Questions</p>
+              <p className="text-sm text-muted-foreground">Please wait while we fetch your question bank...</p>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -299,14 +501,61 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
   // Error state
   if (error) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <p className="text-red-500 mb-4">Error loading questions: {error}</p>
-          <Button onClick={() => fetchQuestions()}>
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Retry
+      <div className="container mx-auto p-6 space-y-6">
+        {/* Header */}
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" onClick={onBack}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back
           </Button>
+          <div>
+            <h1 className="text-3xl font-bold">Question Bank</h1>
+            <p className="text-muted-foreground">Manage your question database</p>
+          </div>
         </div>
+
+        {/* Error Alert */}
+        <Alert variant="destructive" className="max-w-2xl">
+          <AlertTitle className="flex items-center gap-2">
+            <RefreshCw className="h-4 w-4" />
+            Unable to Load Questions
+          </AlertTitle>
+          <AlertDescription className="mt-2">
+            <div className="space-y-3">
+              <p>We&apos;re having trouble loading your questions. This could be due to:</p>
+              <ul className="list-disc list-inside space-y-1 text-sm">
+                <li>Network connectivity issues</li>
+                <li>Server temporarily unavailable</li>
+                <li>Authentication problems</li>
+              </ul>
+              <div className="flex gap-2 mt-4">
+                <Button 
+                  onClick={() => {
+                    fetchQuestions();
+                  }}
+                  variant="outline"
+                  size="sm"
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Try Again
+                </Button>
+                <Button 
+                  onClick={() => window.location.reload()}
+                  variant="outline"
+                  size="sm"
+                >
+                  Refresh Page
+                </Button>
+              </div>
+              {error && (
+                <details className="text-xs mt-2">
+                  <summary className="cursor-pointer text-muted-foreground">Technical Details</summary>
+                  <code className="block mt-1 p-2 bg-muted rounded text-xs">{error}</code>
+                </details>
+              )}
+            </div>
+          </AlertDescription>
+        </Alert>
       </div>
     );
   }
@@ -327,10 +576,34 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
           {/* Temporary debug info */}
           <div className="text-xs text-gray-500 mt-1">
             Debug: isLoading={isLoading.toString()}, error={error || 'none'}, 
-            questions={questions.length}, filtered={filteredQuestions.length}
+            questions={questions.length}, filtered={filteredQuestions.length}, 
+            strategy={questions.length === 0 ? 'NETWORK' : 'LOCAL'}
           </div>
         </div>
       </div>
+
+      {/* Permission Warning Banner */}
+      {operationError === 'insufficient_permissions' && (
+        <Alert variant="destructive">
+          <AlertTitle className="flex items-center gap-2">
+            🔒 Permission Required
+          </AlertTitle>
+          <AlertDescription>
+            <div className="space-y-2">
+              <p>You need ADMIN or MODERATOR privileges to create, edit, or delete questions.</p>
+              <p className="text-sm">Contact your system administrator to request elevated permissions.</p>
+              <Button 
+                onClick={() => setOperationError(null)} 
+                variant="outline" 
+                size="sm" 
+                className="mt-2"
+              >
+                Dismiss
+              </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Action Bar */}
       <Card>
@@ -338,10 +611,14 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
           <div className="flex flex-col md:flex-row gap-4 items-center">
             {/* Search */}
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              {isSearching ? (
+                <RefreshCw className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground animate-spin" />
+              ) : (
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              )}
               <Input
                 placeholder="Search questions..."
-                value={searchTerm}
+                value={searchText}
                 onChange={(e) => handleSearchChange(e.target.value)}
                 className="pl-10"
               />
@@ -385,7 +662,7 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Subjects</SelectItem>
+                      <SelectItem value="ALL">All Subjects</SelectItem>
                       {subjects.map(subject => (
                         <SelectItem key={subject} value={subject}>{subject}</SelectItem>
                       ))}
@@ -403,7 +680,7 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Difficulties</SelectItem>
+                      <SelectItem value="ALL">All Difficulties</SelectItem>
                       <SelectItem value="EASY">Easy</SelectItem>
                       <SelectItem value="MEDIUM">Medium</SelectItem>
                       <SelectItem value="HARD">Hard</SelectItem>
@@ -421,7 +698,7 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Topics</SelectItem>
+                      <SelectItem value="ALL">All Topics</SelectItem>
                       {topics.map(topic => (
                         <SelectItem key={topic} value={topic}>{topic}</SelectItem>
                       ))}
@@ -440,8 +717,9 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
                     variant="outline" 
                     onClick={() => {
                       console.log('Manual filter reset and fetch');
+                      setSearchText('');
                       resetFilters();
-                      setSearchTerm('');
+                      setIsSearching(false);
                       fetchQuestions();
                     }} 
                     className="w-full"
@@ -475,8 +753,7 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
 
       {/* Questions Grid/List */}
       <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4' : 'space-y-4'}>
-        {/* Temporarily show all questions for debugging */}
-        {(filteredQuestions.length > 0 ? filteredQuestions : questions).map((question) => (
+        {filteredQuestions.map((question) => (
           <Card key={question.id} className="hover:shadow-md transition-shadow">
             <CardHeader className="pb-3">
               <div className="flex justify-between items-start">
@@ -507,13 +784,47 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
                   >
                     <Copy className="h-4 w-4" />
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDeleteQuestion(question.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This action cannot be undone. This will permanently delete the question.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => handleDeleteQuestion(question.id)}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          Delete
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                      
+                      {/* Additional context for specific error conditions */}
+                      {operationError === 'question_in_use' && (
+                        <div className="mt-4 pt-4 border-t">
+                          <Alert variant="destructive" className="bg-amber-50">
+                            <AlertTitle className="text-amber-700">Question In Use Warning</AlertTitle>
+                            <AlertDescription className="text-amber-600">
+                              <p className="mb-2">This question may be used in one or more exams.</p>
+                              <p className="text-xs">Questions that are used in exams cannot be deleted. 
+                              You&apos;ll need to remove this question from all exams before it can be deleted.</p>
+                            </AlertDescription>
+                          </Alert>
+                        </div>
+                      )}
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               </div>
             </CardHeader>
@@ -557,25 +868,34 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
       </div>
 
       {/* Empty State */}
-      {filteredQuestions.length === 0 && questions.length === 0 && (
+      {questions.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <BookOpen className="h-12 w-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-medium mb-2">No questions found</h3>
             <p className="text-muted-foreground text-center mb-4">
-              {questions.length === 0 
-                ? "Get started by adding your first question."
-                : "Try adjusting your search or filters."}
+              Get started by adding your first question.
             </p>
-            {questions.length === 0 && (
-              <Button onClick={() => setShowAddQuestion(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Question
-              </Button>
-            )}
+            <Button onClick={() => setShowAddQuestion(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Question
+            </Button>
           </CardContent>
         </Card>
-      )}
+      ) : filteredQuestions.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <Search className="h-12 w-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-medium mb-2">No matching questions</h3>
+            <p className="text-muted-foreground text-center mb-4">
+              Try adjusting your search or filters.
+            </p>
+            <Button variant="outline" onClick={clearFilters}>
+              Clear Filters
+            </Button>
+          </CardContent>
+        </Card>
+      ) : null}
 
       {/* Add/Edit Question Dialog */}
       <Dialog open={showAddQuestion || editingQuestion !== null} onOpenChange={(open) => {
@@ -761,13 +1081,21 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
               <Button
                 onClick={() => {
                   if (editingQuestion) {
-                    handleEditQuestion(editingQuestion.id, editingQuestion);
+                    handleEditQuestion(editingQuestion);
                   } else {
                     handleAddQuestion();
                   }
                 }}
+                disabled={isCreating || isUpdating}
               >
-                {editingQuestion ? 'Update Question' : 'Add Question'}
+                {isCreating || isUpdating ? (
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                    {editingQuestion ? 'Updating...' : 'Adding...'}
+                  </>
+                ) : (
+                  editingQuestion ? 'Update Question' : 'Add Question'
+                )}
               </Button>
             </div>
           </div>

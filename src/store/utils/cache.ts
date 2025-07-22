@@ -81,7 +81,34 @@ export const safeAsync = async <T>(
     return { data, error: null };
   } catch (error) {
     console.error(errorMessage, error);
-    const errorMsg = error instanceof Error ? error.message : errorMessage;
+    
+    // Enhanced error handling for API errors
+    let errorMsg = errorMessage;
+    
+    // Handle ApiError type from question service
+    if (error && typeof error === 'object') {
+      if ('error' in error && error.error) {
+        // Extract the detailed error message
+        errorMsg = String(error.error);
+      } else if ('message' in error) {
+        errorMsg = String(error.message);
+      } else if ('response' in error && error.response && typeof error.response === 'object') {
+        // Handle Axios error format
+        const response = error.response as { status?: number; data?: { error?: string; message?: string; [key: string]: unknown } };
+        if (response.data && typeof response.data === 'object') {
+          if (response.data.error) {
+            errorMsg = String(response.data.error);
+          } else if (response.data.message) {
+            errorMsg = String(response.data.message);
+          } else if ('details' in response.data && response.data.details) {
+            errorMsg = String(response.data.details);
+          }
+        }
+      }
+    } else if (error instanceof Error) {
+      errorMsg = error.message;
+    }
+    
     return { data: null, error: errorMsg };
   }
 };

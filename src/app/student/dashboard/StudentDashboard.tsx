@@ -5,14 +5,15 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Clock, BookOpen, Trophy, User, LogOut, Play, Lock, Award, Goal, Users } from 'lucide-react';
+import { Clock, BookOpen, Trophy, User, Play, Lock, Award, Goal, Users } from 'lucide-react';
 import { useAuth } from '@/hooks/useApiAuth';
 import { useExams, useSubmissions, useRankings } from '@/hooks/useApiServices';
 import { Exam, Submission, StudentRanking } from '@/constants/types';
+import { UserProfileMenu } from '@/components/UserProfileMenu';
 
 const StudentDashboard: React.FC = () => {
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
 
   // API hooks
   const examsApi = useExams();
@@ -89,15 +90,6 @@ const StudentDashboard: React.FC = () => {
 
   const handleViewResults = (examId: string) => {
     router.push(`/student/results/${examId}`);
-  };
-
-  const handleLogout = async () => {
-    try {
-      await logout();
-      router.push('/login');
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
   };
 
   // Calculate user statistics from submissions
@@ -181,19 +173,10 @@ const StudentDashboard: React.FC = () => {
                 size="sm"
                 className='cursor-pointer'
                 onClick={() => router.push('/rankings')} data-id="eutl428n1" data-path="src/components/StudentDashboard.tsx">
-
                 <Trophy className="h-4 w-4 mr-2" data-id="cf64zxn0a" data-path="src/components/StudentDashboard.tsx" />
                 Rankings
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className='cursor-pointer'
-                onClick={handleLogout} data-id="jse02euxe" data-path="src/components/StudentDashboard.tsx">
-
-                <LogOut className="h-4 w-4 mr-2" data-id="9xquuayor" data-path="src/components/StudentDashboard.tsx" />
-                Logout
-              </Button>
+              {user && <UserProfileMenu user={user} />}
             </div>
           </div>
         </div>

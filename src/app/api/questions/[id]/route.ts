@@ -103,7 +103,7 @@ export async function PUT(
       select: { role: true },
     });
 
-    if (existingQuestion.authorId !== userId && user?.role !== 'ADMIN') {
+    if (existingQuestion.authorId !== userId && !['ADMIN', 'MODERATOR'].includes(user?.role || '')) {
       return NextResponse.json(
         { error: 'You do not have permission to update this question' },
         { status: 403 }
@@ -175,7 +175,7 @@ export async function DELETE(
       select: { role: true },
     });
 
-    if (existingQuestion.authorId !== userId && user?.role !== 'ADMIN') {
+    if (existingQuestion.authorId !== userId && !['ADMIN', 'MODERATOR'].includes(user?.role || '')) {
       return NextResponse.json(
         { error: 'You do not have permission to delete this question' },
         { status: 403 }
@@ -185,7 +185,11 @@ export async function DELETE(
     // Check if question is being used in any exams
     if (existingQuestion.examSections.length > 0 || existingQuestion.exams.length > 0) {
       return NextResponse.json(
-        { error: 'Cannot delete question as it is being used in exams' },
+        { 
+          error: 'Question is currently being used in active exams and cannot be deleted',
+          details: 'This question is part of one or more exams. Please remove it from all exams before deleting.',
+          code: 'QUESTION_IN_USE'
+        },
         { status: 409 }
       );
     }
