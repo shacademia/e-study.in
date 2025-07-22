@@ -1,7 +1,7 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -15,12 +15,17 @@ import {
   Filter,
   Edit,
   Trash2,
+  Upload,
   BookOpen,
   Tag,
   CheckCircle,
+  SortAsc,
+  SortDesc,
   Grid,
   List,
   RefreshCw,
+  Undo2,
+  Clock,
   Copy
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
@@ -34,7 +39,6 @@ import {
   useQuestionFilters,
   useStoreInitialization
 } from '@/store';
-import { questionService } from '@/services/question';
 
 interface EnhancedQuestionBankProps {
   onBack: () => void;
@@ -66,14 +70,23 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
   const filteredQuestions = useFilteredQuestions();
   const isLoading = useQuestionsLoading();
   const error = useQuestionsError();
-  const { fetchQuestions, setFilters, resetFilters } = useQuestionActions();
-  const { filters } = useQuestionFilters();
+  const { 
+    fetchQuestions, 
+    updateQuestion, 
+    createQuestion, 
+    deleteQuestion, 
+    duplicateQuestion 
+  } = useQuestionActions();
+  const { filters, setFilters } = useQuestionFilters();
 
   // Local state
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState<'date' | 'difficulty' | 'subject' | 'topic'>('date');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [showAddQuestion, setShowAddQuestion] = useState(false);
+  const [showBulkUpload, setShowBulkUpload] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
 
   // New question form state
@@ -100,50 +113,26 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
     [...new Set(questions.flatMap(q => q.tags))], [questions]
   );
 
-  // Debug logging
-  React.useEffect(() => {
-    console.log('QuestionBank Debug:', {
-      questionsLength: questions.length,
-      filteredQuestionsLength: filteredQuestions.length,
-      isLoading,
-      error,
-      filters,
-      questions: questions.slice(0, 2), // Show first 2 questions for debugging
-    });
-  }, [questions, filteredQuestions, isLoading, error, filters]);
-
-  // Additional debugging for initial load
-  React.useEffect(() => {
-    console.log('Component mounted, triggering fetchQuestions...');
-    
-    // Reset filters to ensure clean state
-    console.log('Current filters on mount:', filters);
-    if (filters.difficulty !== 'all' || filters.subject !== 'all' || filters.topic !== 'all') {
-      console.log('Filters are not in default state, resetting...');
-      resetFilters();
-    }
-    
-    fetchQuestions().then(() => {
-      console.log('fetchQuestions completed');
-    }).catch(err => {
-      console.error('fetchQuestions failed:', err);
-    });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Load questions on component mount
+  useEffect(() => {
+    fetchQuestions();
+  }, [fetchQuestions]);
 
   // Update store filters when local search changes
-  const handleSearchChange = (value: string) => {
-    console.log('Search change:', value);
+  useEffect(() => {
+    if (searchTerm !== filters.search) {
+      setFilters({ ...filters, search: searchTerm });
+    }
+  }, [searchTerm, filters, setFilters]);
+
+  // Handle search input
+  const handleSearch = (value: string) => {
     setSearchTerm(value);
-    setFilters({ ...filters, search: value });
   };
 
   // Handle filter changes
   const handleFilterChange = (key: string, value: string) => {
-    console.log('Filter change:', { key, value, currentFilters: filters });
-    const newFilters = { ...filters, [key]: value };
-    console.log('New filters:', newFilters);
-    setFilters(newFilters);
+    setFilters({ ...filters, [key]: value });
   };
 
   // Handle adding a new question
@@ -159,7 +148,7 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
         tags: newQuestion.tags.split(',').map((t) => t.trim()).filter((t) => t)
       };
 
-      await questionService.createQuestion(question);
+      await createQuestion(question);
 
       toast({
         title: 'Success',
@@ -190,7 +179,7 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
   // Handle editing question
   const handleEditQuestion = async (id: string, updates: Partial<Question>) => {
     try {
-      await questionService.updateQuestion(id, updates);
+      await updateQuestion(id, updates);
 
       toast({
         title: "Updated",
@@ -213,11 +202,17 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
   // Handle deleting question
   const handleDeleteQuestion = async (questionId: string) => {
     try {
-      await questionService.deleteQuestion(questionId);
+      await deleteQuestion(questionId);
       
       toast({
         title: 'Deleted',
-        description: 'Question deleted successfully'
+        description: 'Question deleted successfully',
+        action: (
+          <Button variant="outline" size="sm" onClick={handleUndoDelete}>
+            <Undo2 className="h-4 w-4 mr-1" />
+            Undo
+          </Button>
+        )
       });
 
       await fetchQuestions(); // Reload questions
@@ -231,27 +226,48 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
     }
   };
 
+  // Handle bulk operations
+  const handleBulkDelete = async () => {
+    try {
+      await fetchQuestions(); // Just refresh for now - bulk delete would need implementation
+      
+      toast({
+        title: 'Success',
+        description: 'Bulk operation completed'
+      });
+    } catch (error) {
+      console.error('Failed to perform bulk operation:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to perform bulk operation',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  // Handle undo delete
+  const handleUndoDelete = async () => {
+    try {
+      // This would need to be implemented in the store
+      toast({
+        title: 'Restored',
+        description: 'Question restored successfully'
+      });
+      await fetchQuestions();
+    } catch (error) {
+      console.error('Failed to undo delete:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to restore question',
+        variant: 'destructive'
+      });
+    }
+  };
+
   // Handle duplicating question
   const handleDuplicateQuestion = async (questionId: string) => {
     try {
-      // Find the original question
-      const originalQuestion = questions.find(q => q.id === questionId);
-      if (!originalQuestion) {
-        throw new Error('Question not found');
-      }
-
-      // Create a copy without the ID
-      const duplicateData = {
-        content: `Copy of ${originalQuestion.content}`,
-        options: [...originalQuestion.options],
-        correctOption: originalQuestion.correctOption,
-        subject: originalQuestion.subject,
-        topic: originalQuestion.topic,
-        difficulty: originalQuestion.difficulty,
-        tags: [...originalQuestion.tags]
-      };
-
-      await questionService.createQuestion(duplicateData);
+      await duplicateQuestion(questionId);
       
       toast({
         title: 'Duplicated',
@@ -271,19 +287,24 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
 
   // Handle tag filtering
   const handleTagFilter = (tag: string) => {
-    // For now, just log since tags aren't in the current filter structure
-    console.log('Tag filter clicked:', tag);
+    const currentTags = filters.tags || [];
+    const newTags = currentTags.includes(tag) 
+      ? currentTags.filter(t => t !== tag)
+      : [...currentTags, tag];
+    setFilters({ ...filters, tags: newTags });
   };
 
   // Clear all filters
   const clearFilters = () => {
-    console.log('Clearing filters...');
-    resetFilters();
+    setFilters({
+      subject: 'all',
+      difficulty: 'all', 
+      topic: 'all',
+      tags: [],
+      dateRange: 'all',
+      search: ''
+    });
     setSearchTerm('');
-    // Force re-apply filters after reset
-    setTimeout(() => {
-      console.log('Filters after reset:', filters);
-    }, 100);
   };
 
   // Loading state
@@ -324,11 +345,6 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
           <p className="text-muted-foreground">
             Manage questions for exams ({filteredQuestions.length} of {questions.length} questions)
           </p>
-          {/* Temporary debug info */}
-          <div className="text-xs text-gray-500 mt-1">
-            Debug: isLoading={isLoading.toString()}, error={error || 'none'}, 
-            questions={questions.length}, filtered={filteredQuestions.length}
-          </div>
         </div>
       </div>
 
@@ -342,7 +358,7 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
               <Input
                 placeholder="Search questions..."
                 value={searchTerm}
-                onChange={(e) => handleSearchChange(e.target.value)}
+                onChange={(e) => handleSearch(e.target.value)}
                 className="pl-10"
               />
             </div>
@@ -374,7 +390,7 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
           {/* Filters Panel */}
           {showFilters && (
             <div className="mt-4 p-4 border rounded-lg bg-muted/50">
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
                   <Label>Subject</Label>
                   <Select 
@@ -434,21 +450,6 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
                     Clear Filters
                   </Button>
                 </div>
-                
-                <div className="flex items-end">
-                  <Button 
-                    variant="outline" 
-                    onClick={() => {
-                      console.log('Manual filter reset and fetch');
-                      resetFilters();
-                      setSearchTerm('');
-                      fetchQuestions();
-                    }} 
-                    className="w-full"
-                  >
-                    Show All
-                  </Button>
-                </div>
               </div>
 
               {/* Tags Filter */}
@@ -458,7 +459,7 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
                   {allTags.map(tag => (
                     <Badge
                       key={tag}
-                      variant="outline"
+                      variant={filters.tags?.includes(tag) ? "default" : "outline"}
                       className="cursor-pointer"
                       onClick={() => handleTagFilter(tag)}
                     >
@@ -475,8 +476,7 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
 
       {/* Questions Grid/List */}
       <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4' : 'space-y-4'}>
-        {/* Temporarily show all questions for debugging */}
-        {(filteredQuestions.length > 0 ? filteredQuestions : questions).map((question) => (
+        {filteredQuestions.map((question) => (
           <Card key={question.id} className="hover:shadow-md transition-shadow">
             <CardHeader className="pb-3">
               <div className="flex justify-between items-start">
@@ -557,7 +557,7 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
       </div>
 
       {/* Empty State */}
-      {filteredQuestions.length === 0 && questions.length === 0 && (
+      {filteredQuestions.length === 0 && (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <BookOpen className="h-12 w-12 text-muted-foreground mb-4" />

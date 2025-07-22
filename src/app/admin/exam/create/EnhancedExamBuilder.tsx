@@ -5,36 +5,61 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import {
   ArrowLeft,
   Plus,
-  Search,
   Edit,
   Trash2,
   Save,
   Eye,
   BookOpen,
-  CheckCircle,
   Settings,
   Lock
-} from
-  'lucide-react';
+} from 'lucide-react';
+import AddQuestionsSection from '../components/AddQuestionsSection';
 import { toast } from '@/hooks/use-toast';
-import { mockDataService, mockQuestions, Exam, ExamSection, Question } from '../../../../services/mockData';
+import { Exam, ExamSection, Question } from '@/constants/types';
+import { 
+  useExamForEdit, 
+  useExamActions,
+  useFilteredQuestions,
+  useExamBuilderUI,
+  useStoreInitialization
+} from '@/store';
 
 interface EnhancedExamBuilderProps {
   onBack: () => void;
   editingExam?: Partial<Exam>;
+  availableQuestions?: Question[]; // Pass questions from parent to avoid duplicate API calls
 }
 
-const EnhancedExamBuilder: React.FC<EnhancedExamBuilderProps> = ({ onBack, editingExam }) => {
+const EnhancedExamBuilder: React.FC<EnhancedExamBuilderProps> = ({ onBack, editingExam, availableQuestions }) => {
+  // Initialize stores
+  useStoreInitialization();
+
+  // Zustand store hooks
+  const examForEdit = useExamForEdit();
+  const { 
+    createExam, 
+    saveExamWithSections, 
+    fetchExamForEdit,
+    clearExamForEdit
+  } = useExamActions();
+  
+  const filteredQuestions = useFilteredQuestions();
+  
+  const {
+    activeSection,
+    showQuestionSelector,
+    setActiveSection,
+    setShowQuestionSelector
+  } = useExamBuilderUI();
+
+  // Local state for exam details and sections
   const [examDetails, setExamDetails] = useState({
     title: '',
     description: '',
@@ -53,21 +78,105 @@ const EnhancedExamBuilder: React.FC<EnhancedExamBuilderProps> = ({ onBack, editi
       description: 'Main section of the exam',
       questions: [],
       timeLimit: 60,
-      marks: 0
-    }]
-  );
+      marks: 0,
+      examId: '',
+      questionsCount: 0,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    }
+  ]);
 
-  const [activeSection, setActiveSection] = useState(0);
-  const [selectedQuestions, setSelectedQuestions] = useState<Set<string>>(new Set());
-  const [showQuestionSelector, setShowQuestionSelector] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterSubject, setFilterSubject] = useState('all');
-  const [filterDifficulty, setFilterDifficulty] = useState('all');
-  const [filterTopic, setFilterTopic] = useState('all');
+  // Use available questions from store or props
+  const questions = availableQuestions?.length ? availableQuestions : filteredQuestions;
 
-  // Load editing exam data
+  // Update state when exam data loads from store
   useEffect(() => {
-    if (editingExam) {
+    if (editingExam?.id) {
+      fetchExamForEdit(editingExam.id);
+    } else {
+      // Clear cached exam data when creating new exam
+      clearExamForEdit();
+    }
+  }, [editingExam?.id, fetchExamForEdit, clearExamForEdit]);
+
+  // Reset form when switching to create mode
+  useEffect(() => {
+    if (!editingExam?.id) {
+      // Reset to default values for new exam creation
+      setExamDetails({
+        title: '',
+        description: '',
+        duration: 180,
+        totalMarks: 0,
+        instructions: '',
+        status: 'draft',
+        password: '',
+        isPasswordRequired: false
+      });
+      
+      // Reset sections to default empty section
+      setSections([{
+        id: 'section-1',
+        name: 'Section 1',
+        description: '',
+        timeLimit: 0,
+        marks: 0,
+        questionsCount: 0,
+        examId: '',
+        questions: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }]);
+    }
+  }, [editingExam?.id]);
+
+  useEffect(() => {
+    // Only apply exam data if we're in edit mode AND have exam data
+    if (editingExam?.id && examForEdit && examForEdit.exam) {
+      // Set exam details from store data
+      setExamDetails({
+        title: examForEdit.exam.name || '',
+        description: examForEdit.exam.description || '',
+        duration: examForEdit.exam.timeLimit || 180,
+        totalMarks: examForEdit.exam.totalMarks || 0,
+        instructions: examForEdit.exam.instructions || '',
+        status: examForEdit.exam.isPublished ? 'published' : 'draft',
+        password: examForEdit.exam.password || '',
+        isPasswordRequired: examForEdit.exam.isPasswordProtected || false
+      });
+      
+      // Handle both sections and direct questions
+      if (examForEdit.sections && examForEdit.sections.length > 0) {
+        // Transform and set sections with complete question data
+        const transformedSections: ExamSection[] = examForEdit.sections.map((section) => {
+          const sectionQuestions: Question[] = section.questions?.map((esq) => {
+            // The esq should have the structure { question: Question, marks: number, order: number }
+            return {
+              ...esq.question,
+              // Add marks and order as additional properties on the Question
+              marks: esq.marks,
+              order: esq.order
+            } as Question & { marks: number; order: number };
+          }) || [];
+
+          return {
+            id: section.id,
+            name: section.name,
+            description: section.description || '',
+            timeLimit: section.timeLimit || 0,
+            marks: section.marks || 0,
+            questionsCount: section.questionsCount,
+            examId: examForEdit.exam.id || '',
+            questions: sectionQuestions,
+            createdAt: section.createdAt,
+            updatedAt: section.updatedAt
+          };
+        });
+        
+        setSections(transformedSections);
+      }
+    } else if (editingExam && !editingExam.id) {
+      // Fallback to basic editing data (for backward compatibility)
       setExamDetails({
         title: editingExam.name || '',
         description: editingExam.description || '',
@@ -82,23 +191,7 @@ const EnhancedExamBuilder: React.FC<EnhancedExamBuilderProps> = ({ onBack, editi
         setSections(editingExam.sections);
       }
     }
-  }, [editingExam]);
-
-  const filteredQuestions = mockQuestions.filter((q) => {
-    const matchesSearch =
-      q.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      q.subject.toLowerCase().includes(searchTerm.toLowerCase());
-
-    const matchesSubject = filterSubject === 'all' || q.subject === filterSubject;
-    const matchesDifficulty = filterDifficulty === 'all' || q.difficulty === filterDifficulty;
-    const matchesTopic = filterTopic === 'all' || q.topic === filterTopic;
-
-    return matchesSearch && matchesSubject && matchesDifficulty && matchesTopic;
-  });
-
-  const subjects = [...new Set(mockQuestions.map((q) => q.subject))];
-  const difficulties = ['easy', 'medium', 'hard'];
-  const topics = [...new Set(mockQuestions.map((q) => q.topic))];
+  }, [examForEdit, editingExam]);
 
   const handleAddSection = () => {
     const newSection: ExamSection = {
@@ -107,7 +200,11 @@ const EnhancedExamBuilder: React.FC<EnhancedExamBuilderProps> = ({ onBack, editi
       description: '',
       questions: [],
       timeLimit: 60,
-      marks: 0
+      marks: 0,
+      examId: '',
+      questionsCount: 0,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     };
     setSections([...sections, newSection]);
   };
@@ -125,64 +222,60 @@ const EnhancedExamBuilder: React.FC<EnhancedExamBuilderProps> = ({ onBack, editi
     ));
   };
 
-  const handleSelectQuestion = (questionId: string) => {
-    setSelectedQuestions((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(questionId)) {
-        newSet.delete(questionId);
-      } else {
-        newSet.add(questionId);
-      }
-      return newSet;
-    });
-  };
-
-  const handleAddSelectedQuestions = () => {
-    const currentSection = sections[activeSection];
-    const questionsToAdd = Array.from(selectedQuestions).map((id) =>
-      mockQuestions.find((q) => q.id === id)
-    ).filter(Boolean) as Question[];
-
-    const updatedQuestions = [...currentSection.questions, ...questionsToAdd];
-    const updatedMarks = updatedQuestions.length * 1; // 10 marks per question
-
-    handleUpdateSection(currentSection.id, {
-      questions: updatedQuestions,
-      marks: updatedMarks
-    });
-
-    setSelectedQuestions(new Set());
-    setShowQuestionSelector(false);
-
-    toast({
-      title: 'Success',
-      description: `${questionsToAdd.length} questions added to ${currentSection.name}`
-    });
-  };
-
   const handleRemoveQuestion = (sectionId: string, questionId: string) => {
     const section = sections.find((s) => s.id === sectionId);
-    if (section) {
+    if (section && section.questions) {
       const updatedQuestions = section.questions.filter((q) => q.id !== questionId);
-      const updatedMarks = updatedQuestions.length * 10;
+      const updatedMarks = updatedQuestions.length * 1; // 1 mark per question
       handleUpdateSection(sectionId, {
         questions: updatedQuestions,
-        marks: updatedMarks
+        marks: updatedMarks,
+        questionsCount: updatedQuestions.length
       });
     }
   };
 
   const getTotalQuestions = () => {
-    return sections.reduce((total, section) => total + section.questions.length, 0);
+    return sections.reduce((total, section) => total + (section.questions?.length || 0), 0);
   };
 
   const getTotalMarks = () => {
-    return sections.reduce((total, section) => total + section.marks, 0);
+    return sections.reduce((total, section) => total + (section.marks || 0), 0);
   };
 
   const handleSaveExam = async (status: 'draft' | 'published') => {
     try {
-      const examData: Partial<Exam> = {
+      // Validation
+      if (!examDetails.title.trim()) {
+        toast({
+          title: "Validation Error",
+          description: "Exam title is required",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (sections.length === 0) {
+        toast({
+          title: "Validation Error", 
+          description: "At least one section is required",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Check if we have questions in sections (for published exams)
+      const totalQuestions = getTotalQuestions();
+      if (status === 'published' && totalQuestions === 0) {
+        toast({
+          title: "Validation Error",
+          description: "Cannot publish exam without questions. Please add questions to sections first.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const examData = {
         name: examDetails.title,
         description: examDetails.description,
         timeLimit: examDetails.duration,
@@ -191,69 +284,102 @@ const EnhancedExamBuilder: React.FC<EnhancedExamBuilderProps> = ({ onBack, editi
         isPasswordProtected: examDetails.isPasswordRequired,
         isPublished: status === 'published',
         isDraft: status === 'draft',
-        totalMarks: getTotalMarks(),
-        sections: sections,
-        createdAt: editingExam?.createdAt || new Date(),
-        updatedAt: new Date()
       };
 
+      // Transform sections for API - ensure we have proper data
+      const sectionsData = sections.map(section => ({
+        id: section.id,
+        name: section.name,
+        description: section.description || '',
+        timeLimit: section.timeLimit || 0,
+        questions: (section.questions || []).map((question, index) => ({
+          questionId: question.id,
+          order: (question as { order?: number }).order ?? index, // Use order if available, fallback to index
+          marks: Number((question as { marks?: number }).marks) || 1
+        }))
+      }));
+
+      const payload = {
+        exam: examData,
+        sections: sectionsData
+      };
+
+      console.log('💾 Saving exam with payload:', payload);
+
       if (editingExam && editingExam.id) {
-        await mockDataService.updateExam(editingExam.id, examData);
+        // Update existing exam with sections
+        console.log('🔄 Updating existing exam:', editingExam.id);
+        const result = await saveExamWithSections(editingExam.id, payload);
+        if (result) {
+          toast({
+            title: "Success",
+            description: `Exam ${status === 'published' ? 'published' : 'saved as draft'} successfully`,
+            variant: "default",
+          });
+          onBack();
+        }
       } else {
-        await mockDataService.createExam(examData);
+        // Create new exam first, then save with sections
+        console.log('🆕 Creating new exam...');
+        const newExam = await createExam(examData);
+        
+        if (newExam && newExam.id) {
+          console.log('✅ Exam created, now saving sections:', newExam.id);
+          const result = await saveExamWithSections(newExam.id, payload);
+          if (result) {
+            toast({
+              title: "Success",
+              description: `Exam ${status === 'published' ? 'published' : 'saved as draft'} successfully`,
+              variant: "default",
+            });
+            onBack();
+          }
+        } else {
+          throw new Error('Failed to create exam - no ID returned');
+        }
       }
-
-      toast({
-        title: 'Success',
-        description: `Exam ${status === 'published' ? 'published' : 'saved as draft'} successfully`
-      });
-
-      onBack();
     } catch (error) {
-      console.error('Failed to save exam:', error);
-
-      const errorMessage =
-        error instanceof Error ? error.message : 'Failed to save exam';
+      console.error('❌ Failed to save exam:', error);
       toast({
-        title: 'Error',
-        description: errorMessage,
-        variant: 'destructive'
+        title: "Error",
+        description: "Failed to save exam. Please try again.",
+        variant: "destructive",
       });
     }
   };
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
-      case 'easy': return 'bg-green-100 text-green-800';
-      case 'medium': return 'bg-yellow-100 text-yellow-800';
-      case 'hard': return 'bg-red-100 text-red-800';
+      case 'EASY': return 'bg-green-100 text-green-800';
+      case 'MEDIUM': return 'bg-yellow-100 text-yellow-800';
+      case 'HARD': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50" data-id="2n41p99hv" data-path="src/components/EnhancedExamBuilder.tsx">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b" data-id="x8khhvi35" data-path="src/components/EnhancedExamBuilder.tsx">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" data-id="76zucb8c4" data-path="src/components/EnhancedExamBuilder.tsx">
-          <div className="flex justify-between items-center h-16" data-id="dbyio5jc2" data-path="src/components/EnhancedExamBuilder.tsx">
-            <div className="flex items-center" data-id="p2oo2h658" data-path="src/components/EnhancedExamBuilder.tsx">
-              <Button variant="ghost" size="sm" className="cursor-pointer" onClick={onBack} data-id="4oktkr8ze" data-path="src/components/EnhancedExamBuilder.tsx">
-                <ArrowLeft className="h-4 w-4 mr-2" data-id="o090qt49d" data-path="src/components/EnhancedExamBuilder.tsx" />
+      <header className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center">
+              <Button variant="ghost" size="sm" className="cursor-pointer" onClick={onBack}>
+                <ArrowLeft className="h-4 w-4 mr-2" />
                 Back
               </Button>
-              <Edit className="h-8 w-8 text-blue-600 mr-3 ml-4" data-id="a9mdfscd2" data-path="src/components/EnhancedExamBuilder.tsx" />
-              <h1 className="text-xl font-bold text-gray-900" data-id="md9kz79mo" data-path="src/components/EnhancedExamBuilder.tsx">
+              <Edit className="h-8 w-8 text-blue-600 mr-3 ml-4" />
+              <h1 className="text-xl font-bold text-gray-900">
                 {editingExam ? 'Edit Exam' : 'Create New Exam'}
               </h1>
             </div>
-            <div className="flex items-center space-x-4" data-id="vowaiw3ek" data-path="src/components/EnhancedExamBuilder.tsx">
-              <Button variant="outline" size="sm" className="cursor-pointer" onClick={() => handleSaveExam('draft')} data-id="pv4jesm32" data-path="src/components/EnhancedExamBuilder.tsx">
-                <Save className="h-4 w-4 mr-2" data-id="e1v4a0dha" data-path="src/components/EnhancedExamBuilder.tsx" />
+            <div className="flex items-center space-x-4">
+              <Button variant="outline" size="sm" className="cursor-pointer" onClick={() => handleSaveExam('draft')}>
+                <Save className="h-4 w-4 mr-2" />
                 Save Draft
               </Button>
-              <Button size="sm" className="cursor-pointer" onClick={() => handleSaveExam('published')} data-id="dqbzbll83" data-path="src/components/EnhancedExamBuilder.tsx">
-                <Eye className="h-4 w-4 mr-2" data-id="ftwqqqhqm" data-path="src/components/EnhancedExamBuilder.tsx" />
+              <Button size="sm" className="cursor-pointer" onClick={() => handleSaveExam('published')}>
+                <Eye className="h-4 w-4 mr-2" />
                 Publish Exam
               </Button>
             </div>
@@ -261,110 +387,104 @@ const EnhancedExamBuilder: React.FC<EnhancedExamBuilderProps> = ({ onBack, editi
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" data-id="k35b64ki7" data-path="src/components/EnhancedExamBuilder.tsx">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8" data-id="q6v32aom8" data-path="src/components/EnhancedExamBuilder.tsx">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Sidebar - Exam Details */}
-          <div className="lg:col-span-1" data-id="n2wpvjixa" data-path="src/components/EnhancedExamBuilder.tsx">
-            <Card className="sticky top-4" data-id="ymzfxmohg" data-path="src/components/EnhancedExamBuilder.tsx">
-              <CardHeader data-id="t0xbip0jh" data-path="src/components/EnhancedExamBuilder.tsx">
-                <CardTitle className="flex items-center" data-id="jo0u2tces" data-path="src/components/EnhancedExamBuilder.tsx">
-                  <Settings className="h-5 w-5 mr-2" data-id="8n6hcs7dm" data-path="src/components/EnhancedExamBuilder.tsx" />
+          <div className="lg:col-span-1">
+            <Card className="sticky top-4">
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Settings className="h-5 w-5 mr-2" />
                   Exam Configuration
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4" data-id="alr50o9xy" data-path="src/components/EnhancedExamBuilder.tsx">
-                <div data-id="ynkiwq4q3" data-path="src/components/EnhancedExamBuilder.tsx">
-                  <Label htmlFor="exam-title" data-id="734snb53f" data-path="src/components/EnhancedExamBuilder.tsx">Exam Title</Label>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="exam-title">Exam Title</Label>
                   <Input
                     id="exam-title"
                     placeholder="Enter exam title"
                     value={examDetails.title}
-                    onChange={(e) => setExamDetails({ ...examDetails, title: e.target.value })} data-id="r71tpkqzx" data-path="src/components/EnhancedExamBuilder.tsx" />
-
+                    onChange={(e) => setExamDetails({ ...examDetails, title: e.target.value })} />
                 </div>
 
-                <div data-id="8n607ao8b" data-path="src/components/EnhancedExamBuilder.tsx">
-                  <Label htmlFor="exam-description" data-id="fcu17g65v" data-path="src/components/EnhancedExamBuilder.tsx">Description</Label>
+                <div>
+                  <Label htmlFor="exam-description">Description</Label>
                   <Textarea
                     id="exam-description"
                     placeholder="Enter exam description"
                     value={examDetails.description}
-                    onChange={(e) => setExamDetails({ ...examDetails, description: e.target.value })} data-id="k9xsx81cu" data-path="src/components/EnhancedExamBuilder.tsx" />
-
+                    onChange={(e) => setExamDetails({ ...examDetails, description: e.target.value })} />
                 </div>
 
-                <div data-id="ied4p3jll" data-path="src/components/EnhancedExamBuilder.tsx">
-                  <Label htmlFor="exam-duration" data-id="utskdh4v3" data-path="src/components/EnhancedExamBuilder.tsx">Duration (minutes)</Label>
+                <div>
+                  <Label htmlFor="exam-duration">Duration (minutes)</Label>
                   <Input
                     id="exam-duration"
                     type="number"
                     placeholder="Enter duration in minutes"
                     value={examDetails.duration}
-                    onChange={(e) => setExamDetails({ ...examDetails, duration: parseInt(e.target.value) || 0 })} data-id="pfskmkcpe" data-path="src/components/EnhancedExamBuilder.tsx" />
-
+                    onChange={(e) => setExamDetails({ ...examDetails, duration: parseInt(e.target.value) || 0 })} />
                 </div>
 
-                <div data-id="r41bfqn9z" data-path="src/components/EnhancedExamBuilder.tsx">
-                  <Label htmlFor="exam-instructions" data-id="mcd8cm0sc" data-path="src/components/EnhancedExamBuilder.tsx">Instructions</Label>
+                <div>
+                  <Label htmlFor="exam-instructions">Instructions</Label>
                   <Textarea
                     id="exam-instructions"
                     placeholder="Enter exam instructions"
                     value={examDetails.instructions}
-                    onChange={(e) => setExamDetails({ ...examDetails, instructions: e.target.value })} data-id="zqyjwsd0p" data-path="src/components/EnhancedExamBuilder.tsx" />
-
+                    onChange={(e) => setExamDetails({ ...examDetails, instructions: e.target.value })} />
                 </div>
 
                 {/* Password Protection */}
-                <div className="space-y-3 p-4 border rounded-lg" data-id="f0ovy9gjn" data-path="src/components/EnhancedExamBuilder.tsx">
-                  <div className="flex items-center space-x-2" data-id="hsqb5o8ir" data-path="src/components/EnhancedExamBuilder.tsx">
-                    <Lock className="h-5 w-5 text-gray-500" data-id="cyq9vzylf" data-path="src/components/EnhancedExamBuilder.tsx" />
-                    <Label className="text-base font-medium" data-id="c3wya47ip" data-path="src/components/EnhancedExamBuilder.tsx">Password Protection</Label>
+                <div className="space-y-3 p-4 border rounded-lg">
+                  <div className="flex items-center space-x-2">
+                    <Lock className="h-5 w-5 text-gray-500" />
+                    <Label className="text-base font-medium">Password Protection</Label>
                   </div>
-                  <div className="flex items-center space-x-2" data-id="ghb7yjyom" data-path="src/components/EnhancedExamBuilder.tsx">
+                  <div className="flex items-center space-x-2">
                     <Switch
                       id="password-required"
                       checked={examDetails.isPasswordRequired}
-                      onCheckedChange={(checked) => setExamDetails({ ...examDetails, isPasswordRequired: checked })} data-id="wnh9l9fhl" data-path="src/components/EnhancedExamBuilder.tsx" />
-
-                    <Label htmlFor="password-required" data-id="dhsl1ue7f" data-path="src/components/EnhancedExamBuilder.tsx">Require password to access exam</Label>
+                      onCheckedChange={(checked) => setExamDetails({ ...examDetails, isPasswordRequired: checked })} />
+                    <Label htmlFor="password-required">Require password to access exam</Label>
                   </div>
                   {examDetails.isPasswordRequired &&
-                    <div data-id="y9ehr3x1l" data-path="src/components/EnhancedExamBuilder.tsx">
-                      <Label htmlFor="exam-password" data-id="q4jj8g84r" data-path="src/components/EnhancedExamBuilder.tsx">Exam Password</Label>
+                    <div>
+                      <Label htmlFor="exam-password">Exam Password</Label>
                       <Input
                         id="exam-password"
                         type="password"
                         placeholder="Enter exam password"
                         value={examDetails.password}
-                        onChange={(e) => setExamDetails({ ...examDetails, password: e.target.value })} data-id="ybir57noj" data-path="src/components/EnhancedExamBuilder.tsx" />
-
+                        onChange={(e) => setExamDetails({ ...examDetails, password: e.target.value })} />
                     </div>
                   }
                 </div>
 
-                <Separator data-id="cck88ywo8" data-path="src/components/EnhancedExamBuilder.tsx" />
+                <Separator />
 
-                <div className="grid grid-cols-2 gap-4" data-id="6t0n9jl3s" data-path="src/components/EnhancedExamBuilder.tsx">
-                  <div data-id="4pu0azti7" data-path="src/components/EnhancedExamBuilder.tsx">
-                    <Label data-id="kl1qppnr9" data-path="src/components/EnhancedExamBuilder.tsx">Total Questions</Label>
-                    <div className="text-2xl font-bold text-blue-600" data-id="k6cq6fvpd" data-path="src/components/EnhancedExamBuilder.tsx">{getTotalQuestions()}</div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Total Questions</Label>
+                    <div className="text-2xl font-bold text-blue-600">{getTotalQuestions()}</div>
                   </div>
-                  <div data-id="04is16jth" data-path="src/components/EnhancedExamBuilder.tsx">
-                    <Label data-id="huak1oli3" data-path="src/components/EnhancedExamBuilder.tsx">Total Marks</Label>
-                    <div className="text-2xl font-bold text-green-600" data-id="1cj8myf7w" data-path="src/components/EnhancedExamBuilder.tsx">{getTotalMarks()}</div>
+                  <div>
+                    <Label>Total Marks</Label>
+                    <div className="text-2xl font-bold text-green-600">{getTotalMarks()}</div>
                   </div>
                 </div>
 
-                <div className="space-y-2" data-id="wksj0mb4m" data-path="src/components/EnhancedExamBuilder.tsx">
-                  <Label data-id="4ljucoin5" data-path="src/components/EnhancedExamBuilder.tsx">Sections ({sections.length})</Label>
+                <div className="space-y-2">
+                  <Label>Sections ({sections.length})</Label>
                   {sections.map((section, index) =>
-                    <div key={section.id} className="flex items-center justify-between p-2 bg-gray-50 rounded" data-id="5dw1sh31u" data-path="src/components/EnhancedExamBuilder.tsx">
-                      <div className="flex items-center space-x-2" data-id="m48kel9lc" data-path="src/components/EnhancedExamBuilder.tsx">
-                        <Badge variant={index === activeSection ? "default" : "outline"} data-id="6enzw0u17" data-path="src/components/EnhancedExamBuilder.tsx">
+                    <div key={section.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                      <div className="flex items-center space-x-2">
+                        <Badge variant={index === activeSection ? "default" : "outline"}>
                           {section.name}
                         </Badge>
-                        <span className="text-sm text-gray-600" data-id="5pcr3a1vx" data-path="src/components/EnhancedExamBuilder.tsx">
-                          {section.questions.length} questions
+                        <span className="text-sm text-gray-600">
+                          {section.questions?.length || 0} questions
                         </span>
                       </div>
                       <Button
@@ -372,9 +492,8 @@ const EnhancedExamBuilder: React.FC<EnhancedExamBuilderProps> = ({ onBack, editi
                         size="sm"
                         className="cursor-pointer"
                         onClick={() => handleDeleteSection(section.id)}
-                        disabled={sections.length === 1} data-id="glk0cr1ad" data-path="src/components/EnhancedExamBuilder.tsx">
-
-                        <Trash2 className="h-4 w-4" data-id="7zjpzvu56" data-path="src/components/EnhancedExamBuilder.tsx" />
+                        disabled={sections.length === 1}>
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   )}
@@ -382,10 +501,8 @@ const EnhancedExamBuilder: React.FC<EnhancedExamBuilderProps> = ({ onBack, editi
                     variant="outline"
                     size="sm"
                     className="cursor-pointer w-full"
-                    onClick={handleAddSection}
-                    data-id="7ldnwfpg7" data-path="src/components/EnhancedExamBuilder.tsx">
-
-                    <Plus className="h-4 w-4 mr-2" data-id="5ml6k54hl" data-path="src/components/EnhancedExamBuilder.tsx" />
+                    onClick={handleAddSection}>
+                    <Plus className="h-4 w-4 mr-2" />
                     Add Section
                   </Button>
                 </div>
@@ -394,101 +511,95 @@ const EnhancedExamBuilder: React.FC<EnhancedExamBuilderProps> = ({ onBack, editi
           </div>
 
           {/* Main Content - Section Builder */}
-          <div className="lg:col-span-2" data-id="kf2yswbp8" data-path="src/components/EnhancedExamBuilder.tsx">
-            <Card data-id="63kz31ke0" data-path="src/components/EnhancedExamBuilder.tsx">
-              <CardHeader data-id="l7bs7mwuc" data-path="src/components/EnhancedExamBuilder.tsx">
-                <CardTitle data-id="z7p737k2n" data-path="src/components/EnhancedExamBuilder.tsx">Section Configuration</CardTitle>
-                <CardDescription data-id="673u66ptt" data-path="src/components/EnhancedExamBuilder.tsx">
+          <div className="lg:col-span-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>Section Configuration</CardTitle>
+                <CardDescription>
                   Configure sections and add questions to your exam
                 </CardDescription>
               </CardHeader>
-              <CardContent data-id="tw3f56y8e" data-path="src/components/EnhancedExamBuilder.tsx">
-                <Tabs value={activeSection.toString()} onValueChange={(value) => setActiveSection(parseInt(value))} data-id="6qrh6x77c" data-path="src/components/EnhancedExamBuilder.tsx">
-                  <TabsList className="grid w-full grid-cols-1 md:grid-cols-3 lg:grid-cols-4" data-id="4u8anaq2a" data-path="src/components/EnhancedExamBuilder.tsx">
+              <CardContent>
+                <Tabs value={activeSection.toString()} onValueChange={(value) => setActiveSection(parseInt(value))}>
+                  <TabsList className="grid w-full grid-cols-1 md:grid-cols-3 lg:grid-cols-4">
                     {sections.map((section, index) =>
-                      <TabsTrigger key={section.id} value={index.toString()} className='cursor-pointer' data-id="z0sbx3a98" data-path="src/components/EnhancedExamBuilder.tsx">
+                      <TabsTrigger key={section.id} value={index.toString()} className='cursor-pointer'>
                         {section.name}
                       </TabsTrigger>
                     )}
                   </TabsList>
 
                   {sections.map((section, index) =>
-                    <TabsContent key={section.id} value={index.toString()} className="space-y-6" data-id="p9ceao9sy" data-path="src/components/EnhancedExamBuilder.tsx">
+                    <TabsContent key={section.id} value={index.toString()} className="space-y-6">
                       {/* Section Details */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4" data-id="zqh00i74b" data-path="src/components/EnhancedExamBuilder.tsx">
-                        <div data-id="7uxausbgy" data-path="src/components/EnhancedExamBuilder.tsx">
-                          <Label htmlFor={`section-name-${section.id}`} data-id="8mmln7ftu" data-path="src/components/EnhancedExamBuilder.tsx">Section Name</Label>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor={`section-name-${section.id}`}>Section Name</Label>
                           <Input
                             id={`section-name-${section.id}`}
                             value={section.name}
-                            onChange={(e) => handleUpdateSection(section.id, { name: e.target.value })} data-id="r4f17r8mb" data-path="src/components/EnhancedExamBuilder.tsx" />
-
+                            onChange={(e) => handleUpdateSection(section.id, { name: e.target.value })} />
                         </div>
-                        <div data-id="u43yb3e6r" data-path="src/components/EnhancedExamBuilder.tsx">
-                          <Label htmlFor={`section-time-${section.id}`} data-id="7ajpegyst" data-path="src/components/EnhancedExamBuilder.tsx">Time Limit (minutes)</Label>
+                        <div>
+                          <Label htmlFor={`section-time-${section.id}`}>Time Limit (minutes)</Label>
                           <Input
                             id={`section-time-${section.id}`}
                             type="number"
                             value={section.timeLimit || ''}
-                            onChange={(e) => handleUpdateSection(section.id, { timeLimit: parseInt(e.target.value) || undefined })} data-id="pmaalhstx" data-path="src/components/EnhancedExamBuilder.tsx" />
-
+                            onChange={(e) => handleUpdateSection(section.id, { timeLimit: parseInt(e.target.value) || undefined })} />
                         </div>
                       </div>
 
-                      <div data-id="z2tcsgeto" data-path="src/components/EnhancedExamBuilder.tsx">
-                        <Label htmlFor={`section-description-${section.id}`} data-id="r5g1o62rw" data-path="src/components/EnhancedExamBuilder.tsx">Section Description</Label>
+                      <div>
+                        <Label htmlFor={`section-description-${section.id}`}>Section Description</Label>
                         <Textarea
                           id={`section-description-${section.id}`}
                           value={section.description}
-                          onChange={(e) => handleUpdateSection(section.id, { description: e.target.value })} data-id="91da3ewgj" data-path="src/components/EnhancedExamBuilder.tsx" />
-
+                          onChange={(e) => handleUpdateSection(section.id, { description: e.target.value })} />
                       </div>
 
                       {/* Section Questions */}
-                      <div data-id="qwuynpx6d" data-path="src/components/EnhancedExamBuilder.tsx">
-                        <div className="flex items-center justify-between mb-4" data-id="s1fqd78dt" data-path="src/components/EnhancedExamBuilder.tsx">
-                          <Label className="text-base font-medium" data-id="g5gwyjjju" data-path="src/components/EnhancedExamBuilder.tsx">Questions ({section.questions.length})</Label>
-                          <Button size="sm" className="cursor-pointer" onClick={() => setShowQuestionSelector(true)} data-id="x792lqkxg" data-path="src/components/EnhancedExamBuilder.tsx">
-                            <Plus className="h-4 w-4 mr-2" data-id="rgpppdgjx" data-path="src/components/EnhancedExamBuilder.tsx" />
+                      <div>
+                        <div className="flex items-center justify-between mb-4">
+                          <Label className="text-base font-medium">Questions ({section.questions?.length || 0})</Label>
+                          <Button size="sm" className="cursor-pointer" onClick={() => setShowQuestionSelector(true)}>
+                            <Plus className="h-4 w-4 mr-2" />
                             Add Questions
                           </Button>
                         </div>
 
-                        {section.questions.length > 0 ?
-                          <div className="space-y-3" data-id="bcydoibp8" data-path="src/components/EnhancedExamBuilder.tsx">
-                            {section.questions.map((question, qIndex) =>
-                              <div key={question.id} className="flex items-center justify-between p-3 border rounded-lg" data-id="1ipcvryyl" data-path="src/components/EnhancedExamBuilder.tsx">
-                                <div className="flex-1" data-id="7aryzor33" data-path="src/components/EnhancedExamBuilder.tsx">
-                                  <div className="flex items-center space-x-2 mb-1" data-id="9y4artu4t" data-path="src/components/EnhancedExamBuilder.tsx">
-                                    <span className="text-sm font-medium" data-id="i8fl4927b" data-path="src/components/EnhancedExamBuilder.tsx">Q{qIndex + 1}.</span>
-                                    <Badge variant="outline" data-id="q4jbiapbx" data-path="src/components/EnhancedExamBuilder.tsx">{question.subject}</Badge>
-                                    <Badge className={getDifficultyColor(question.difficulty)} data-id="4zbqchjv8" data-path="src/components/EnhancedExamBuilder.tsx">
+                        {(section.questions?.length || 0) > 0 ?
+                          <div className="space-y-3">
+                            {section.questions?.map((question, qIndex) =>
+                              <div key={question.id} className="flex items-center justify-between p-3 border rounded-lg">
+                                <div className="flex-1">
+                                  <div className="flex items-center space-x-2 mb-1">
+                                    <span className="text-sm font-medium">Q{qIndex + 1}.</span>
+                                    <Badge variant="outline">{question.subject}</Badge>
+                                    <Badge className={getDifficultyColor(question.difficulty)}>
                                       {question.difficulty}
                                     </Badge>
                                   </div>
-                                  <p className="text-sm text-gray-700" data-id="wrsff7hyi" data-path="src/components/EnhancedExamBuilder.tsx">{question.content}</p>
+                                  <p className="text-sm text-gray-700">{question.content}</p>
                                 </div>
                                 <Button
                                   variant="ghost"
                                   size="sm"
                                   className="cursor-pointer"
-                                  onClick={() => handleRemoveQuestion(section.id, question.id)} data-id="v9yp2hb28" data-path="src/components/EnhancedExamBuilder.tsx">
-
-                                  <Trash2 className="h-4 w-4" data-id="w87wouoee" data-path="src/components/EnhancedExamBuilder.tsx" />
+                                  onClick={() => handleRemoveQuestion(section.id, question.id)}>
+                                  <Trash2 className="h-4 w-4" />
                                 </Button>
                               </div>
                             )}
                           </div> :
-
-                          <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg" data-id="qaxqgqpfx" data-path="src/components/EnhancedExamBuilder.tsx">
-                            <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" data-id="tfsd184oc" data-path="src/components/EnhancedExamBuilder.tsx" />
-                            <p className="text-gray-600" data-id="6gqlnnkc4" data-path="src/components/EnhancedExamBuilder.tsx">No questions added yet</p>
+                          <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
+                            <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                            <p className="text-gray-600">No questions added yet</p>
                             <Button
                               variant="outline"
                               size="sm"
                               className="mt-2 cursor-pointer"
-                              onClick={() => setShowQuestionSelector(true)} data-id="snf03e16i" data-path="src/components/EnhancedExamBuilder.tsx">
-
+                              onClick={() => setShowQuestionSelector(true)}>
                               Add Questions
                             </Button>
                           </div>
@@ -503,123 +614,38 @@ const EnhancedExamBuilder: React.FC<EnhancedExamBuilderProps> = ({ onBack, editi
         </div>
       </div>
 
-      {/* Question Selection Dialog */}
-      <Dialog open={showQuestionSelector} onOpenChange={setShowQuestionSelector} data-id="e15qb5l8h" data-path="src/components/EnhancedExamBuilder.tsx">
-        <DialogContent className="max-w-4xl" data-id="6n18pj3ui" data-path="src/components/EnhancedExamBuilder.tsx">
-          <DialogHeader data-id="k8h4dw4s7" data-path="src/components/EnhancedExamBuilder.tsx">
-            <DialogTitle data-id="wzh2807oi" data-path="src/components/EnhancedExamBuilder.tsx">Select Questions from Question Bank</DialogTitle>
-            <DialogDescription data-id="4x0qm0wjv" data-path="src/components/EnhancedExamBuilder.tsx">
-              Choose questions to add to {sections[activeSection]?.name}
-            </DialogDescription>
-          </DialogHeader>
+      {/* Enhanced Add Questions Section */}
+      <AddQuestionsSection
+        examId={editingExam?.id}
+        sectionId={sections[activeSection]?.id}
+        section={sections[activeSection]}
+        availableQuestions={questions}
+        isOpen={showQuestionSelector}
+        mode="dialog"
+        onClose={() => setShowQuestionSelector(false)}
+        onQuestionsAdded={(addedQuestions, totalQuestions) => {
+          // Update the current section with the added questions
+          const currentSection = sections[activeSection];
+          if (currentSection) {
+            const currentQuestions = currentSection.questions || [];
+            const updatedQuestions = [...currentQuestions, ...addedQuestions];
+            const updatedMarks = updatedQuestions.length * 1; // 1 mark per question
 
-          <div className="space-y-4" data-id="jvqq2oza3" data-path="src/components/EnhancedExamBuilder.tsx">
-            {/* Search and Filter */}
-            <div className="flex space-x-4" data-id="9ovky4cng" data-path="src/components/EnhancedExamBuilder.tsx">
-              {/* Search Input */}
-              <div className="flex-1 relative" data-id="mp08bn6yb" data-path="src/components/EnhancedExamBuilder.tsx">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" data-id="8r9vf0gz1" data-path="src/components/EnhancedExamBuilder.tsx" />
-                <Input
-                  placeholder="Search questions..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                  data-id="1slkjifx6"
-                  data-path="src/components/EnhancedExamBuilder.tsx"
-                />
-              </div>
+            handleUpdateSection(currentSection.id, {
+              questions: updatedQuestions,
+              marks: updatedMarks,
+              questionsCount: updatedQuestions.length
+            });
 
-              {/* Subject Filter */}
-              <Select value={filterSubject} onValueChange={setFilterSubject} data-id="e23tgbfb7" data-path="src/components/EnhancedExamBuilder.tsx">
-                <SelectTrigger className="w-48" data-id="ntf99xd2t" data-path="src/components/EnhancedExamBuilder.tsx">
-                  <SelectValue placeholder="All Subjects" data-id="iyq1m6dux" data-path="src/components/EnhancedExamBuilder.tsx" />
-                </SelectTrigger>
-                <SelectContent data-id="bjhhmipd1" data-path="src/components/EnhancedExamBuilder.tsx">
-                  <SelectItem value="all" data-id="4tfiauig6" data-path="src/components/EnhancedExamBuilder.tsx">All Subjects</SelectItem>
-                  {subjects.map((subject) => (
-                    <SelectItem key={subject} value={subject} data-id="q40len0dg" data-path="src/components/EnhancedExamBuilder.tsx">
-                      {subject}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              {/* Difficulty Filter */}
-              <Select value={filterDifficulty} onValueChange={setFilterDifficulty} data-id="mtic2gtus" data-path="src/components/EnhancedExamBuilder.tsx">
-                <SelectTrigger className="w-48" data-id="7v7l7mevl" data-path="src/components/EnhancedExamBuilder.tsx">
-                  <SelectValue placeholder="All Difficulties" data-id="lblqmoic2" data-path="src/components/EnhancedExamBuilder.tsx" />
-                </SelectTrigger>
-                <SelectContent data-id="1g1fefcjn" data-path="src/components/EnhancedExamBuilder.tsx">
-                  <SelectItem value="all" data-id="1eazg4pwg" data-path="src/components/EnhancedExamBuilder.tsx">All Difficulties</SelectItem>
-                  {difficulties.map((difficulty) => (
-                    <SelectItem key={difficulty} value={difficulty} data-id="fnwik3lbg" data-path="src/components/EnhancedExamBuilder.tsx">
-                      {difficulty.charAt(0).toUpperCase() + difficulty.slice(1)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              {/* Topic Filter */}
-              <Select value={filterTopic} onValueChange={setFilterTopic} data-id="add-topic-select" data-path="src/components/EnhancedExamBuilder.tsx">
-                <SelectTrigger className="w-48" data-id="topic-trigger" data-path="src/components/EnhancedExamBuilder.tsx">
-                  <SelectValue placeholder="All Topics" data-id="topic-placeholder" data-path="src/components/EnhancedExamBuilder.tsx" />
-                </SelectTrigger>
-                <SelectContent data-id="topic-content" data-path="src/components/EnhancedExamBuilder.tsx">
-                  <SelectItem value="all" data-id="topic-all" data-path="src/components/EnhancedExamBuilder.tsx">All Topics</SelectItem>
-                  {topics.map((topic) => (
-                    <SelectItem key={topic} value={topic} data-id="topic-item" data-path="src/components/EnhancedExamBuilder.tsx">
-                      {topic}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Questions List */}
-            <div className="max-h-96 overflow-y-auto space-y-2" data-id="51woyd1e3" data-path="src/components/EnhancedExamBuilder.tsx">
-              {filteredQuestions.map((question) =>
-                <div key={question.id} className="flex items-start space-x-3 p-3 border rounded-lg" data-id="5y5siwuct" data-path="src/components/EnhancedExamBuilder.tsx">
-                  <Checkbox
-                    checked={selectedQuestions.has(question.id)}
-                    onCheckedChange={() => handleSelectQuestion(question.id)} className='cursor-pointer' data-id="3tkjazgg2" data-path="src/components/EnhancedExamBuilder.tsx" />
-
-                  <div className="flex-1" data-id="kppcxzhca" data-path="src/components/EnhancedExamBuilder.tsx">
-                    <div className="flex items-center space-x-2 mb-1" data-id="02t3m1607" data-path="src/components/EnhancedExamBuilder.tsx">
-                      <Badge variant="outline" data-id="d1cofe0tc" data-path="src/components/EnhancedExamBuilder.tsx">{question.subject}</Badge>
-                      <Badge className={getDifficultyColor(question.difficulty)} data-id="rgo8p2orz" data-path="src/components/EnhancedExamBuilder.tsx">
-                        {question.difficulty}
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-gray-700" data-id="3zhnuhxdl" data-path="src/components/EnhancedExamBuilder.tsx">{question.content}</p>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex items-center justify-between" data-id="9it14d3la" data-path="src/components/EnhancedExamBuilder.tsx">
-              <div className="flex items-center space-x-2" data-id="38vanc2jp" data-path="src/components/EnhancedExamBuilder.tsx">
-                <CheckCircle className="h-4 w-4 text-green-600" data-id="3u50l1onp" data-path="src/components/EnhancedExamBuilder.tsx" />
-                <span className="text-sm" data-id="4lmxr23sk" data-path="src/components/EnhancedExamBuilder.tsx">{selectedQuestions.size} questions selected</span>
-              </div>
-              <div className="flex space-x-2" data-id="fr2fk3bt6" data-path="src/components/EnhancedExamBuilder.tsx">
-                <Button variant="outline" className="cursor-pointer" onClick={() => setShowQuestionSelector(false)} data-id="0fodzc38k" data-path="src/components/EnhancedExamBuilder.tsx">
-                  Cancel
-                </Button>
-                <Button
-                  className="cursor-pointer"
-                  onClick={handleAddSelectedQuestions}
-                  disabled={selectedQuestions.size === 0} data-id="poibqh59j" data-path="src/components/EnhancedExamBuilder.tsx">
-
-                  Add Selected Questions
-                </Button>
-              </div>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </div>);
-
+            toast({
+              title: 'Success',
+              description: `Added ${totalQuestions} questions to ${currentSection.name}`
+            });
+          }
+        }}
+      />
+    </div>
+  );
 };
 
 export default EnhancedExamBuilder;

@@ -119,6 +119,11 @@ export interface Exam {
   };
   sections?: ExamSection[];
   questions?: Question[];
+  _count?: {
+    questions?: number;
+    sections?: number;
+    submissions?: number;
+  };
   createdAt: string;
   updatedAt: string;
 }

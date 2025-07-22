@@ -153,6 +153,36 @@ export function useExams() {
     return api.execute(() => examService.publishExam(id, data));
   }, [api]);
 
+  const saveExamWithSections = useCallback(async (examId: string, data: {
+    exam: {
+      name: string;
+      description?: string;
+      timeLimit: number;
+      isPasswordProtected?: boolean;
+      password?: string;
+      instructions?: string;
+      isPublished?: boolean;
+      isDraft?: boolean;
+    };
+    sections: Array<{
+      id?: string;
+      name: string;
+      description?: string;
+      timeLimit?: number;
+      questions: Array<{
+        questionId: string;
+        order: number;
+        marks: number;
+      }>;
+    }>;
+  }) => {
+    return api.execute(() => examService.saveExamWithSections(examId, data));
+  }, [api]);
+
+  const getExamForEdit = useCallback(async (examId: string) => {
+    return api.execute(() => examService.getExamForEdit(examId));
+  }, [api]);
+
   return {
     ...api,
     getAllExams,
@@ -161,6 +191,8 @@ export function useExams() {
     updateExam,
     deleteExam,
     publishExam,
+    saveExamWithSections,
+    getExamForEdit,
   };
 }
 
