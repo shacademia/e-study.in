@@ -13,12 +13,12 @@ import { Exam, Submission, StudentRanking } from '@/constants/types';
 const StudentDashboard: React.FC = () => {
   const router = useRouter();
   const { user, logout } = useAuth();
-  
+
   // API hooks
   const examsApi = useExams();
   const submissionsApi = useSubmissions();
   const rankingsApi = useRankings();
-  
+
   // Local state
   const [exams, setExams] = useState<Exam[]>([]);
   const [userSubmissions, setUserSubmissions] = useState<Submission[]>([]);
@@ -28,12 +28,12 @@ const StudentDashboard: React.FC = () => {
 
   useEffect(() => {
     if (!user?.id || dataLoaded) return;
-    
+
     const loadData = async () => {
       try {
         setLoading(true);
         setDataLoaded(true); // Set this early to prevent multiple calls
-        
+
         // Load all dashboard data in parallel
         const [examResult, submissionResult, rankingResult] = await Promise.allSettled([
           examsApi.getAllExams({ page: 1, limit: 50, published: true }),
@@ -99,12 +99,12 @@ const StudentDashboard: React.FC = () => {
       console.error('Logout error:', error);
     }
   };
-  
+
   // Calculate user statistics from submissions
   const userStats = useMemo(() => {
     // Ensure userSubmissions is an array
     const submissions = Array.isArray(userSubmissions) ? userSubmissions : [];
-    
+
     if (submissions.length === 0) {
       return {
         totalExams: 0,
@@ -133,7 +133,7 @@ const StudentDashboard: React.FC = () => {
       recentSubmissions: submissions.slice(0, 3) // Add recent submissions for compatibility
     };
   }, [userSubmissions, userRanking]);
-  
+
   // Filter exams based on completed submissions
   const completedExamIds = useMemo(() => {
     const submissions = Array.isArray(userSubmissions) ? userSubmissions : [];

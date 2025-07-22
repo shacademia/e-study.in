@@ -265,10 +265,11 @@ export interface SubjectAnalysis {
   earnedMarks: number;
 }
 
-export interface CreateSubmissionRequest {
+export interface CreateSubmissionRequest { 
   examId: string;
   answers: Record<string, number>;
   questionStatuses?: Record<string, QuestionAnswerStatus>;
+  score?: number;
   timeSpent?: number;
   totalTimeSpent?: number;
   isSubmitted?: boolean;

@@ -2,38 +2,23 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Trophy,
-  Medal,
-  Award,
-  ArrowLeft,
-  BookOpen,
-  Crown,
-  Star,
-} from "lucide-react";
-import { useAuth } from "../../hooks/useMockAuth";
-import { mockDataService, Ranking, Exam } from "../../services/mockData";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Trophy, Medal, Award, ArrowLeft, BookOpen, Crown, Star } from "lucide-react";
+import { useAuth } from '@/hooks/useApiAuth';
+import { useExams, useRankings } from '@/hooks/useApiServices';
+import { Exam, StudentRanking } from '@/constants/types';
 
 const StudentRankings: React.FC = () => {
   const router = useRouter();
   const { user } = useAuth();
-  const [rankings, setRankings] = useState<Ranking[]>([]);
+
+  const { getAllExams } = useExams();
+  const { getExamRankings } = useRankings();
+
+  const [rankings, setRankings] = useState<StudentRanking[]>([]);
   const [exams, setExams] = useState<Exam[]>([]);
   const [selectedExam, setSelectedExam] = useState<string>("all");
   const [loading, setLoading] = useState(true);
@@ -41,12 +26,17 @@ const StudentRankings: React.FC = () => {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [rankingData, examData] = await Promise.all([
-          mockDataService.getRankings(),
-          mockDataService.getAllExams(),
-        ]);
-        setRankings(rankingData);
+        const examData = await getAllExams() as Exam[];
         setExams(examData.filter((exam) => exam.isPublished));
+        if (selectedExam === 'all' && examData.length > 0) {
+          const allRankings = await Promise.all(
+            examData.map(exam => getExamRankings(exam.id))
+          );
+          setRankings(allRankings.flat() as StudentRanking[]);
+        } else if (selectedExam !== 'all') {
+          const examRankings = await getExamRankings(selectedExam);
+          setRankings(examRankings as StudentRanking[]);
+        }
       } catch (error) {
         console.error("Error loading data:", error);
       } finally {
@@ -55,21 +45,7 @@ const StudentRankings: React.FC = () => {
     };
 
     loadData();
-  }, []);
-
-  // Real-time update simulation
-  useEffect(() => {
-    const interval = setInterval(async () => {
-      try {
-        const updatedRankings = await mockDataService.getRankings();
-        setRankings(updatedRankings);
-      } catch (error) {
-        console.error("Error updating rankings:", error);
-      }
-    }, 30000); // Update every 30 seconds
-
-    return () => clearInterval(interval);
-  }, []);
+  }, [selectedExam, getAllExams, getExamRankings]);
 
   const getRankBadge = (rank: number) => {
     switch (rank) {
@@ -87,46 +63,18 @@ const StudentRankings: React.FC = () => {
   const getRankIcon = (rank: number) => {
     switch (rank) {
       case 1:
-        return (
-          <Crown
-            className="h-6 w-6 text-yellow-500"
-            data-id="8umxz6iz1"
-            data-path="src/components/StudentRankings.tsx"
-          />
-        );
+        return <Crown className="h-6 w-6 text-yellow-500" />;
       case 2:
-        return (
-          <Medal
-            className="h-6 w-6 text-gray-400"
-            data-id="thckyuxjd"
-            data-path="src/components/StudentRankings.tsx"
-          />
-        );
+        return <Medal className="h-6 w-6 text-gray-400" />;
       case 3:
-        return (
-          <Award
-            className="h-6 w-6 text-amber-600"
-            data-id="d1w4e83zc"
-            data-path="src/components/StudentRankings.tsx"
-          />
-        );
+        return <Award className="h-6 w-6 text-amber-600" />;
       default:
-        return (
-          <Star
-            className="h-6 w-6 text-gray-500"
-            data-id="4bd17nhjd"
-            data-path="src/components/StudentRankings.tsx"
-          />
-        );
+        return <Star className="h-6 w-6 text-gray-500" />;
     }
   };
 
   const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase();
+    return name.split(" ").map(n => n[0]).join("").toUpperCase();
   };
 
   const getCardBorder = (rank: number) => {
@@ -155,6 +103,21 @@ const StudentRankings: React.FC = () => {
     }
   };
 
+  // Group rankings by exam name
+  const rankingsByExam = rankings.reduce((acc, ranking) => {
+    if (!acc[ranking.examName]) {
+      acc[ranking.examName] = [];
+    }
+    acc[ranking.examName].push(ranking);
+    return acc;
+  }, {} as Record<string, StudentRanking[]>);
+
+  // Update the sorting to use totalScore instead of score
+  const topRankings = rankings
+    .sort((a, b) => b.totalScore - a.totalScore)
+    .slice(0, 10)
+    .map((ranking, index) => ({ ...ranking, rank: index + 1 }));
+
   if (loading) {
     return (
       <div
@@ -166,28 +129,6 @@ const StudentRankings: React.FC = () => {
       </div>
     );
   }
-
-  // Filter rankings based on selected exam
-  const filteredRankings =
-    selectedExam === "all"
-      ? rankings.slice(0, 20)
-      : rankings.filter((r) => r.examId === selectedExam).slice(0, 20);
-
-  // Group rankings by exam for display
-  const rankingsByExam = filteredRankings.reduce((acc, ranking) => {
-    const examName = ranking.examName;
-    if (!acc[examName]) {
-      acc[examName] = [];
-    }
-    acc[examName].push(ranking);
-    return acc;
-  }, {} as Record<string, Ranking[]>);
-
-  // Top 10 overall rankings
-  const topRankings = rankings
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 10)
-    .map((ranking, index) => ({ ...ranking, rank: index + 1 }));
 
   return (
     <div
@@ -368,7 +309,7 @@ const StudentRankings: React.FC = () => {
                   >
                     {topRankings.map((ranking) => (
                       <div
-                        key={ranking.id}
+                        key={`${ranking.userId}-${ranking.rank}`}
                         className={`flex items-center justify-between p-4 rounded-lg transition-all duration-200 hover:shadow-md ${getCardBorder(
                           ranking.rank
                         )} ${ranking.userId === user?.id
@@ -473,7 +414,7 @@ const StudentRankings: React.FC = () => {
                             data-path="src/components/StudentRankings.tsx"
                           >
                             {ranking.percentage}% ({ranking.score}/
-                            {ranking.totalQuestions * 10})
+                            {ranking.totalMarks})
                           </p>
                         </div>
                       </div>
@@ -651,7 +592,7 @@ const StudentRankings: React.FC = () => {
                               data-path="src/components/StudentRankings.tsx"
                             >
                               {ranking.percentage}% ({ranking.score}/
-                              {ranking.totalQuestions * 10})
+                              {ranking.totalMarks})
                             </p>
                           </div>
                         </div>
