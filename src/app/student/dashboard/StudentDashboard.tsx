@@ -235,7 +235,7 @@ const StudentDashboard: React.FC = () => {
 
           <Card className="bg-gradient-to-r from-orange-50 to-orange-100 border-orange-200" data-id="s5z7wkw1r" data-path="src/components/AdminDashboard.tsx">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2" data-id="6rvlspzlv" data-path="src/components/AdminDashboard.tsx">
-            {console.log(userStats)}
+            {/* {console.log(userStats)} */}
               <CardTitle className="text-sm font-medium text-orange-500" data-id="6xxk38u23" data-path="src/components/AdminDashboard.tsx">Total Students</CardTitle>
               <div className="h-8 w-8 bg-orange-500 rounded-full flex items-center justify-center" data-id="za698udhb" data-path="src/components/AdminDashboard.tsx">
                 <Users className="h-4 w-4 text-white" data-id="mz4npxq6m" data-path="src/components/AdminDashboard.tsx" />

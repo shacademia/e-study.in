@@ -279,7 +279,7 @@ export interface CreateSubmissionRequest {
   totalTimeSpent?: number;
   isSubmitted?: boolean;
   sectionTimes?: Record<string, number>;
-  totalQuestions: any;
+  totalQuestions: number;
 
 }
 
