@@ -1058,7 +1058,7 @@ const MultiSectionExamInterface: React.FC<MultiSectionExamInterfaceProps> = ({ e
                         data-id="vngqxx6s6"
                         data-path="src/components/MultiSectionExamInterface.tsx"
                       >
-                        {currentQuestion.options.map((option, index) => (
+                        {currentQuestion?.options?.map((option, index) => (
                           <div
                             key={`${currentQuestion.id}-${index}`}
                             className="flex items-center space-x-3 p-3 rounded-lg border hover:bg-gray-100"

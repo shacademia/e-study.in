@@ -45,8 +45,8 @@ const StudentDashboard: React.FC = () => {
         // Handle exams result
         if (examResult.status === 'fulfilled') {
           console.log('Exam API Response:', examResult.value);
-          const examData = examResult.value as { data: Exam[] };
-          setExams(Array.isArray(examData.data) ? examData.data : []);
+          const examData = examResult.value as { data: { exams: Exam[] } };
+          setExams(Array.isArray(examData.data.exams) ? examData.data.exams : []);
         } else {
           console.error('Failed to load exams:', examResult.reason);
           setExams([]);
