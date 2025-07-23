@@ -42,21 +42,24 @@ const StudentDashboard: React.FC = () => {
           rankingsApi.getStudentRanking({ userId: user.id })
         ]);
 
+
         // Handle exams result
         if (examResult.status === 'fulfilled') {
           console.log('Exam API Response:', examResult.value);
-          const examData = examResult.value as { data: Exam[] };
-          setExams(Array.isArray(examData.data) ? examData.data : []);
+          const examData = examResult.value.data as { exams: Exam[] };
+          setExams(Array.isArray(examData.exams) ? examData.exams : []);
         } else {
           console.error('Failed to load exams:', examResult.reason);
           setExams([]);
         }
 
+        console.log('😊Hello MF😂', submissionResult, rankingResult);
+
         // Handle submissions result - Note: API returns { submissions: Submission[] }
         if (submissionResult.status === 'fulfilled') {
           console.log('Submissions API Response:', submissionResult.value);
-          const submissionData = submissionResult.value as { data: { submissions: Submission[] } };
-          const submissions = submissionData?.data?.submissions || [];
+          const submissionData = submissionResult.value.data as { submissions: Submission[] };
+          const submissions = submissionData?.submissions || [];
           setUserSubmissions(Array.isArray(submissions) ? submissions : []);
         } else {
           console.error('Failed to load submissions:', submissionResult.reason);
@@ -66,8 +69,8 @@ const StudentDashboard: React.FC = () => {
         // Handle ranking result - Note: API returns StudentRanking directly in data
         if (rankingResult.status === 'fulfilled') {
           console.log('Ranking API Response:', rankingResult.value);
-          const rankingData = rankingResult.value as { data: StudentRanking };
-          setUserRanking(rankingData?.data || null);
+          const rankingData = rankingResult.value.data;
+          setUserRanking(rankingData || null);
         } else {
           console.error('Failed to load ranking:', rankingResult.reason);
           setUserRanking(null);
@@ -225,13 +228,14 @@ const StudentDashboard: React.FC = () => {
               </div>
             </CardHeader>
             <CardContent data-id="afi2wbc6u" data-path="src/components/AdminDashboard.tsx">
-              <div className="text-2xl font-bold text-purple-600" data-id="7xuzewo68" data-path="src/components/AdminDashboard.tsx">{userRanking?.globalRank ? `#${userRanking.globalRank}` : 'N/A'}</div>
+              <div className="text-2xl font-bold text-purple-600" data-id="7xuzewo68" data-path="src/components/AdminDashboard.tsx">{userRanking?.globalRank ? `#${userRanking?.globalRank}` : 'N/A'}</div>
               <p className="text-xs text-purple-600 mt-1" data-id="1h0zeldzj" data-path="src/components/AdminDashboard.tsx">Among students</p>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-r from-orange-50 to-orange-100 border-orange-200" data-id="s5z7wkw1r" data-path="src/components/AdminDashboard.tsx">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2" data-id="6rvlspzlv" data-path="src/components/AdminDashboard.tsx">
+            {/* {console.log(userStats)} */}
               <CardTitle className="text-sm font-medium text-orange-500" data-id="6xxk38u23" data-path="src/components/AdminDashboard.tsx">Total Students</CardTitle>
               <div className="h-8 w-8 bg-orange-500 rounded-full flex items-center justify-center" data-id="za698udhb" data-path="src/components/AdminDashboard.tsx">
                 <Users className="h-4 w-4 text-white" data-id="mz4npxq6m" data-path="src/components/AdminDashboard.tsx" />
@@ -280,16 +284,16 @@ const StudentDashboard: React.FC = () => {
                     <Progress value={userStats?.averageScore || 0} className="h-2" data-id="5ccgu24pr" data-path="src/components/StudentDashboard.tsx" />
                   </div>
 
-                  {userRanking &&
+                  {/* {userRanking &&
                     <div className="p-3 bg-purple-50 rounded-lg" data-id="wwx9ks0qn" data-path="src/components/StudentDashboard.tsx">
                       <p className="text-sm font-medium text-purple-800" data-id="ermgf4bqu" data-path="src/components/StudentDashboard.tsx">
-                        Current Rank: #{userRanking.globalRank}
+                        Current Rank: #{userRanking}
                       </p>
                       <p className="text-sm text-purple-600" data-id="cdgjb1s6t" data-path="src/components/StudentDashboard.tsx">
-                        Last exam: {userRanking.recentPerformance[0]?.examName || 'No recent exams'}
+                        Last exam: {userRanking.recentPerformance?.[0]?.examName || 'No recent exams'}
                       </p>
                     </div>
-                  }
+                  } */}
                 </div>
               </CardContent>
             </Card>
