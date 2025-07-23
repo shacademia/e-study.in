@@ -11,7 +11,9 @@ export function middleware(request: NextRequest) {
     '/api/users/login',
     '/api/users/signup',
     '/api/users/logout',
-    '/api/example'
+    '/api/example',
+    '/api/test-db'
+
   ]
 
   // Check if this is a public route
@@ -66,6 +68,6 @@ export function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     // Match ALL API routes except public ones
-    '/api/((?!users/login|users/signup|users/logout|example).*)',
+    '/api/((?!users/login|users/signup|users/logout|example|test-db).*)',
   ]
 }
