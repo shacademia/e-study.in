@@ -171,14 +171,24 @@ const StudentDashboard: React.FC = () => {
               <h1 className="text-xl font-bold text-gray-900" data-id="6ividrgod" data-path="src/components/StudentDashboard.tsx">Student Dashboard</h1>
             </div>
             <div className="flex items-center space-x-4" data-id="z56qj7usv" data-path="src/components/StudentDashboard.tsx">
-              <Button
+                <Button
                 variant="outline"
                 size="sm"
                 className='cursor-pointer'
-                onClick={() => router.push('/rankings')} data-id="eutl428n1" data-path="src/components/StudentDashboard.tsx">
+                onClick={() => {
+                  // Use toast instead of alert
+                  import('@/hooks/use-toast').then(({ toast }) => {
+                  toast({
+                    title: 'Rankings',
+                    description: 'Rankings feature coming soon!',
+                    variant: 'destructive'
+                  });
+                  });
+                }}
+                data-id="eutl428n1" data-path="src/components/StudentDashboard.tsx">
                 <Trophy className="h-4 w-4 mr-2" data-id="cf64zxn0a" data-path="src/components/StudentDashboard.tsx" />
                 Rankings
-              </Button>
+                </Button>
               {user && <UserProfileMenu user={user} />}
             </div>
           </div>
