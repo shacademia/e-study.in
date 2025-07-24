@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -794,7 +795,7 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
       {/* Question Preview Dialog */}
       {previewQuestion && (
         <Dialog open={!!previewQuestion} onOpenChange={(open) => !open && setPreviewQuestion(null)}>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Question Preview</DialogTitle>
               <DialogDescription>
@@ -802,8 +803,8 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
               </DialogDescription>
             </DialogHeader>
             
-            <div className="space-y-4">
-              <div className="flex gap-2">
+            <div className="space-y-4 max-w-full">
+              <div className="flex flex-wrap gap-2">
                 <Badge variant="outline">{previewQuestion.subject}</Badge>
                 <Badge className={getDifficultyColor(previewQuestion.difficulty)}>
                   {previewQuestion.difficulty}
@@ -813,27 +814,71 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
               
               <div>
                 <Label>Question</Label>
-                <p className="mt-1 p-3 border rounded">{previewQuestion.content}</p>
+                <div className="mt-1 space-y-3">
+                  <p className="p-3 border rounded break-words">{previewQuestion.content}</p>
+                  {/* Question Image */}
+                  {previewQuestion.questionImage && (
+                    <div className="flex justify-center w-full">
+                      <div className="relative max-w-full">
+                        <Image
+                          src={previewQuestion.questionImage}
+                          alt="Question image"
+                          width={300}
+                          height={200}
+                          className="rounded-md object-contain border bg-white max-w-full h-auto"
+                          style={{ maxHeight: '300px', width: 'auto' }}
+                          onError={(e) => {
+                            console.error('Failed to load question image:', previewQuestion.questionImage);
+                            e.currentTarget.style.display = 'none';
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
               
               <div>
                 <Label>Options</Label>
                 <div className="mt-1 space-y-2">
                   {previewQuestion.options.map((option, index) => (
-                    <div key={index} className={`p-2 border rounded flex items-center space-x-2 ${
+                    <div key={index} className={`p-3 border rounded ${
                       index === previewQuestion.correctOption ? 'bg-green-50 border-green-200' : ''
                     }`}>
-                      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-sm ${
-                        index === previewQuestion.correctOption 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-gray-100 text-gray-600'
-                      }`}>
-                        {String.fromCharCode(65 + index)}
+                      <div className="flex items-start space-x-3">
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-sm flex-shrink-0 ${
+                          index === previewQuestion.correctOption 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-gray-100 text-gray-600'
+                        }`}>
+                          {String.fromCharCode(65 + index)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <span className="break-words">{option}</span>
+                          {/* Option Image */}
+                          {previewQuestion.optionImages && previewQuestion.optionImages[index] && (
+                            <div className="mt-3 flex justify-center">
+                              <div className="relative max-w-full">
+                                <Image
+                                  src={previewQuestion.optionImages[index]}
+                                  alt={`Option ${String.fromCharCode(65 + index)} image`}
+                                  width={120}
+                                  height={90}
+                                  className="rounded-sm object-contain border bg-white max-w-full h-auto"
+                                  style={{ maxHeight: '120px', width: 'auto' }}
+                                  onError={(e) => {
+                                    console.error('Failed to load option image:', previewQuestion.optionImages?.[index]);
+                                    e.currentTarget.style.display = 'none';
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        {index === previewQuestion.correctOption && (
+                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
+                        )}
                       </div>
-                      <span>{option}</span>
-                      {index === previewQuestion.correctOption && (
-                        <CheckCircle className="h-4 w-4 text-green-600 ml-auto" />
-                      )}
                     </div>
                   ))}
                 </div>

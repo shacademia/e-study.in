@@ -8,7 +8,9 @@ const JWT_SECRET = process.env.JWT_SECRET || 'default_secret_key';
 // Schema for creating a question
 const createQuestionSchema = z.object({
   content: z.string().min(1, 'Content is required'),
+  questionImage: z.string().optional(),
   options: z.array(z.string()).min(2, 'At least 2 options are required'),
+  optionImages: z.array(z.string()).default([]),
   correctOption: z.number().min(0, 'Correct option must be a valid index'),
   difficulty: z.enum(['EASY', 'MEDIUM', 'HARD']).default('MEDIUM'),
   subject: z.string().min(1, 'Subject is required'),
@@ -39,7 +41,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const { content, options, correctOption, difficulty, subject, topic, tags } = parsedData.data;
+    const { content, questionImage, options, optionImages, correctOption, difficulty, subject, topic, tags } = parsedData.data;
 
     // Validate correct option index
     if (correctOption >= options.length) {
@@ -75,7 +77,9 @@ export async function POST(request: Request) {
     const newQuestion = await prisma.question.create({
       data: {
         content,
+        questionImage: questionImage || null,
         options,
+        optionImages: optionImages || [],
         correctOption,
         difficulty,
         subject,
