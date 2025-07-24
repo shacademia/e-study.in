@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -8,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import ImageUploadComponent from '@/components/ui/image-upload';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -59,7 +61,9 @@ type Difficulty = "EASY" | "MEDIUM" | "HARD";
 
 interface NewQuestion {
   content: string;
+  questionImage?: string; // ImageKit URL for question image
   options: string[];
+  optionImages: string[]; // Array of ImageKit URLs for option images
   correctOption: number;
   subject: string;
   topic: string;
@@ -99,7 +103,9 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
   // New question form state
   const [newQuestion, setNewQuestion] = useState<NewQuestion>({
     content: '',
+    questionImage: '',
     options: ['', '', '', ''],
+    optionImages: ['', '', '', ''],
     correctOption: 0,
     subject: '',
     topic: '',
@@ -201,7 +207,9 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
       
       const question: CreateQuestionRequest = {
         content: newQuestion.content,
+        questionImage: newQuestion.questionImage || undefined,
         options: newQuestion.options,
+        optionImages: newQuestion.optionImages.filter(img => img !== ''),
         correctOption: newQuestion.correctOption,
         subject: newQuestion.subject,
         topic: newQuestion.topic,
@@ -218,7 +226,9 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
 
       setNewQuestion({
         content: '',
+        questionImage: '',
         options: ['', '', '', ''],
+        optionImages: ['', '', '', ''],
         correctOption: 0,
         subject: '',
         topic: '',
@@ -831,6 +841,24 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
             <CardContent>
               <p className="text-sm mb-3 line-clamp-3">{question.content}</p>
               
+              {/* Question Image */}
+              {question.questionImage && (
+                <div className="mb-3">
+                  <Image
+                    src={question.questionImage}
+                    alt="Question image"
+                    width={300}
+                    height={200}
+                    className="rounded-md object-contain border bg-white"
+                    style={{ minHeight: '200px', maxHeight: '200px' }}
+                    onError={(e) => {
+                      console.error('Failed to load question image:', question.questionImage);
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
+                </div>
+              )}
+              
               {/* Options */}
               <div className="space-y-1 mb-3">
                 {question.options.map((option, index) => (
@@ -842,9 +870,26 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
                     }`}>
                       {String.fromCharCode(65 + index)}
                     </div>
-                    <span className={index === question.correctOption ? 'font-medium text-green-800' : ''}>
-                      {option}
-                    </span>
+                    <div className="flex items-center gap-2 flex-1">
+                      <span className={index === question.correctOption ? 'font-medium text-green-800' : ''}>
+                        {option}
+                      </span>
+                      {/* Option Image */}
+                      {question.optionImages && question.optionImages[index] && (
+                        <Image
+                          src={question.optionImages[index]}
+                          alt={`Option ${String.fromCharCode(65 + index)} image`}
+                          width={80}
+                          height={60}
+                          className="rounded-sm object-contain border bg-white"
+                          style={{ minHeight: '60px', maxHeight: '60px' }}
+                          onError={(e) => {
+                            console.error('Failed to load option image:', question.optionImages?.[index]);
+                            e.currentTarget.style.display = 'none';
+                          }}
+                        />
+                      )}
+                    </div>
                     {index === question.correctOption && (
                       <CheckCircle className="h-3 w-3 text-green-600" />
                     )}
@@ -934,29 +979,94 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
               />
             </div>
 
+            {/* Question Image */}
+            <div>
+              <ImageUploadComponent
+                label="Question Image (Optional)"
+                placeholder="Upload an image for the question"
+                folder="questions"
+                tags="question"
+                currentImageUrl={editingQuestion?.questionImage || newQuestion.questionImage}
+                onImageUpload={(imageUrl) => {
+                  if (editingQuestion) {
+                    setEditingQuestion({ ...editingQuestion, questionImage: imageUrl });
+                  } else {
+                    setNewQuestion({ ...newQuestion, questionImage: imageUrl });
+                  }
+                }}
+                onImageRemove={() => {
+                  if (editingQuestion) {
+                    setEditingQuestion({ ...editingQuestion, questionImage: undefined });
+                  } else {
+                    setNewQuestion({ ...newQuestion, questionImage: '' });
+                  }
+                }}
+              />
+            </div>
+
             {/* Options */}
             <div>
               <Label>Answer Options *</Label>
-              <div className="space-y-2">
+              <div className="space-y-4">
                 {(editingQuestion ? editingQuestion.options : newQuestion.options).map((option, index) => (
-                  <div key={index} className="flex gap-2">
-                    <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center text-sm font-medium">
-                      {String.fromCharCode(65 + index)}
+                  <div key={index} className="space-y-3 p-4 border rounded-lg">
+                    <div className="flex gap-2 items-center">
+                      <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center text-sm font-medium">
+                        {String.fromCharCode(65 + index)}
+                      </div>
+                      <Input
+                        value={option}
+                        onChange={(e) => {
+                          const newOptions = [...(editingQuestion ? editingQuestion.options : newQuestion.options)];
+                          newOptions[index] = e.target.value;
+                          if (editingQuestion) {
+                            setEditingQuestion({ ...editingQuestion, options: newOptions });
+                          } else {
+                            setNewQuestion({ ...newQuestion, options: newOptions });
+                          }
+                        }}
+                        placeholder={`Option ${String.fromCharCode(65 + index)}`}
+                        required
+                      />
                     </div>
-                    <Input
-                      value={option}
-                      onChange={(e) => {
-                        const newOptions = [...(editingQuestion ? editingQuestion.options : newQuestion.options)];
-                        newOptions[index] = e.target.value;
-                        if (editingQuestion) {
-                          setEditingQuestion({ ...editingQuestion, options: newOptions });
-                        } else {
-                          setNewQuestion({ ...newQuestion, options: newOptions });
+                    
+                    {/* Option Image Upload */}
+                    <div className="ml-10">
+                      <ImageUploadComponent
+                        label={`Option ${String.fromCharCode(65 + index)} Image (Optional)`}
+                        placeholder={`Upload image for option ${String.fromCharCode(65 + index)}`}
+                        folder="questions/options"
+                        tags={`question,option,option-${index}`}
+                        currentImageUrl={
+                          editingQuestion?.optionImages?.[index] || 
+                          newQuestion.optionImages[index]
                         }
-                      }}
-                      placeholder={`Option ${String.fromCharCode(65 + index)}`}
-                      required
-                    />
+                        onImageUpload={(imageUrl) => {
+                          const newOptionImages = editingQuestion 
+                            ? [...(editingQuestion.optionImages || ['', '', '', ''])]
+                            : [...newQuestion.optionImages];
+                          newOptionImages[index] = imageUrl;
+                          
+                          if (editingQuestion) {
+                            setEditingQuestion({ ...editingQuestion, optionImages: newOptionImages });
+                          } else {
+                            setNewQuestion({ ...newQuestion, optionImages: newOptionImages });
+                          }
+                        }}
+                        onImageRemove={() => {
+                          const newOptionImages = editingQuestion 
+                            ? [...(editingQuestion.optionImages || ['', '', '', ''])]
+                            : [...newQuestion.optionImages];
+                          newOptionImages[index] = '';
+                          
+                          if (editingQuestion) {
+                            setEditingQuestion({ ...editingQuestion, optionImages: newOptionImages });
+                          } else {
+                            setNewQuestion({ ...newQuestion, optionImages: newOptionImages });
+                          }
+                        }}
+                      />
+                    </div>
                   </div>
                 ))}
               </div>

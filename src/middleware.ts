@@ -12,8 +12,8 @@ export function middleware(request: NextRequest) {
     '/api/users/signup',
     '/api/users/logout',
     '/api/example',
-    '/api/test-db'
-
+    '/api/test-db',
+    '/api/upload/imagekit/test'
   ]
 
   // Check if this is a public route
