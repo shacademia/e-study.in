@@ -383,7 +383,7 @@ const AdminDashboard: React.FC = () => {
 
       // Update with the actual response from server (in case server adds/modifies fields)
       setExams(prevExams => prevExams.map((exam) =>
-        exam.id === examId ? { ...exam, ...(updatedExam || {}) } : exam
+        exam.id === examId ? { ...exam, ...(typeof updatedExam === 'object' && updatedExam !== null ? updatedExam : {}) } : exam
       ));
 
       // Refresh the exam data to get the latest state from server
@@ -623,7 +623,18 @@ const AdminDashboard: React.FC = () => {
                 variant="outline"
                 size="sm"
                 className='cursor-pointer'
-                onClick={() => router.push('/rankings')} data-id="eutl428n1" data-path="src/components/StudentDashboard.tsx">
+                // onClick={() => router.push('/rankings')}
+                onClick={() => {
+                  // Use toast instead of alert
+                  import('@/hooks/use-toast').then(({ toast }) => {
+                  toast({
+                    title: 'Rankings',
+                    description: 'Rankings feature coming soon!',
+                    variant: 'destructive'
+                  });
+                  });
+                }}
+                data-id="eutl428n1" data-path="src/components/StudentDashboard.tsx">
                 <Trophy className="h-4 w-4 mr-1" data-id="cf64zxn0a" data-path="src/components/StudentDashboard.tsx" />
                 Rankings
               </Button>
@@ -758,10 +769,12 @@ const AdminDashboard: React.FC = () => {
                   <BookOpen className="h-4 w-4 mr-2" data-id="gy34as799" data-path="src/components/AdminDashboard.tsx" />
                   Question Bank
                 </Button>
-                <Button variant="outline" className='cursor-pointer' onClick={() => setShowAddQuestionsDemo(true)}>
+                {/* <Button variant="outline" className='cursor-pointer' 
+                // onClick={() => setShowAddQuestionsDemo(true)}
+                >
                   <Plus className="h-4 w-4 mr-2" />
                   Add Questions Demo
-                </Button>
+                </Button> */}
                 {exams.length > 0 && (
                   <Button 
                     variant="outline" 

@@ -47,7 +47,9 @@ export type QuestionDifficulty = 'EASY' | 'MEDIUM' | 'HARD';
 export interface Question {
   id: string;
   content: string;
+  questionImage?: string; // ImageKit URL for question image
   options: string[];
+  optionImages?: string[]; // Array of ImageKit URLs for option images
   correctOption: number;
   difficulty: QuestionDifficulty;
   subject: string;
@@ -65,7 +67,9 @@ export interface Question {
 
 export interface CreateQuestionRequest {
   content: string;
+  questionImage?: string;
   options: string[];
+  optionImages?: string[];
   correctOption: number;
   difficulty: QuestionDifficulty;
   subject: string;
@@ -76,7 +80,9 @@ export interface CreateQuestionRequest {
 
 export interface UpdateQuestionRequest {
   content?: string;
+  questionImage?: string;
   options?: string[];
+  optionImages?: string[];
   correctOption?: number;
   difficulty?: QuestionDifficulty;
   subject?: string;

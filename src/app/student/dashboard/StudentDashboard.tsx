@@ -46,8 +46,8 @@ const StudentDashboard: React.FC = () => {
         // Handle exams result
         if (examResult.status === 'fulfilled') {
           console.log('Exam API Response:', examResult.value);
-          const examData = examResult.value as { data: { exams: Exam[] } };
-          setExams(Array.isArray(examData.data.exams) ? examData.data.exams : []);
+          const examData = examResult.value.data as { exams: Exam[] };
+          setExams(Array.isArray(examData.exams) ? examData.exams : []);
         } else {
           console.error('Failed to load exams:', examResult.reason);
           setExams([]);
@@ -171,14 +171,24 @@ const StudentDashboard: React.FC = () => {
               <h1 className="text-xl font-bold text-gray-900" data-id="6ividrgod" data-path="src/components/StudentDashboard.tsx">Student Dashboard</h1>
             </div>
             <div className="flex items-center space-x-4" data-id="z56qj7usv" data-path="src/components/StudentDashboard.tsx">
-              <Button
+                <Button
                 variant="outline"
                 size="sm"
                 className='cursor-pointer'
-                onClick={() => router.push('/rankings')} data-id="eutl428n1" data-path="src/components/StudentDashboard.tsx">
+                onClick={() => {
+                  // Use toast instead of alert
+                  import('@/hooks/use-toast').then(({ toast }) => {
+                  toast({
+                    title: 'Rankings',
+                    description: 'Rankings feature coming soon!',
+                    variant: 'destructive'
+                  });
+                  });
+                }}
+                data-id="eutl428n1" data-path="src/components/StudentDashboard.tsx">
                 <Trophy className="h-4 w-4 mr-2" data-id="cf64zxn0a" data-path="src/components/StudentDashboard.tsx" />
                 Rankings
-              </Button>
+                </Button>
               {user && <UserProfileMenu user={user} />}
             </div>
           </div>

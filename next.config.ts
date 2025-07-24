@@ -11,6 +11,16 @@ const nextConfig: NextConfig = {
     // Skips ESLint checks
     ignoreDuringBuilds: true,
   },
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'ik.imagekit.io',
+        port: '',
+        pathname: '/shacademia/**',
+      },
+    ],
+  },
 };
 
 export default nextConfig;
