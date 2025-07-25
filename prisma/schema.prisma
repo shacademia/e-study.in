@@ -32,6 +32,7 @@ model User {
   createdExams Exam[]
   submissions Submission[]
   rankings Ranking[]
+  uploads Upload[]
 }
 // role Enum
 enum Role {
@@ -186,4 +187,22 @@ model Ranking {
   
   @@unique([userId, examId])
   @@index([examId, rank])
+}
+
+model Upload {
+  id String @id @default(uuid())
+  fileName String
+  originalName String
+  fileSize Int // in bytes
+  mimeType String
+  imagekitFileId String? // ImageKit file ID
+  imagekitUrl String // ImageKit URL
+  imagekitFilePath String // ImageKit file path
+  uploadedBy User @relation(fields: [uploadedById], references: [id])
+  uploadedById String
+  tags String[] @default([]) // Tags for organization
+  folder String @default("uploads") // Folder in ImageKit
+  isPublic Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
