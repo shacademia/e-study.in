@@ -1,12 +1,16 @@
 'use client';
 import { useRouter } from 'next/navigation';
 import React from 'react';
-import EnhancedExamBuilder from './EnhancedExamBuilder';
+import ExamBuilderContainer from '../containers/ExamBuilderContainer';
 
 const EnhancedExamBuilderPage = () => {
   const router = useRouter();
 
-  return <EnhancedExamBuilder onBack={() => router.back()} />;
+  return (
+    <ExamBuilderContainer
+      onBack={() => router.back()}
+    />
+  );
 };
 
 export default EnhancedExamBuilderPage;
