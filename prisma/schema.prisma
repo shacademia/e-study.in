@@ -44,7 +44,9 @@ enum Role {
 model Question {
   id String @id @default(uuid())
   content String
+  questionImage String? // Optional image for the question
   options String[] // Array of options
+  optionImages String[] @default([]) // Array of option images
   correctOption Int
   difficulty Difficulty @default(MEDIUM)
   subject String

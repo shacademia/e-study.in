@@ -18,8 +18,7 @@ const StudentDashboard: React.FC = () => {
     loading,
     userStats,
     availableExams,
-    completedExams,
-    user
+    completedExams
   } = useDashboardData();
   
   const { 
@@ -37,15 +36,13 @@ const StudentDashboard: React.FC = () => {
       <DashboardHeader onRankingsClick={handleRankingsClick} />
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <WelcomeSection userName={user?.name} />
+        <WelcomeSection />
         
-        <StatsCards stats={userStats} userRanking={userRanking} />
+        <StatsCards userStats={userStats} userRanking={userRanking} />
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-1">
             <ProfilePerformance 
-              userName={user?.name}
-              userEmail={user?.email}
               userStats={userStats}
               userSubmissions={userSubmissions}
               exams={exams}
