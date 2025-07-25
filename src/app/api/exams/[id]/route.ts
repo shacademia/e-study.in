@@ -240,15 +240,16 @@ export async function PUT(
     const updateData = parsedData.data;
 
     // If removing password protection, clear the password
-    if (updateData.isPasswordProtected === false) {
-      updateData.password = null;
-    }
+    const finalUpdateData = { 
+      ...updateData,
+      ...(updateData.isPasswordProtected === false && { password: null })
+    };
 
     // Update the exam
     const updatedExam = await prisma.exam.update({
       where: { id: examId },
       data: {
-        ...updateData,
+        ...finalUpdateData,
         updatedAt: new Date(),
       },
       include: {
