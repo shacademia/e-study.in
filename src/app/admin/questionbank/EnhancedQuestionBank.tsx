@@ -5,11 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import ImageUploadComponent from '@/components/ui/image-upload';
+import MathInput from './components/math-input'; // Import the MathInput component
+import MathDisplay from './components/math-display'; // Import the MathDisplay component
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,11 +39,11 @@ import {
   Copy
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { Question, CreateQuestionRequest, UpdateQuestionRequest } from '@/constants/types';
-import { 
-  useQuestions, 
-  useFilteredQuestions, 
-  useQuestionsLoading, 
+import { Question, CreateQuestionRequest, UpdateQuestionRequest, QuestionDifficulty } from '@/constants/types';
+import {
+  useQuestions,
+  useFilteredQuestions,
+  useQuestionsLoading,
   useQuestionsError,
   useQuestionActions,
   useQuestionFilters,
@@ -57,20 +58,6 @@ interface EnhancedQuestionBankProps {
   preSelectedQuestions?: string[];
 }
 
-type Difficulty = "EASY" | "MEDIUM" | "HARD";
-
-interface NewQuestion {
-  content: string;
-  questionImage?: string; // ImageKit URL for question image
-  options: string[];
-  optionImages: string[]; // Array of ImageKit URLs for option images
-  correctOption: number;
-  subject: string;
-  topic: string;
-  difficulty: Difficulty;
-  tags: string;
-}
-
 const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
   onBack,
 }) => {
@@ -79,13 +66,12 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
 
   // Store hooks
   const questions = useQuestions();
-  console.log('Questions:', questions.length, questions.slice(0, 2)); // Debugging: log first 2 questions
+  console.log('Questions:', questions.length, questions.slice(0, 2));
   const filteredQuestions = useFilteredQuestions();
-  console.log('Filtered Questions:', filteredQuestions.length, filteredQuestions.slice(0, 2)); // Debugging: log first 2 filtered questions
+  console.log('Filtered Questions:', filteredQuestions.length, filteredQuestions.slice(0, 2));
   const isLoading = useQuestionsLoading();
   const error = useQuestionsError();
   const { fetchQuestions, createQuestion, updateQuestion, deleteQuestion, setFilters, resetFilters } = useQuestionActions();
-  // console.log('Question Actions:', { fetchQuestions, setFilters, resetFilters });
 
   const { filters } = useQuestionFilters();
 
@@ -100,29 +86,55 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
   const [isCreating, setIsCreating] = useState(false);
   const [operationError, setOperationError] = useState<string | null>(null);
 
-  // New question form state
-  const [newQuestion, setNewQuestion] = useState<NewQuestion>({
+  // Updated new question form state with all new fields
+  const [newQuestion, setNewQuestion] = useState<CreateQuestionRequest>({
+    // Legacy fields
     content: '',
     questionImage: '',
+
+    // 3-Layer system defaults
+    layer1Type: 'none',
+    layer1Text: '',
+    layer1Image: '',
+    layer2Type: 'none',
+    layer2Text: '',
+    layer2Image: '',
+    layer3Type: 'none',
+    layer3Text: '',
+    layer3Image: '',
+
+    // Options defaults
     options: ['', '', '', ''],
     optionImages: ['', '', '', ''],
+    optionTypes: ['text', 'text', 'text', 'text'],
     correctOption: 0,
+
+    // Marking system defaults
+    positiveMarks: 4,
+    negativeMarks: 1,
+
+    // Explanation system defaults
+    explanationType: 'none',
+    explanationText: '',
+    explanationImage: '',
+
+    // Other defaults
+    difficulty: 'EASY',
     subject: '',
     topic: '',
-    difficulty: 'EASY',
-    tags: ''
+    tags: [],
   });
 
   // Available options for filters (derived from questions)
-  const subjects = React.useMemo(() => 
+  const subjects = React.useMemo(() =>
     [...new Set(questions.map(q => q.subject))], [questions]
   );
-  
-  const topics = React.useMemo(() => 
+
+  const topics = React.useMemo(() =>
     [...new Set(questions.map(q => q.topic))], [questions]
   );
-  
-  const allTags = React.useMemo(() => 
+
+  const allTags = React.useMemo(() =>
     [...new Set(questions.flatMap(q => q.tags))], [questions]
   );
 
@@ -136,7 +148,7 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
       filters,
       searchText,
       strategy: questions.length === 0 ? 'NETWORK_FETCH' : 'LOCAL_FILTER',
-      questions: questions.slice(0, 2), // Show first 2 questions for debugging
+      questions: questions.slice(0, 2),
     });
   }, [questions, filteredQuestions, isLoading, error, filters, searchText]);
 
@@ -145,7 +157,7 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
     if (searchText !== filters.search) {
       setIsSearching(true);
     }
-    
+
     const timeout = setTimeout(async () => {
       try {
         await setFilters({ search: searchText.trim() });
@@ -154,7 +166,7 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
       } finally {
         setIsSearching(false);
       }
-    }, 400); // debounce delay
+    }, 400);
 
     return () => {
       clearTimeout(timeout);
@@ -170,16 +182,13 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
   // Additional debugging for initial load
   React.useEffect(() => {
     console.log('Component mounted, triggering fetchQuestions...');
-    
-    // Don't reset filters on mount to preserve user's filter state
-    
+
     fetchQuestions().then(() => {
       console.log('fetchQuestions completed');
     }).catch(err => {
       console.error('fetchQuestions failed:', err);
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [fetchQuestions]);
 
   // Update store filters when local search changes
   const handleSearchChange = (value: string) => {
@@ -192,7 +201,7 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
     console.log('Filter change:', { key, value, currentFilters: filters });
     const newFilters = { ...filters, [key]: value };
     console.log('New filters:', newFilters);
-    
+
     try {
       await setFilters(newFilters);
     } catch (error) {
@@ -202,56 +211,62 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
 
   // Handle adding a new question
   const handleAddQuestion = async () => {
-    try {
-      setIsCreating(true);
-      
-      const question: CreateQuestionRequest = {
-        content: newQuestion.content,
-        questionImage: newQuestion.questionImage || undefined,
-        options: newQuestion.options,
-        optionImages: newQuestion.optionImages.filter(img => img !== ''),
-        correctOption: newQuestion.correctOption,
-        subject: newQuestion.subject,
-        topic: newQuestion.topic,
-        difficulty: newQuestion.difficulty,
-        tags: newQuestion.tags.split(',').map((t) => t.trim()).filter((t) => t)
-      };
+  try {
+    setIsCreating(true);
 
-      await createQuestion(question);
+    // Use the newQuestion state directly since it's already properly typed
+    const question: CreateQuestionRequest = {
+      ...newQuestion
+    };
 
-      toast({
-        title: 'Success',
-        description: 'Question added successfully'
-      });
+    await createQuestion(question);
 
-      setNewQuestion({
-        content: '',
-        questionImage: '',
-        options: ['', '', '', ''],
-        optionImages: ['', '', '', ''],
-        correctOption: 0,
-        subject: '',
-        topic: '',
-        difficulty: 'EASY',
-        tags: ''
-      });
+    toast({
+      title: 'Success',
+      description: 'Question added successfully'
+    });
+
+    // Reset form
+    setNewQuestion({
+      content: '',
+      questionImage: '',
+      layer1Type: 'none',
+      layer1Text: '',
+      layer1Image: '',
+      layer2Type: 'none',
+      layer2Text: '',
+      layer2Image: '',
+      layer3Type: 'none',
+      layer3Text: '',
+      layer3Image: '',
+      options: ['', '', '', ''],
+      optionImages: ['', '', '', ''],
+      optionTypes: ['text', 'text', 'text', 'text'],
+      correctOption: 0,
+      positiveMarks: 4,
+      negativeMarks: 1,
+      explanationType: 'none',
+      explanationText: '',
+      explanationImage: '',
+      difficulty: 'EASY',
+      subject: '',
+      topic: '',
+      tags: [],
+    });
       setShowAddQuestion(false);
     } catch (error: unknown) {
       console.error('Failed to add question:', error);
-      
-      // Clear any previous operation error
+
       setOperationError(null);
-      
-      // Show specific error messages based on the error
+
       let errorMessage = 'Failed to add question';
       let errorTitle = 'Error';
-      
-      // Safely extract error message
-      const errorMsg = error instanceof Error ? error.message : 
-                      (error && typeof error === 'object' && 'message' in error) ? 
-                      String((error as { message: unknown }).message) : 
-                      'Unknown error';
-      
+
+      const errorMsg = error instanceof Error ? error.message :
+        (error && typeof error === 'object' && 'message' in error) ?
+          String((error as { message: unknown }).message) :
+          'Unknown error';
+
       if (errorMsg.includes('permission') || errorMsg.includes('403')) {
         errorTitle = 'Permission Denied';
         errorMessage = 'You do not have permission to create questions. Please contact your administrator to get ADMIN or MODERATOR access.';
@@ -265,7 +280,7 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
       } else {
         errorMessage = errorMsg || 'An unexpected error occurred while creating the question.';
       }
-      
+
       toast({
         title: errorTitle,
         description: errorMessage,
@@ -290,7 +305,7 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
 
     if (question.options.some(option => !option.trim())) {
       toast({
-        title: "Validation Error", 
+        title: "Validation Error",
         description: "All answer options are required",
         variant: 'destructive'
       });
@@ -307,12 +322,29 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
     }
 
     setIsUpdating(true);
-    
+
     try {
       const updates: UpdateQuestionRequest = {
         content: question.content.trim(),
+        questionImage: question.questionImage,
+        layer1Type: question.layer1Type,
+        layer1Text: question.layer1Text,
+        layer1Image: question.layer1Image,
+        layer2Type: question.layer2Type,
+        layer2Text: question.layer2Text,
+        layer2Image: question.layer2Image,
+        layer3Type: question.layer3Type,
+        layer3Text: question.layer3Text,
+        layer3Image: question.layer3Image,
         options: question.options.map(opt => opt.trim()),
+        optionImages: question.optionImages,
+        optionTypes: question.optionTypes,
         correctOption: question.correctOption,
+        positiveMarks: question.positiveMarks,
+        negativeMarks: question.negativeMarks,
+        explanationType: question.explanationType,
+        explanationText: question.explanationText,
+        explanationImage: question.explanationImage,
         subject: question.subject.trim(),
         topic: question.topic.trim(),
         difficulty: question.difficulty,
@@ -329,17 +361,15 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
       setEditingQuestion(null);
     } catch (error: unknown) {
       console.error("Failed to edit question:", error);
-      
-      // Clear any previous operation error
+
       setOperationError(null);
-      
-      // Show specific error messages based on the error
+
       let errorMessage = 'Failed to update question';
       let errorTitle = 'Error';
-      
+
       if (error && typeof error === 'object' && 'message' in error) {
         const errorMsg = (error as { message: string }).message;
-        
+
         if (errorMsg.includes('permission') || errorMsg.includes('403')) {
           errorTitle = 'Permission Denied';
           errorMessage = 'You do not have permission to edit this question.';
@@ -351,7 +381,7 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
           errorMessage = errorMsg || 'An unexpected error occurred while updating the question.';
         }
       }
-      
+
       toast({
         title: errorTitle,
         description: errorMessage,
@@ -366,24 +396,22 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
   const handleDeleteQuestion = async (questionId: string) => {
     try {
       await deleteQuestion(questionId);
-      
+
       toast({
         title: 'Deleted',
         description: 'Question deleted successfully'
       });
     } catch (error: unknown) {
       console.error('Failed to delete question:', error);
-      
-      // Clear any previous operation error
+
       setOperationError(null);
-      
-      // Show specific error messages based on the error
+
       let errorMessage = 'Failed to delete question';
       let errorTitle = 'Error';
-      
+
       if (error && typeof error === 'object' && 'message' in error) {
         const errorMsg = (error as { message: string }).message;
-        
+
         if (errorMsg.includes('permission') || errorMsg.includes('403')) {
           errorTitle = 'Permission Denied';
           errorMessage = 'You do not have permission to delete this question.';
@@ -391,15 +419,13 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
         } else if (errorMsg.includes('401') || errorMsg.includes('Authentication')) {
           errorTitle = 'Authentication Required';
           errorMessage = 'Your session has expired. Please log in again.';
-        } else if (errorMsg.includes('409') || errorMsg.includes('used in exams') || errorMsg.includes('being used') || errorMsg.includes('QUESTION_IN_USE') || 
-                 (error && typeof error === 'object' && 'code' in error && error.code === 'QUESTION_IN_USE')) {
+        } else if (errorMsg.includes('409') || errorMsg.includes('used in exams') || errorMsg.includes('being used') || errorMsg.includes('QUESTION_IN_USE') ||
+          (error && typeof error === 'object' && 'code' in error && error.code === 'QUESTION_IN_USE')) {
           errorTitle = 'Question In Use';
           errorMessage = 'This question cannot be deleted because it is currently being used in one or more active exams. Please remove it from all exams before deleting.';
-          
-          // Set a specific error type for UI handling
+
           setOperationError('question_in_use');
-          
-          // Create a custom alert for this specific error
+
           toast({
             title: "Question In Use",
             description: (
@@ -411,13 +437,13 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
               </div>
             ),
             variant: "destructive",
-            duration: 8000 // longer duration to ensure user sees it
+            duration: 8000
           });
         } else {
           errorMessage = errorMsg || 'An unexpected error occurred while deleting the question.';
         }
       }
-      
+
       toast({
         title: errorTitle,
         description: errorMessage,
@@ -429,17 +455,32 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
   // Handle duplicating question
   const handleDuplicateQuestion = async (questionId: string) => {
     try {
-      // Find the original question
       const originalQuestion = questions.find(q => q.id === questionId);
       if (!originalQuestion) {
         throw new Error('Question not found');
       }
 
-      // Create a copy without the ID
-      const duplicateData = {
+      const duplicateData: CreateQuestionRequest = {
         content: `Copy of ${originalQuestion.content}`,
+        questionImage: originalQuestion.questionImage,
+        layer1Type: originalQuestion.layer1Type,
+        layer1Text: originalQuestion.layer1Text,
+        layer1Image: originalQuestion.layer1Image,
+        layer2Type: originalQuestion.layer2Type,
+        layer2Text: originalQuestion.layer2Text,
+        layer2Image: originalQuestion.layer2Image,
+        layer3Type: originalQuestion.layer3Type,
+        layer3Text: originalQuestion.layer3Text,
+        layer3Image: originalQuestion.layer3Image,
         options: [...originalQuestion.options],
+        optionImages: originalQuestion.optionImages ? [...originalQuestion.optionImages] : [],
+        optionTypes: [...originalQuestion.optionTypes],
         correctOption: originalQuestion.correctOption,
+        positiveMarks: originalQuestion.positiveMarks,
+        negativeMarks: originalQuestion.negativeMarks,
+        explanationType: originalQuestion.explanationType,
+        explanationText: originalQuestion.explanationText,
+        explanationImage: originalQuestion.explanationImage,
         subject: originalQuestion.subject,
         topic: originalQuestion.topic,
         difficulty: originalQuestion.difficulty,
@@ -447,13 +488,13 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
       };
 
       await questionService.createQuestion(duplicateData);
-      
+
       toast({
         title: 'Duplicated',
         description: 'Question duplicated successfully'
       });
 
-      await fetchQuestions(); // Reload questions
+      await fetchQuestions();
     } catch (error) {
       console.error('Failed to duplicate question:', error);
       toast({
@@ -466,7 +507,6 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
 
   // Handle tag filtering
   const handleTagFilter = (tag: string) => {
-    // For now, just log since tags aren't in the current filter structure
     console.log('Tag filter clicked:', tag);
   };
 
@@ -478,13 +518,110 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
     setIsSearching(false);
   };
 
+  // Helper function to render question content based on layers
+  const renderQuestionContent = (question: Question) => {
+    const layers = [];
+
+    // Layer 1
+    if (question.layer1Type === 'text' && question.layer1Text) {
+      layers.push(
+        <div key="layer1" className="mb-2">
+          <MathDisplay>{question.layer1Text}</MathDisplay>
+        </div>
+      );
+    } else if (question.layer1Type === 'image' && question.layer1Image) {
+      layers.push(
+        <div key="layer1" className="mb-2">
+          <Image
+            src={question.layer1Image}
+            alt="Question layer 1"
+            width={300}
+            height={200}
+            className="rounded-md object-contain border bg-white"
+            style={{ minHeight: '200px', maxHeight: '200px' }}
+          />
+        </div>
+      );
+    }
+
+    // Layer 2
+    if (question.layer2Type === 'text' && question.layer2Text) {
+      layers.push(
+        <div key="layer2" className="mb-2">
+          <MathDisplay>{question.layer2Text}</MathDisplay>
+        </div>
+      );
+    } else if (question.layer2Type === 'image' && question.layer2Image) {
+      layers.push(
+        <div key="layer2" className="mb-2">
+          <Image
+            src={question.layer2Image}
+            alt="Question layer 2"
+            width={300}
+            height={200}
+            className="rounded-md object-contain border bg-white"
+            style={{ minHeight: '200px', maxHeight: '200px' }}
+          />
+        </div>
+      );
+    }
+
+    // Layer 3
+    if (question.layer3Type === 'text' && question.layer3Text) {
+      layers.push(
+        <div key="layer3" className="mb-2">
+          <MathDisplay>{question.layer3Text}</MathDisplay>
+        </div>
+      );
+    } else if (question.layer3Type === 'image' && question.layer3Image) {
+      layers.push(
+        <div key="layer3" className="mb-2">
+          <Image
+            src={question.layer3Image}
+            alt="Question layer 3"
+            width={300}
+            height={200}
+            className="rounded-md object-contain border bg-white"
+            style={{ minHeight: '200px', maxHeight: '200px' }}
+          />
+        </div>
+      );
+    }
+
+    // Fallback to legacy content if no layers
+    if (layers.length === 0 && question.content) {
+      layers.push(
+        <div key="legacy" className="mb-2">
+          <MathDisplay>{question.content}</MathDisplay>
+        </div>
+      );
+    }
+
+    // Legacy question image
+    if (question.questionImage && layers.length === 0) {
+      layers.push(
+        <div key="legacy-image" className="mb-2">
+          <Image
+            src={question.questionImage}
+            alt="Question image"
+            width={300}
+            height={200}
+            className="rounded-md object-contain border bg-white"
+            style={{ minHeight: '200px', maxHeight: '200px' }}
+          />
+        </div>
+      );
+    }
+
+    return layers;
+  };
+
   // Loading state
   if (isLoading) {
     return (
       <div className="container mx-auto p-6 space-y-6">
-        {/* Header */}
         <div className="flex items-center gap-4">
-          <Button variant="ghost" onClick={onBack}>
+          <Button variant="ghost" onClick={onBack} className='cursor-pointer'>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back
           </Button>
@@ -494,7 +631,6 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
           </div>
         </div>
 
-        {/* Loading State */}
         <div className="flex items-center justify-center h-64">
           <div className="text-center space-y-4">
             <RefreshCw className="h-8 w-8 animate-spin mx-auto text-primary" />
@@ -512,9 +648,8 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
   if (error) {
     return (
       <div className="container mx-auto p-6 space-y-6">
-        {/* Header */}
         <div className="flex items-center gap-4">
-          <Button variant="ghost" onClick={onBack}>
+          <Button variant="ghost" onClick={onBack} className='cursor-pointer'>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back
           </Button>
@@ -524,7 +659,6 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
           </div>
         </div>
 
-        {/* Error Alert */}
         <Alert variant="destructive" className="max-w-2xl">
           <AlertTitle className="flex items-center gap-2">
             <RefreshCw className="h-4 w-4" />
@@ -532,27 +666,29 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
           </AlertTitle>
           <AlertDescription className="mt-2">
             <div className="space-y-3">
-              <p>We&apos;re having trouble loading your questions. This could be due to:</p>
+              <p>We are having trouble loading your questions. This could be due to:</p>
               <ul className="list-disc list-inside space-y-1 text-sm">
                 <li>Network connectivity issues</li>
                 <li>Server temporarily unavailable</li>
                 <li>Authentication problems</li>
               </ul>
               <div className="flex gap-2 mt-4">
-                <Button 
+                <Button
                   onClick={() => {
                     fetchQuestions();
                   }}
                   variant="outline"
                   size="sm"
+                  className='cursor-pointer'
                 >
                   <RefreshCw className="h-4 w-4 mr-2" />
                   Try Again
                 </Button>
-                <Button 
+                <Button
                   onClick={() => window.location.reload()}
                   variant="outline"
                   size="sm"
+                  className='cursor-pointer'
                 >
                   Refresh Page
                 </Button>
@@ -574,7 +710,7 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
     <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Button variant="ghost" onClick={onBack}>
+        <Button variant="ghost" onClick={onBack} className='cursor-pointer'>
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back
         </Button>
@@ -583,12 +719,6 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
           <p className="text-muted-foreground">
             Manage questions for exams ({filteredQuestions.length} of {questions.length} questions)
           </p>
-          {/* Temporary debug info */}
-          <div className="text-xs text-gray-500 mt-1">
-            Debug: isLoading={isLoading.toString()}, error={error || 'none'}, 
-            questions={questions.length}, filtered={filteredQuestions.length}, 
-            strategy={questions.length === 0 ? 'NETWORK' : 'LOCAL'}
-          </div>
         </div>
       </div>
 
@@ -602,11 +732,11 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
             <div className="space-y-2">
               <p>You need ADMIN or MODERATOR privileges to create, edit, or delete questions.</p>
               <p className="text-sm">Contact your system administrator to request elevated permissions.</p>
-              <Button 
-                onClick={() => setOperationError(null)} 
-                variant="outline" 
-                size="sm" 
-                className="mt-2"
+              <Button
+                onClick={() => setOperationError(null)}
+                variant="outline"
+                size="sm"
+                className="mt-2 cursor-pointer"
               >
                 Dismiss
               </Button>
@@ -638,20 +768,22 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
             <div className="flex gap-2">
               <Button
                 variant="outline"
+                className='cursor-pointer'
                 onClick={() => setShowFilters(!showFilters)}
               >
                 <Filter className="h-4 w-4 mr-2" />
                 Filters
               </Button>
-              
+
               <Button
                 variant="outline"
+                className='cursor-pointer'
                 onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
               >
                 {viewMode === 'grid' ? <List className="h-4 w-4" /> : <Grid className="h-4 w-4" />}
               </Button>
 
-              <Button onClick={() => setShowAddQuestion(true)}>
+              <Button className='cursor-pointer' onClick={() => setShowAddQuestion(true)}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add Question
               </Button>
@@ -664,8 +796,8 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
               <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                 <div>
                   <Label>Subject</Label>
-                  <Select 
-                    value={filters.subject} 
+                  <Select
+                    value={filters.subject}
                     onValueChange={(value) => handleFilterChange('subject', value)}
                   >
                     <SelectTrigger>
@@ -682,8 +814,8 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
 
                 <div>
                   <Label>Difficulty</Label>
-                  <Select 
-                    value={filters.difficulty} 
+                  <Select
+                    value={filters.difficulty}
                     onValueChange={(value) => handleFilterChange('difficulty', value)}
                   >
                     <SelectTrigger>
@@ -700,8 +832,8 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
 
                 <div>
                   <Label>Topic</Label>
-                  <Select 
-                    value={filters.topic} 
+                  <Select
+                    value={filters.topic}
                     onValueChange={(value) => handleFilterChange('topic', value)}
                   >
                     <SelectTrigger>
@@ -717,22 +849,22 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
                 </div>
 
                 <div className="flex items-end">
-                  <Button variant="outline" onClick={clearFilters} className="w-full">
+                  <Button variant="outline" onClick={clearFilters} className="w-full cursor-pointer">
                     Clear Filters
                   </Button>
                 </div>
-                
+
                 <div className="flex items-end">
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     onClick={() => {
                       console.log('Manual filter reset and fetch');
                       setSearchText('');
                       resetFilters();
                       setIsSearching(false);
                       fetchQuestions();
-                    }} 
-                    className="w-full"
+                    }}
+                    className="w-full cursor-pointer"
                   >
                     Show All
                   </Button>
@@ -771,7 +903,7 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
                   <div className="flex items-center gap-2 mb-2">
                     <Badge variant={
                       question.difficulty === 'EASY' ? 'secondary' :
-                      question.difficulty === 'MEDIUM' ? 'default' : 'destructive'
+                        question.difficulty === 'MEDIUM' ? 'default' : 'destructive'
                     }>
                       {question.difficulty}
                     </Badge>
@@ -783,6 +915,7 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
                   <Button
                     variant="ghost"
                     size="sm"
+                    className='cursor-pointer'
                     onClick={() => setEditingQuestion(question)}
                   >
                     <Edit className="h-4 w-4" />
@@ -790,6 +923,7 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
                   <Button
                     variant="ghost"
                     size="sm"
+                    className='cursor-pointer'
                     onClick={() => handleDuplicateQuestion(question.id)}
                   >
                     <Copy className="h-4 w-4" />
@@ -799,6 +933,7 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
                       <Button
                         variant="ghost"
                         size="sm"
+                        className='cursor-pointer'
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -819,75 +954,56 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
                           Delete
                         </AlertDialogAction>
                       </AlertDialogFooter>
-                      
-                      {/* Additional context for specific error conditions */}
-                      {operationError === 'question_in_use' && (
-                        <div className="mt-4 pt-4 border-t">
-                          <Alert variant="destructive" className="bg-amber-50">
-                            <AlertTitle className="text-amber-700">Question In Use Warning</AlertTitle>
-                            <AlertDescription className="text-amber-600">
-                              <p className="mb-2">This question may be used in one or more exams.</p>
-                              <p className="text-xs">Questions that are used in exams cannot be deleted. 
-                              You&apos;ll need to remove this question from all exams before it can be deleted.</p>
-                            </AlertDescription>
-                          </Alert>
-                        </div>
-                      )}
                     </AlertDialogContent>
                   </AlertDialog>
                 </div>
               </div>
             </CardHeader>
             <CardContent>
-              <p className="text-sm mb-3 line-clamp-3">{question.content}</p>
-              
-              {/* Question Image */}
-              {question.questionImage && (
-                <div className="mb-3">
-                  <Image
-                    src={question.questionImage}
-                    alt="Question image"
-                    width={300}
-                    height={200}
-                    className="rounded-md object-contain border bg-white"
-                    style={{ minHeight: '200px', maxHeight: '200px' }}
-                    onError={(e) => {
-                      console.error('Failed to load question image:', question.questionImage);
-                      e.currentTarget.style.display = 'none';
-                    }}
-                  />
+              {/* Question Content with 3-layer support */}
+              <div className="mb-3">
+                {renderQuestionContent(question)}
+              </div>
+
+              {/* NEW: Display Marks */}
+              <div className="flex items-center gap-4 mt-2 mb-3 text-xs">
+                <div className="flex items-center gap-1">
+                  <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                  <span className="text-green-700 font-medium">+{question.positiveMarks}</span>
                 </div>
-              )}
-              
-              {/* Options */}
+                <div className="flex items-center gap-1">
+                  <span className="w-2 h-2 bg-red-500 rounded-full"></span>
+                  <span className="text-red-700 font-medium">-{question.negativeMarks}</span>
+                </div>
+              </div>
+
+              {/* Options with enhanced display */}
               <div className="space-y-1 mb-3">
                 {question.options.map((option, index) => (
                   <div key={index} className="flex items-center gap-2 text-xs">
-                    <div className={`w-4 h-4 rounded-full flex items-center justify-center text-xs ${
-                      index === question.correctOption 
-                        ? 'bg-green-100 text-green-800 border border-green-300' 
+                    <div className={`w-4 h-4 rounded-full flex items-center justify-center text-xs ${index === question.correctOption
+                        ? 'bg-green-100 text-green-800 border border-green-300'
                         : 'bg-gray-100 text-gray-600'
-                    }`}>
+                      }`}>
                       {String.fromCharCode(65 + index)}
                     </div>
                     <div className="flex items-center gap-2 flex-1">
-                      <span className={index === question.correctOption ? 'font-medium text-green-800' : ''}>
-                        {option}
-                      </span>
-                      {/* Option Image */}
-                      {question.optionImages && question.optionImages[index] && (
-                        <Image
-                          src={question.optionImages[index]}
-                          alt={`Option ${String.fromCharCode(65 + index)} image`}
-                          width={80}
-                          height={60}
-                          className="rounded-sm object-contain border bg-white"
-                          style={{ minHeight: '60px', maxHeight: '60px' }}
-                          onError={(e) => {
-                            console.error('Failed to load option image:', question.optionImages?.[index]);
-                            e.currentTarget.style.display = 'none';
-                          }}
-                        />
+                      {/* Text or Image Option Display */}
+                      {question.optionTypes && question.optionTypes[index] === 'image' ? (
+                        question.optionImages && question.optionImages[index] && (
+                          <Image
+                            src={question.optionImages[index]}
+                            alt={`Option ${String.fromCharCode(65 + index)} image`}
+                            width={80}
+                            height={60}
+                            className="rounded-sm object-contain border bg-white"
+                            style={{ minHeight: '60px', maxHeight: '60px' }}
+                          />
+                        )
+                      ) : (
+                        <MathDisplay className={index === question.correctOption ? 'font-medium text-green-800' : ''}>
+                          {option}
+                        </MathDisplay>
                       )}
                     </div>
                     {index === question.correctOption && (
@@ -921,7 +1037,7 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
             <p className="text-muted-foreground text-center mb-4">
               Get started by adding your first question.
             </p>
-            <Button onClick={() => setShowAddQuestion(true)}>
+            <Button className='cursor-pointer' onClick={() => setShowAddQuestion(true)}>
               <Plus className="h-4 w-4 mr-2" />
               Add Question
             </Button>
@@ -935,21 +1051,21 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
             <p className="text-muted-foreground text-center mb-4">
               Try adjusting your search or filters.
             </p>
-            <Button variant="outline" onClick={clearFilters}>
+            <Button variant="outline" className='cursor-pointer' onClick={clearFilters}>
               Clear Filters
             </Button>
           </CardContent>
         </Card>
       ) : null}
 
-      {/* Add/Edit Question Dialog */}
+      {/* Add/Edit Question Dialog - This is the big update you need! */}
       <Dialog open={showAddQuestion || editingQuestion !== null} onOpenChange={(open) => {
         if (!open) {
           setShowAddQuestion(false);
           setEditingQuestion(null);
         }
       }}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {editingQuestion ? 'Edit Question' : 'Add New Question'}
@@ -959,113 +1075,489 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4">
-            {/* Question Content */}
-            <div>
-              <Label htmlFor="content">Question Content *</Label>
-              <Textarea
-                id="content"
-                value={editingQuestion ? editingQuestion.content : newQuestion.content}
-                onChange={(e) => {
-                  if (editingQuestion) {
-                    setEditingQuestion({ ...editingQuestion, content: e.target.value });
-                  } else {
-                    setNewQuestion({ ...newQuestion, content: e.target.value });
-                  }
-                }}
-                placeholder="Enter the question..."
-                className="min-h-24"
-                required
-              />
+          <div className="space-y-6">
+            {/* Question Content Section - 3 Flexible Layers */}
+            <div className="space-y-4 p-4 border rounded-lg bg-muted/20">
+              <h3 className="text-sm font-medium text-muted-foreground">Question Content</h3>
+
+              {/* Row 1 */}
+              <div className="space-y-3 p-3 border rounded-lg bg-background">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium">Row 1</Label>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant={editingQuestion?.layer1Type === 'text' || newQuestion.layer1Type === 'text' ? 'default' : 'outline'}
+                      size="sm"
+                      className='cursor-pointer'
+                      onClick={() => {
+                        if (editingQuestion) {
+                          setEditingQuestion({ ...editingQuestion, layer1Type: 'text', layer1Image: '' });
+                        } else {
+                          setNewQuestion({ ...newQuestion, layer1Type: 'text', layer1Image: '' });
+                        }
+                      }}
+                    >
+                      Text
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={editingQuestion?.layer1Type === 'image' || newQuestion.layer1Type === 'image' ? 'default' : 'outline'}
+                      size="sm"
+                      className='cursor-pointer'
+                      onClick={() => {
+                        if (editingQuestion) {
+                          setEditingQuestion({ ...editingQuestion, layer1Type: 'image', layer1Text: '' });
+                        } else {
+                          setNewQuestion({ ...newQuestion, layer1Type: 'image', layer1Text: '' });
+                        }
+                      }}
+                    >
+                      Image
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className='cursor-pointer'
+                      onClick={() => {
+                        if (editingQuestion) {
+                          setEditingQuestion({ ...editingQuestion, layer1Type: 'none', layer1Text: '', layer1Image: '' });
+                        } else {
+                          setNewQuestion({ ...newQuestion, layer1Type: 'none', layer1Text: '', layer1Image: '' });
+                        }
+                      }}
+                    >
+                      None
+                    </Button>
+                  </div>
+                </div>
+
+                {(editingQuestion?.layer1Type === 'text' || newQuestion.layer1Type === 'text') && (
+                  <MathInput
+                    label=""
+                    value={editingQuestion ? (editingQuestion.layer1Text || '') : (newQuestion.layer1Text || '')}
+                    onChange={(value) => {
+                      if (editingQuestion) {
+                        setEditingQuestion({ ...editingQuestion, layer1Text: value });
+                      } else {
+                        setNewQuestion({ ...newQuestion, layer1Text: value });
+                      }
+                    }}
+                    placeholder="Enter text for Layer 1. You can paste math from MathType!"
+                  />
+                )}
+
+                {(editingQuestion?.layer1Type === 'image' || newQuestion.layer1Type === 'image') && (
+                  <ImageUploadComponent
+                    label=""
+                    placeholder="Upload image for Layer 1"
+                    folder="questions/layers"
+                    tags="question,layer1"
+                    currentImageUrl={editingQuestion?.layer1Image || newQuestion.layer1Image}
+                    onImageUpload={(imageUrl) => {
+                      if (editingQuestion) {
+                        setEditingQuestion({ ...editingQuestion, layer1Image: imageUrl });
+                      } else {
+                        setNewQuestion({ ...newQuestion, layer1Image: imageUrl });
+                      }
+                    }}
+                    onImageRemove={() => {
+                      if (editingQuestion) {
+                        setEditingQuestion({ ...editingQuestion, layer1Image: '' });
+                      } else {
+                        setNewQuestion({ ...newQuestion, layer1Image: '' });
+                      }
+                    }}
+                  />
+                )}
+              </div>
+
+              {/* Row 2 */}
+              <div className="space-y-3 p-3 border rounded-lg bg-background">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium">Row 2</Label>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant={editingQuestion?.layer2Type === 'text' || newQuestion.layer2Type === 'text' ? 'default' : 'outline'}
+                      size="sm"
+                      className='cursor-pointer'
+                      onClick={() => {
+                        if (editingQuestion) {
+                          setEditingQuestion({ ...editingQuestion, layer2Type: 'text', layer2Image: '' });
+                        } else {
+                          setNewQuestion({ ...newQuestion, layer2Type: 'text', layer2Image: '' });
+                        }
+                      }}
+                    >
+                      Text
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={editingQuestion?.layer2Type === 'image' || newQuestion.layer2Type === 'image' ? 'default' : 'outline'}
+                      size="sm"
+                      className='cursor-pointer'
+                      onClick={() => {
+                        if (editingQuestion) {
+                          setEditingQuestion({ ...editingQuestion, layer2Type: 'image', layer2Text: '' });
+                        } else {
+                          setNewQuestion({ ...newQuestion, layer2Type: 'image', layer2Text: '' });
+                        }
+                      }}
+                    >
+                      Image
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className='cursor-pointer'
+                      onClick={() => {
+                        if (editingQuestion) {
+                          setEditingQuestion({ ...editingQuestion, layer2Type: 'none', layer2Text: '', layer2Image: '' });
+                        } else {
+                          setNewQuestion({ ...newQuestion, layer2Type: 'none', layer2Text: '', layer2Image: '' });
+                        }
+                      }}
+                    >
+                      None
+                    </Button>
+                  </div>
+                </div>
+
+                {(editingQuestion?.layer2Type === 'text' || newQuestion.layer2Type === 'text') && (
+                  <MathInput
+                    label=""
+                    value={editingQuestion ? (editingQuestion.layer2Text || '') : (newQuestion.layer2Text || '')}
+                    onChange={(value) => {
+                      if (editingQuestion) {
+                        setEditingQuestion({ ...editingQuestion, layer2Text: value });
+                      } else {
+                        setNewQuestion({ ...newQuestion, layer2Text: value });
+                      }
+                    }}
+                    placeholder="Enter text for Layer 2. You can paste math from MathType!"
+                  />
+                )}
+
+                {(editingQuestion?.layer2Type === 'image' || newQuestion.layer2Type === 'image') && (
+                  <ImageUploadComponent
+                    label=""
+                    placeholder="Upload image for Layer 2"
+                    folder="questions/layers"
+                    tags="question,layer2"
+                    currentImageUrl={editingQuestion?.layer2Image || newQuestion.layer2Image}
+                    onImageUpload={(imageUrl) => {
+                      if (editingQuestion) {
+                        setEditingQuestion({ ...editingQuestion, layer2Image: imageUrl });
+                      } else {
+                        setNewQuestion({ ...newQuestion, layer2Image: imageUrl });
+                      }
+                    }}
+                    onImageRemove={() => {
+                      if (editingQuestion) {
+                        setEditingQuestion({ ...editingQuestion, layer2Image: '' });
+                      } else {
+                        setNewQuestion({ ...newQuestion, layer2Image: '' });
+                      }
+                    }}
+                  />
+                )}
+              </div>
+
+              {/* Row 3 */}
+              <div className="space-y-3 p-3 border rounded-lg bg-background">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium">Row 3</Label>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant={editingQuestion?.layer3Type === 'text' || newQuestion.layer3Type === 'text' ? 'default' : 'outline'}
+                      size="sm"
+                      className='cursor-pointer'
+                      onClick={() => {
+                        if (editingQuestion) {
+                          setEditingQuestion({ ...editingQuestion, layer3Type: 'text', layer3Image: '' });
+                        } else {
+                          setNewQuestion({ ...newQuestion, layer3Type: 'text', layer3Image: '' });
+                        }
+                      }}
+                    >
+                      Text
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={editingQuestion?.layer3Type === 'image' || newQuestion.layer3Type === 'image' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => {
+                        if (editingQuestion) {
+                          setEditingQuestion({ ...editingQuestion, layer3Type: 'image', layer3Text: '' });
+                        } else {
+                          setNewQuestion({ ...newQuestion, layer3Type: 'image', layer3Text: '' });
+                        }
+                      }}
+                    >
+                      Image
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className='cursor-pointer'
+                      onClick={() => {
+                        if (editingQuestion) {
+                          setEditingQuestion({ ...editingQuestion, layer3Type: 'none', layer3Text: '', layer3Image: '' });
+                        } else {
+                          setNewQuestion({ ...newQuestion, layer3Type: 'none', layer3Text: '', layer3Image: '' });
+                        }
+                      }}
+                    >
+                      None
+                    </Button>
+                  </div>
+                </div>
+
+                {(editingQuestion?.layer3Type === 'text' || newQuestion.layer3Type === 'text') && (
+                  <MathInput
+                    label=""
+                    value={editingQuestion ? (editingQuestion.layer3Text || '') : (newQuestion.layer3Text || '')}
+                    onChange={(value) => {
+                      if (editingQuestion) {
+                        setEditingQuestion({ ...editingQuestion, layer3Text: value });
+                      } else {
+                        setNewQuestion({ ...newQuestion, layer3Text: value });
+                      }
+                    }}
+                    placeholder="Enter text for Layer 3. You can paste math from MathType!"
+                  />
+                )}
+
+                {(editingQuestion?.layer3Type === 'image' || newQuestion.layer3Type === 'image') && (
+                  <ImageUploadComponent
+                    label=""
+                    placeholder="Upload image for Layer 3"
+                    folder="questions/layers"
+                    tags="question,layer3"
+                    currentImageUrl={editingQuestion?.layer3Image || newQuestion.layer3Image}
+                    onImageUpload={(imageUrl) => {
+                      if (editingQuestion) {
+                        setEditingQuestion({ ...editingQuestion, layer3Image: imageUrl });
+                      } else {
+                        setNewQuestion({ ...newQuestion, layer3Image: imageUrl });
+                      }
+                    }}
+                    onImageRemove={() => {
+                      if (editingQuestion) {
+                        setEditingQuestion({ ...editingQuestion, layer3Image: '' });
+                      } else {
+                        setNewQuestion({ ...newQuestion, layer3Image: '' });
+                      }
+                    }}
+                  />
+                )}
+              </div>
             </div>
 
-            {/* Question Image */}
-            <div>
-              <ImageUploadComponent
-                label="Question Image (Optional)"
-                placeholder="Upload an image for the question"
-                folder="questions"
-                tags="question"
-                currentImageUrl={editingQuestion?.questionImage || newQuestion.questionImage}
-                onImageUpload={(imageUrl) => {
-                  if (editingQuestion) {
-                    setEditingQuestion({ ...editingQuestion, questionImage: imageUrl });
-                  } else {
-                    setNewQuestion({ ...newQuestion, questionImage: imageUrl });
-                  }
-                }}
-                onImageRemove={() => {
-                  if (editingQuestion) {
-                    setEditingQuestion({ ...editingQuestion, questionImage: undefined });
-                  } else {
-                    setNewQuestion({ ...newQuestion, questionImage: '' });
-                  }
-                }}
-              />
+            {/* Marking System */}
+            <div className="space-y-4 p-4 border rounded-lg bg-green-50/50">
+              <h3 className="text-sm font-medium text-muted-foreground">Add Marking</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="positiveMarks" className="flex items-center gap-2">
+                    <span className="w-3 h-3 bg-green-500 rounded-full"></span>
+                    Positive Marking *
+                  </Label>
+                  <Input
+                    id="positiveMarks"
+                    type="number"
+                    min="0"
+                    step="0.5"
+                    className='mt-3'
+                    value={editingQuestion ? editingQuestion.positiveMarks : newQuestion.positiveMarks}
+                    onChange={(e) => {
+                      const value = parseFloat(e.target.value) || 0;
+                      if (editingQuestion) {
+                        setEditingQuestion({ ...editingQuestion, positiveMarks: value });
+                      } else {
+                        setNewQuestion({ ...newQuestion, positiveMarks: value });
+                      }
+                    }}
+                    placeholder="e.g., 4"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="negativeMarks" className="flex items-center gap-2">
+                    <span className="w-3 h-3 bg-red-500 rounded-full"></span>
+                    Negative Marking *
+                  </Label>
+                  <Input
+                    id="negativeMarks"
+                    type="number"
+                    min="0"
+                    step="0.5"
+                    className='mt-3'
+                    value={editingQuestion ? editingQuestion.negativeMarks : newQuestion.negativeMarks}
+                    onChange={(e) => {
+                      const value = parseFloat(e.target.value) || 0;
+                      if (editingQuestion) {
+                        setEditingQuestion({ ...editingQuestion, negativeMarks: value });
+                      } else {
+                        setNewQuestion({ ...newQuestion, negativeMarks: value });
+                      }
+                    }}
+                    placeholder="e.g., 1"
+                    required
+                  />
+                </div>
+              </div>
+              <div className="text-xs text-muted-foreground bg-blue-50 p-2 pl-3 rounded">
+                Scoring: Correct answer = +{editingQuestion ? editingQuestion.positiveMarks : newQuestion.positiveMarks} marks,
+                Wrong answer = -{editingQuestion ? editingQuestion.negativeMarks : newQuestion.negativeMarks} marks
+              </div>
             </div>
 
-            {/* Options */}
+            {/* Answer Options with Math Support */}
             <div>
               <Label>Answer Options *</Label>
               <div className="space-y-4">
                 {(editingQuestion ? editingQuestion.options : newQuestion.options).map((option, index) => (
                   <div key={index} className="space-y-3 p-4 border rounded-lg">
-                    <div className="flex gap-2 items-center">
-                      <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center text-sm font-medium">
+                    <div className="flex gap-2 items-start">
+                      <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center text-sm font-medium mt-2">
                         {String.fromCharCode(65 + index)}
                       </div>
-                      <Input
-                        value={option}
-                        onChange={(e) => {
-                          const newOptions = [...(editingQuestion ? editingQuestion.options : newQuestion.options)];
-                          newOptions[index] = e.target.value;
-                          if (editingQuestion) {
-                            setEditingQuestion({ ...editingQuestion, options: newOptions });
-                          } else {
-                            setNewQuestion({ ...newQuestion, options: newOptions });
-                          }
-                        }}
-                        placeholder={`Option ${String.fromCharCode(65 + index)}`}
-                        required
-                      />
-                    </div>
-                    
-                    {/* Option Image Upload */}
-                    <div className="ml-10">
-                      <ImageUploadComponent
-                        label={`Option ${String.fromCharCode(65 + index)} Image (Optional)`}
-                        placeholder={`Upload image for option ${String.fromCharCode(65 + index)}`}
-                        folder="questions/options"
-                        tags={`question,option,option-${index}`}
-                        currentImageUrl={
-                          editingQuestion?.optionImages?.[index] || 
-                          newQuestion.optionImages[index]
-                        }
-                        onImageUpload={(imageUrl) => {
-                          const newOptionImages = editingQuestion 
-                            ? [...(editingQuestion.optionImages || ['', '', '', ''])]
-                            : [...newQuestion.optionImages];
-                          newOptionImages[index] = imageUrl;
-                          
-                          if (editingQuestion) {
-                            setEditingQuestion({ ...editingQuestion, optionImages: newOptionImages });
-                          } else {
-                            setNewQuestion({ ...newQuestion, optionImages: newOptionImages });
-                          }
-                        }}
-                        onImageRemove={() => {
-                          const newOptionImages = editingQuestion 
-                            ? [...(editingQuestion.optionImages || ['', '', '', ''])]
-                            : [...newQuestion.optionImages];
-                          newOptionImages[index] = '';
-                          
-                          if (editingQuestion) {
-                            setEditingQuestion({ ...editingQuestion, optionImages: newOptionImages });
-                          } else {
-                            setNewQuestion({ ...newQuestion, optionImages: newOptionImages });
-                          }
-                        }}
-                      />
+                      <div className="flex-1 space-y-3">
+                        {/* Option Type Selection */}
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            variant={editingQuestion?.optionTypes?.[index] === 'text' || (newQuestion.optionTypes || ['text', 'text', 'text', 'text'])[index] === 'text' ? 'default' : 'outline'}
+                            size="sm"
+                            className='cursor-pointer'
+                            onClick={() => {
+                              const newOptionTypes = editingQuestion
+                                ? [...(editingQuestion.optionTypes || ['text', 'text', 'text', 'text'])]
+                                : [...(newQuestion.optionTypes || ['text', 'text', 'text', 'text'])];
+                              newOptionTypes[index] = 'text';
+
+                              // Clear image when switching to text
+                              const newOptionImages = editingQuestion
+                                ? [...(editingQuestion.optionImages || ['', '', '', ''])]
+                                : [...(newQuestion.optionImages || ['', '', '', ''])];
+                              newOptionImages[index] = '';
+
+                              if (editingQuestion) {
+                                setEditingQuestion({
+                                  ...editingQuestion,
+                                  optionTypes: newOptionTypes,
+                                  optionImages: newOptionImages
+                                });
+                              } else {
+                                setNewQuestion({
+                                  ...newQuestion,
+                                  optionTypes: newOptionTypes,
+                                  optionImages: newOptionImages
+                                });
+                              }
+                            }}
+                          >
+                            Text
+                          </Button>
+                          <Button
+                            type="button"
+                            variant={editingQuestion?.optionTypes?.[index] === 'image' || (newQuestion.optionTypes || ['text', 'text', 'text', 'text'])[index] === 'image' ? 'default' : 'outline'}
+                            size="sm"
+                            className='cursor-pointer'
+                            onClick={() => {
+                              const newOptionTypes = editingQuestion
+                                ? [...(editingQuestion.optionTypes || ['text', 'text', 'text', 'text'])]
+                                : [...(newQuestion.optionTypes || ['text', 'text', 'text', 'text'])];
+                              newOptionTypes[index] = 'image';
+
+                              // Clear text when switching to image
+                              const newOptions = editingQuestion
+                                ? [...(editingQuestion.options || ['', '', '', ''])]
+                                : [...(newQuestion.options || ['', '', '', ''])];
+                              newOptions[index] = '';
+
+                              if (editingQuestion) {
+                                setEditingQuestion({
+                                  ...editingQuestion,
+                                  optionTypes: newOptionTypes,
+                                  options: newOptions
+                                });
+                              } else {
+                                setNewQuestion({
+                                  ...newQuestion,
+                                  optionTypes: newOptionTypes,
+                                  options: newOptions
+                                });
+                              }
+                            }}
+                          >
+                            Image
+                          </Button>
+                        </div>
+
+                        {/* Text Option with Math Support */}
+                        {(editingQuestion?.optionTypes?.[index] === 'text' || (newQuestion.optionTypes || ['text', 'text', 'text', 'text'])[index] === 'text') && (
+                          <MathInput
+                            label=""
+                            value={option}
+                            onChange={(value) => {
+                              const newOptions = [...(editingQuestion ? (editingQuestion.options || ['', '', '', '']) : (newQuestion.options || ['', '', '', '']))];
+                              newOptions[index] = value;
+                              if (editingQuestion) {
+                                setEditingQuestion({ ...editingQuestion, options: newOptions });
+                              } else {
+                                setNewQuestion({ ...newQuestion, options: newOptions });
+                              }
+                            }}
+                            placeholder={`Enter option ${String.fromCharCode(65 + index)} text. Paste math from MathType!`}
+                            required
+                          />
+                        )}
+
+                        {/* Image Option */}
+                        {(editingQuestion?.optionTypes?.[index] === 'image' || (newQuestion.optionTypes || ['text', 'text', 'text', 'text'])[index] === 'image') && (
+                          <ImageUploadComponent
+                            label=""
+                            placeholder={`Upload image for option ${String.fromCharCode(65 + index)}`}
+                            folder="questions/options"
+                            tags={`question,option,option-${index}`}
+                            currentImageUrl={
+                              (editingQuestion?.optionImages || ['', '', '', ''])[index] ||
+                              (newQuestion.optionImages || ['', '', '', ''])[index]
+                            }
+                            onImageUpload={(imageUrl) => {
+                              const newOptionImages = editingQuestion
+                                ? [...(editingQuestion.optionImages || ['', '', '', ''])]
+                                : [...(newQuestion.optionImages || ['', '', '', ''])];
+                              newOptionImages[index] = imageUrl;
+
+                              if (editingQuestion) {
+                                setEditingQuestion({ ...editingQuestion, optionImages: newOptionImages });
+                              } else {
+                                setNewQuestion({ ...newQuestion, optionImages: newOptionImages });
+                              }
+                            }}
+                            onImageRemove={() => {
+                              const newOptionImages = editingQuestion
+                                ? [...(editingQuestion.optionImages || ['', '', '', ''])]
+                                : [...(newQuestion.optionImages || ['', '', '', ''])];
+                              newOptionImages[index] = '';
+
+                              if (editingQuestion) {
+                                setEditingQuestion({ ...editingQuestion, optionImages: newOptionImages });
+                              } else {
+                                setNewQuestion({ ...newQuestion, optionImages: newOptionImages });
+                              }
+                            }}
+                          />
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -1097,6 +1589,108 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            {/* Question Explanation Section */}
+            <div className="space-y-4 p-4 border rounded-lg bg-blue-50/50">
+              <h3 className="text-sm font-medium text-muted-foreground">Question Explanation (Optional)</h3>
+              <p className="text-xs text-muted-foreground">
+                Provide an explanation for why the correct answer is correct. This will help students understand the solution.
+              </p>
+
+              <div className="space-y-3 p-3 border rounded-lg bg-background">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium">Explanation Type</Label>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant={editingQuestion?.explanationType === 'text' || newQuestion.explanationType === 'text' ? 'default' : 'outline'}
+                      size="sm"
+                      className='cursor-pointer'
+                      onClick={() => {
+                        if (editingQuestion) {
+                          setEditingQuestion({ ...editingQuestion, explanationType: 'text', explanationImage: '' });
+                        } else {
+                          setNewQuestion({ ...newQuestion, explanationType: 'text', explanationImage: '' });
+                        }
+                      }}
+                    >
+                      Text
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={editingQuestion?.explanationType === 'image' || newQuestion.explanationType === 'image' ? 'default' : 'outline'}
+                      size="sm"
+                      className='cursor-pointer'
+                      onClick={() => {
+                        if (editingQuestion) {
+                          setEditingQuestion({ ...editingQuestion, explanationType: 'image', explanationText: '' });
+                        } else {
+                          setNewQuestion({ ...newQuestion, explanationType: 'image', explanationText: '' });
+                        }
+                      }}
+                    >
+                      Image
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className='cursor-pointer'
+                      onClick={() => {
+                        if (editingQuestion) {
+                          setEditingQuestion({ ...editingQuestion, explanationType: 'none', explanationText: '', explanationImage: '' });
+                        } else {
+                          setNewQuestion({ ...newQuestion, explanationType: 'none', explanationText: '', explanationImage: '' });
+                        }
+                      }}
+                    >
+                      None
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Text Explanation with Math Support */}
+                {(editingQuestion?.explanationType === 'text' || newQuestion.explanationType === 'text') && (
+                  <MathInput
+                    label=""
+                    value={editingQuestion ? (editingQuestion.explanationText || '') : (newQuestion.explanationText || '')}
+                    onChange={(value) => {
+                      if (editingQuestion) {
+                        setEditingQuestion({ ...editingQuestion, explanationText: value });
+                      } else {
+                        setNewQuestion({ ...newQuestion, explanationText: value });
+                      }
+                    }}
+                    placeholder="Explain why the correct answer is correct"
+                  />
+                )}
+
+                {/* Image Explanation */}
+                {(editingQuestion?.explanationType === 'image' || newQuestion.explanationType === 'image') && (
+                  <ImageUploadComponent
+                    label=""
+                    placeholder="Upload an image explanation (diagram, solution steps, etc.)"
+                    folder="questions/explanations"
+                    tags="question,explanation"
+                    currentImageUrl={editingQuestion?.explanationImage || newQuestion.explanationImage}
+                    onImageUpload={(imageUrl) => {
+                      if (editingQuestion) {
+                        setEditingQuestion({ ...editingQuestion, explanationImage: imageUrl });
+                      } else {
+                        setNewQuestion({ ...newQuestion, explanationImage: imageUrl });
+                      }
+                    }}
+                    onImageRemove={() => {
+                      if (editingQuestion) {
+                        setEditingQuestion({ ...editingQuestion, explanationImage: '' });
+                      } else {
+                        setNewQuestion({ ...newQuestion, explanationImage: '' });
+                      }
+                    }}
+                  />
+                )}
+              </div>
             </div>
 
             {/* Subject and Topic */}
@@ -1140,7 +1734,7 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
               <Label>Difficulty *</Label>
               <Select
                 value={editingQuestion ? editingQuestion.difficulty : newQuestion.difficulty}
-                onValueChange={(value: Difficulty) => {
+                onValueChange={(value: QuestionDifficulty) => {
                   if (editingQuestion) {
                     setEditingQuestion({ ...editingQuestion, difficulty: value });
                   } else {
@@ -1164,13 +1758,13 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
               <Label htmlFor="tags">Tags</Label>
               <Input
                 id="tags"
-                value={editingQuestion ? editingQuestion.tags.join(', ') : newQuestion.tags}
+                value={editingQuestion ? editingQuestion.tags.join(', ') : (newQuestion.tags || []).join(', ')}
                 onChange={(e) => {
+                  const tags = e.target.value.split(',').map((t: string) => t.trim()).filter((t: string) => t.length > 0);
                   if (editingQuestion) {
-                    const tags = e.target.value.split(',').map(t => t.trim()).filter(t => t);
                     setEditingQuestion({ ...editingQuestion, tags });
                   } else {
-                    setNewQuestion({ ...newQuestion, tags: e.target.value });
+                    setNewQuestion({ ...newQuestion, tags });
                   }
                 }}
                 placeholder="Enter tags separated by commas"
@@ -1181,6 +1775,7 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
             <div className="flex justify-end gap-2 pt-4">
               <Button
                 variant="outline"
+                className='cursor-pointer'
                 onClick={() => {
                   setShowAddQuestion(false);
                   setEditingQuestion(null);
@@ -1189,6 +1784,7 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
                 Cancel
               </Button>
               <Button
+                className='cursor-pointer'
                 onClick={() => {
                   if (editingQuestion) {
                     handleEditQuestion(editingQuestion);

@@ -46,16 +46,42 @@ export type QuestionDifficulty = 'EASY' | 'MEDIUM' | 'HARD';
 
 export interface Question {
   id: string;
+  
+  // Legacy content field (kept for backward compatibility)
   content: string;
-  questionImage?: string; // ImageKit URL for question image
+  questionImage?: string; // ImageKit URL for question image (legacy)
+  
+  // 3-Layer Question System
+  layer1Type: 'text' | 'image' | 'none';
+  layer1Text?: string;
+  layer1Image?: string;
+  layer2Type: 'text' | 'image' | 'none';
+  layer2Text?: string;
+  layer2Image?: string;
+  layer3Type: 'text' | 'image' | 'none';
+  layer3Text?: string;
+  layer3Image?: string;
+  
+  // Enhanced Options System
   options: string[];
   optionImages?: string[]; // Array of ImageKit URLs for option images
+  optionTypes: ('text' | 'image')[]; // Type for each option (text or image)
   correctOption: number;
+  
+  // Marking System
+  positiveMarks: number;
+  negativeMarks: number;
+  
+  // Explanation System
+  explanationType: 'text' | 'image' | 'none';
+  explanationText?: string;
+  explanationImage?: string;
+
   difficulty: QuestionDifficulty;
   subject: string;
   topic: string;
   tags: string[];
-  marks?: number;
+  marks?: number; // Legacy field (can be replaced by positiveMarks/negativeMarks)
   author: {
     id: string;
     name: string;
@@ -66,29 +92,79 @@ export interface Question {
 }
 
 export interface CreateQuestionRequest {
+  // Legacy fields (for backward compatibility)
   content: string;
   questionImage?: string;
+  
+  // 3-Layer Question System
+  layer1Type: 'text' | 'image' | 'none';
+  layer1Text?: string;
+  layer1Image?: string;
+  layer2Type: 'text' | 'image' | 'none';
+  layer2Text?: string;
+  layer2Image?: string;
+  layer3Type: 'text' | 'image' | 'none';
+  layer3Text?: string;
+  layer3Image?: string;
+  
+  // Enhanced Options System
   options: string[];
   optionImages?: string[];
+  optionTypes: ('text' | 'image')[]; // Type for each option
   correctOption: number;
+  
+  // Marking System
+  positiveMarks: number;
+  negativeMarks: number;
+  
+  // Explanation System
+  explanationType: 'text' | 'image' | 'none';
+  explanationText?: string;
+  explanationImage?: string;
+  
   difficulty: QuestionDifficulty;
   subject: string;
   topic: string;
   tags?: string[];
-  marks?: number;
+  marks?: number; // Legacy field
 }
 
 export interface UpdateQuestionRequest {
+  // Legacy fields
   content?: string;
   questionImage?: string;
+  
+  // 3-Layer Question System
+  layer1Type?: 'text' | 'image' | 'none';
+  layer1Text?: string;
+  layer1Image?: string;
+  layer2Type?: 'text' | 'image' | 'none';
+  layer2Text?: string;
+  layer2Image?: string;
+  layer3Type?: 'text' | 'image' | 'none';
+  layer3Text?: string;
+  layer3Image?: string;
+  
+  // Enhanced Options System
   options?: string[];
   optionImages?: string[];
+  optionTypes?: ('text' | 'image')[]; // Type for each option
   correctOption?: number;
+  
+  // Marking System
+  positiveMarks?: number;
+  negativeMarks?: number;
+  
+  // Explanation System
+  explanationType?: 'text' | 'image' | 'none';
+  explanationText?: string;
+  explanationImage?: string;
+  
   difficulty?: QuestionDifficulty;
   subject?: string;
   topic?: string;
   tags?: string[];
-  marks?: number;
+  marks?: number; // Legacy field
 }
 
 export interface QuestionFilters {
