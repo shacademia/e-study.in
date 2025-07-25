@@ -56,7 +56,7 @@ export const SUBMISSION_ROUTES = {
   SUBMISSION_BY_ID: (id: string) => `/api/submissions/${id}`,
   UPDATE_SUBMISSION: (id: string) => `/api/submissions/${id}`,
   DELETE_SUBMISSION: (id: string) => `/api/submissions/${id}`,
-  SUBMIT_EXAM: (examId: string) => `/api/exams/${examId}/submissions`,
+  SUBMIT_EXAM: (examId: string) => `/api/submissions`,
   DRAFT_SUBMISSION: '/api/submissions/draft',
   USER_SUBMISSIONS: (userId: string) => `/api/submissions/user/${userId}`,
   EXAM_SUBMISSIONS: (examId: string) => `/api/submissions/exam/${examId}`,

@@ -14,7 +14,10 @@ const createSubmissionSchema = z.object({
     answer: z.number().optional(),
     timeSpent: z.number().min(0).default(0)
   })).optional().default({}),
+  score: z.number().min(0).optional(),
+  totalQuestions: z.number().min(1),
   timeSpent: z.number().min(0).default(0),
+  isSubmitted: z.boolean().optional().default(true),
 });
 
 // Schema for getting submissions
@@ -165,12 +168,15 @@ export async function GET(request: NextRequest) {
         id: submission.id,
         userId: submission.userId,
         examId: submission.examId,
+        answers: answers, // Include the original answers
+        questionStatuses: submission.questionStatuses,
         score: submission.score,
         totalQuestions: submission.totalQuestions,
         correctAnswers,
         totalAnswered,
         percentage,
         timeSpent: submission.timeSpent,
+        isSubmitted: submission.isSubmitted,
         completedAt: submission.completedAt,
         createdAt: submission.createdAt,
         user: submission.user,

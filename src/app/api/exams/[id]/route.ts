@@ -33,7 +33,7 @@ const updateExamSchema = z.object({
 // GET - Get exam details
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const token = request.headers.get('x-auth-token');
 
@@ -42,6 +42,9 @@ export async function GET(
   }
 
   try {
+    // Await params in Next.js 15+
+    const { id: examId } = await params;
+    
     // Verify JWT token
     const decoded = jwt.verify(token, JWT_SECRET) as { id: string; email: string };
     const userId = decoded.id;
@@ -55,8 +58,6 @@ export async function GET(
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
-
-    const examId = params.id;
 
     // Get exam with all related data
     const exam = await prisma.exam.findUnique({
@@ -77,7 +78,9 @@ export async function GET(
                   select: {
                     id: true,
                     content: true,
+                    questionImage: true,
                     options: true,
+                    optionImages: true,
                     correctOption: true,
                     difficulty: true,
                     subject: true,
@@ -110,7 +113,9 @@ export async function GET(
               select: {
                 id: true,
                 content: true,
+                questionImage: true,
                 options: true,
+                optionImages: true,
                 correctOption: true,
                 difficulty: true,
                 subject: true,
@@ -181,7 +186,7 @@ export async function GET(
 // PUT - Update exam details
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const token = request.headers.get('x-auth-token');
 
@@ -190,6 +195,9 @@ export async function PUT(
   }
 
   try {
+    // Await params in Next.js 15+
+    const { id: examId } = await params;
+    
     // Verify JWT token
     const decoded = jwt.verify(token, JWT_SECRET) as { id: string; email: string };
     const userId = decoded.id;
@@ -203,8 +211,6 @@ export async function PUT(
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
-
-    const examId = params.id;
 
     // Check if exam exists and user has permission
     const existingExam = await prisma.exam.findUnique({
@@ -234,15 +240,16 @@ export async function PUT(
     const updateData = parsedData.data;
 
     // If removing password protection, clear the password
-    if (updateData.isPasswordProtected === false) {
-      updateData.password = null;
-    }
+    const finalUpdateData = { 
+      ...updateData,
+      ...(updateData.isPasswordProtected === false && { password: null })
+    };
 
     // Update the exam
     const updatedExam = await prisma.exam.update({
       where: { id: examId },
       data: {
-        ...updateData,
+        ...finalUpdateData,
         updatedAt: new Date(),
       },
       include: {
@@ -290,7 +297,7 @@ export async function PUT(
 // DELETE - Delete exam
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const token = request.headers.get('x-auth-token');
 
@@ -299,6 +306,9 @@ export async function DELETE(
   }
 
   try {
+    // Await params in Next.js 15+
+    const { id: examId } = await params;
+    
     // Verify JWT token
     const decoded = jwt.verify(token, JWT_SECRET) as { id: string; email: string };
     const userId = decoded.id;
@@ -316,8 +326,6 @@ export async function DELETE(
     if (user.role !== 'ADMIN' && user.role !== 'MODERATOR') {
       return NextResponse.json({ error: 'Insufficient permissions to delete exams' }, { status: 403 });
     }
-
-    const examId = params.id;
 
     // Check if exam exists
     const exam = await prisma.exam.findUnique({
