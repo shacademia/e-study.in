@@ -42,7 +42,7 @@ const StudentDashboard: React.FC = () => {
         <StatsCards stats={userStats} userRanking={userRanking} />
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-1">
+          {/* <div className="lg:col-span-1">
             <ProfilePerformance 
               userName={user?.name}
               userEmail={user?.email}
@@ -50,7 +50,7 @@ const StudentDashboard: React.FC = () => {
               userSubmissions={userSubmissions}
               exams={exams}
             />
-          </div>
+          </div> */}
           
           <div className="lg:col-span-2">
             <ExamsSection
