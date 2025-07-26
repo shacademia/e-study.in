@@ -3,5 +3,6 @@
     "WillLuke.nextjs.hasPrompted": true,
     "cSpell.words": [
         "imagekit"
-    ]
+    ],
+    "typescript.tsdk": "node_modules\\typescript\\lib"
 }
