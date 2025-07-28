@@ -1,13 +1,13 @@
 "use client";
 import React from "react";
 import { useParams } from "next/navigation";
-import MultiSectionExamInterface from "./MultiSectionExamInterface";
+import ExamInterface from "./ExamInterface";
 
-const MultiSectionExamInterfacePage = () => {
+const ExamPage = () => {
   const params = useParams();
   const examId = params?.examId as string;
 
-  return <MultiSectionExamInterface examId={examId} />;
+  return <ExamInterface examId={examId} />;
 };
 
-export default MultiSectionExamInterfacePage;
+export default ExamPage;

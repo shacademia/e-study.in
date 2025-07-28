@@ -152,6 +152,8 @@ export async function GET(
       const baseSubmission = {
         id: submission.id,
         examId: submission.examId,
+        answers: answers, // Include the original answers
+        questionStatuses: submission.questionStatuses,
         score: submission.score,
         totalQuestions: submission.totalQuestions,
         totalAnswered,
