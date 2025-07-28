@@ -44,8 +44,12 @@ class AuthService {
       if (response.data.token) {
         this.setAuthData(response.data.token, response.data.user);
       }
-      
-      return response.data;
+
+      const userData = await this.getCurrentUser();
+      return {
+        ...response.data,
+        user: userData
+      };
     } catch (error) {
       throw this.handleError(error);
     }
@@ -93,6 +97,7 @@ class AuthService {
         }
       });
       
+      console.log('Current user data:😁', response.data);
       return response.data.data || response.data;
     } catch (error) {
       throw this.handleError(error);
