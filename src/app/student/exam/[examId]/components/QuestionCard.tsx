@@ -1,11 +1,14 @@
-import React from "react";
+import React, { useState } from "react";
 import Image from "next/image";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { Bookmark } from "lucide-react";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Bookmark, X, ZoomIn } from "lucide-react";
 import { QuestionCardProps } from "../types";
+import { getTotalQuestions } from "../utils/examHelpers";
 
 const QuestionCard: React.FC<QuestionCardProps> = ({
   question,
@@ -15,26 +18,53 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
   answer,
   questionStatus,
   onAnswerChange,
+  exam, // Add exam prop to calculate total questions properly
 }) => {
+  const [selectedImagePreview, setSelectedImagePreview] = useState<string | null>(null);
+
   if (!question) return null;
 
+  // Function to clear/unselect the current answer
+  const handleClearAnswer = () => {
+    // We need to clear the answer by setting it to undefined
+    // But since our onAnswerChange expects a number, we'll need to modify the parent component
+    // For now, let's create a special value to indicate clearing
+    onAnswerChange(question.id, -1); // Use -1 to indicate clearing
+  };
+
+  // Calculate the global question number and total questions
+  const getGlobalQuestionNumber = () => {
+    if (!hasMultipleSections || !exam?.sections) {
+      return currentQuestionIndex + 1;
+    }
+    
+    // Calculate the global question number across all sections
+    let globalIndex = 0;
+    for (let i = 0; i < exam.sections.length; i++) {
+      if (i < (exam.sections.findIndex(s => s.id === currentSection?.id))) {
+        globalIndex += exam.sections[i].questions?.length || 0;
+      }
+    }
+    return globalIndex + currentQuestionIndex + 1;
+  };
+
+  const totalQuestions = getTotalQuestions(exam);
+  const globalQuestionNumber = getGlobalQuestionNumber();
+
   return (
-    <Card>
+    <Card className="shadow-sm">
       <CardHeader>
         <div className="flex justify-between items-start">
           <div>
             <CardTitle className="flex items-center">
-              Question {currentQuestionIndex + 1} of{" "}
-              {currentSection
-                ? currentSection.questions?.length
-                : "Unknown"}
-              {hasMultipleSections && (
+              Question {globalQuestionNumber} of {totalQuestions}
+              {hasMultipleSections && currentSection && (
                 <Badge variant="outline" className="ml-2">
-                  {currentSection?.name}
+                  {currentSection.name}
                 </Badge>
               )}
               {questionStatus?.status === "MARKED_FOR_REVIEW" && (
-                <Bookmark className="h-4 w-4 ml-2 text-yellow-600" />
+                <Bookmark className="h-4 w-4 ml-2 text-yellow-600 fill-current" />
               )}
             </CardTitle>
             <CardDescription>
@@ -42,80 +72,200 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
             </CardDescription>
           </div>
           <div className="flex items-center space-x-2">
-            <Badge variant="outline">
+            <Badge variant="outline" className="bg-blue-50 text-blue-700">
               {question.difficulty}
             </Badge>
-            <Badge variant="outline">
+            <Badge variant="outline" className="bg-green-50 text-green-700">
               {question.subject}
             </Badge>
           </div>
         </div>
       </CardHeader>
       <CardContent>
+
         <div className="space-y-6">
           {/* Question Text */}
-          <div className="text-lg font-medium">
+          <div className="text-lg font-medium leading-relaxed">
             {question.content}
           </div>
 
-          {/* Question Image */}
+          {/* Question Image - Enhanced for better visibility */}
           {question.questionImage && (
-            <div className="flex justify-center">
-              <div className="relative max-w-full max-h-96 overflow-hidden rounded-lg border shadow-sm">
-                <Image
-                  src={question.questionImage}
-                  alt="Question illustration"
-                  width={800}
-                  height={400}
-                  className="w-auto h-auto max-w-full max-h-96 object-contain"
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none';
-                  }}
-                />
+            <div className="space-y-2">
+              <p className="text-sm text-gray-600 flex items-center">
+                <ZoomIn className="h-4 w-4 mr-1" />
+                Click on the image to view in full size
+              </p>
+              <div className="flex justify-center">
+                <div className="relative max-w-full bg-white rounded-lg border-2 border-gray-300 shadow-sm overflow-hidden">
+                  <div 
+                    className="relative cursor-pointer group min-h-[200px] flex items-center justify-center"
+                    onClick={() => question.questionImage && setSelectedImagePreview(question.questionImage)}
+                  >
+                    <Image
+                      src={question.questionImage}
+                      alt="Question illustration"
+                      width={800}
+                      height={600}
+                      className="w-full h-auto max-h-[400px] object-contain hover:scale-105 transition-transform duration-200"
+                      unoptimized={true}
+                      onError={(e) => {
+                        console.error('Failed to load question image:', question.questionImage);
+                        const target = e.currentTarget as HTMLImageElement;
+                        target.style.display = 'none';
+                        // Show fallback
+                        const parent = target.parentElement;
+                        if (parent) {
+                          parent.innerHTML = `
+                            <div class="flex flex-col items-center justify-center h-48 text-gray-500">
+                              <svg class="w-12 h-12 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                              </svg>
+                              <p class="text-sm">Image failed to load</p>
+                              <p class="text-xs text-gray-400 mt-1">URL: ${question.questionImage}</p>
+                            </div>
+                          `;
+                        }
+                      }}
+                    />
+                    {/* Zoom overlay */}
+                    <div className="absolute inset-0 group-hover:bg-opacity-20 transition-all duration-200 flex items-center justify-center">
+                      <ZoomIn className="text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200 h-8 w-8" />
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           )}
 
-          <RadioGroup
-            value={answer !== undefined ? String(answer) : ""}
-            onValueChange={(value) =>
-              onAnswerChange(question.id, parseInt(value))
-            }
-          >
-            {question?.options?.map((option, index) => (
-              <div
-                key={`${question.id}-${index}`}
-                className="flex items-center space-x-3 p-3 rounded-lg border hover:bg-gray-100"
-              >
-                <RadioGroupItem
-                  value={String(index)}
-                  id={`${question.id}-${index}`}
-                />
-                <Label
-                  htmlFor={`${question.id}-${index}`}
-                  className="flex-1 cursor-pointer flex items-center space-x-3"
+          {/* Answer Selection Section */}
+          <div className="space-y-4">
+            {/* Clear Answer Button */}
+            {answer !== undefined && (
+              <div className="flex justify-between items-center p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                  <span className="text-sm text-blue-800 font-medium">
+                    Selected Answer: Option {answer + 1}
+                  </span>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleClearAnswer}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
                 >
-                  <span>{option}</span>
-                  {/* Option Image */}
-                  {question.optionImages && question.optionImages[index] && (
-                    <div className="relative h-16 w-16 overflow-hidden rounded border">
-                      <Image
-                        src={question.optionImages[index]}
-                        alt={`Option ${index + 1} illustration`}
-                        width={64}
-                        height={64}
-                        className="h-16 w-16 object-cover"
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                        }}
-                      />
-                    </div>
-                  )}
-                </Label>
+                  <X className="h-4 w-4 mr-1" />
+                  Clear Answer
+                </Button>
               </div>
-            ))}
-          </RadioGroup>
+            )}
+
+            <RadioGroup
+              value={answer !== undefined ? String(answer) : ""}
+              onValueChange={(value) =>
+                onAnswerChange(question.id, parseInt(value))
+              }
+            >
+              {question?.options?.map((option, index) => (
+                <div
+                  key={`${question.id}-${index}`}
+                  className={`flex items-center space-x-3 p-4 rounded-lg border-2 transition-all duration-200 ${
+                    answer === index 
+                      ? 'border-blue-500 bg-blue-50 shadow-md ring-1 ring-blue-200' 
+                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  <RadioGroupItem
+                    value={String(index)}
+                    id={`${question.id}-${index}`}
+                    className="flex-shrink-0"
+                  />
+                  <Label
+                    htmlFor={`${question.id}-${index}`}
+                    className="flex-1 cursor-pointer flex items-center space-x-4"
+                  >
+                    <span className="flex-1 text-base">{option}</span>
+                    {/* Option Image - Enhanced for better visibility */}
+                    {question.optionImages && question.optionImages[index] && (
+                      <div 
+                        className="relative h-32 w-32 overflow-hidden rounded-lg border-2 border-gray-300 bg-white cursor-pointer group flex-shrink-0 flex items-center justify-center"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (question.optionImages?.[index]) {
+                            setSelectedImagePreview(question.optionImages[index]);
+                          }
+                        }}
+                      >
+                        <Image
+                          src={question.optionImages[index]}
+                          alt={`Option ${index + 1} illustration`}
+                          width={128}
+                          height={128}
+                          className="h-32 w-32 object-contain group-hover:scale-110 transition-transform duration-200"
+                          unoptimized={true}
+                          onError={(e) => {
+                            console.error('Failed to load option image:', question.optionImages?.[index]);
+                            const target = e.currentTarget as HTMLImageElement;
+                            target.style.display = 'none';
+                            // Show fallback
+                            const parent = target.parentElement;
+                            if (parent) {
+                              parent.innerHTML = `
+                                <div class="flex flex-col items-center justify-center h-32 w-32 text-gray-500 bg-gray-50">
+                                  <svg class="w-8 h-8 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                  </svg>
+                                  <p class="text-xs">Image not available</p>
+                                </div>
+                              `;
+                            }
+                          }}
+                        />
+                        {/* Zoom indicator */}
+                        <div className="absolute inset-0 group-hover:bg-opacity-30 transition-all duration-200 flex items-center justify-center">
+                          <ZoomIn className="text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200 h-5 w-5" />
+                        </div>
+                      </div>
+                    )}
+                  </Label>
+                </div>
+              ))}
+            </RadioGroup>
+          </div>
         </div>
+
+        {/* Image Preview Modal */}
+        <Dialog open={!!selectedImagePreview} onOpenChange={() => setSelectedImagePreview(null)}>
+          <DialogContent className="max-w-4xl max-h-[90vh] p-2">
+            <DialogTitle className="sr-only">Image Preview</DialogTitle>
+            <div className="relative flex items-center justify-center">
+              <div className="relative max-w-full max-h-[80vh] overflow-hidden">
+                {selectedImagePreview && (
+                  <Image
+                    src={selectedImagePreview}
+                    alt="Full size preview"
+                    width={1200}
+                    height={800}
+                    className="w-auto h-auto max-w-full max-h-[80vh] object-contain"
+                    unoptimized={true}
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
+                )}
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSelectedImagePreview(null)}
+                className="absolute top-2 right-2 bg-white/80 hover:bg-white"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );

@@ -6,6 +6,8 @@ export interface User {
   role: 'ADMIN' | 'USER' | 'MODERATOR' | 'GUEST';
   profileImage?: string;
   bio?: string;
+  isEmailVerified?: boolean;
+  phoneNumber?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -16,7 +18,8 @@ export interface LoginRequest {
 }
 
 export interface SignupRequest {
-  name?: string;
+  name: string;
+  phoneNumber: string;
   email: string;
   password: string;
   role?: 'ADMIN' | 'USER' | 'MODERATOR' | 'GUEST';
