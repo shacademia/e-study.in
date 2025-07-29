@@ -16,7 +16,7 @@ import {
   Users
 } from 'lucide-react';
 import { ExamSection, Question } from '@/constants/types';
-import { getDifficultyColor, formatTime } from '../utils/examUtils';
+import { getDifficultyColor } from '../utils/examUtils';
 
 interface SectionsManagerProps {
   sections: ExamSection[];
@@ -76,7 +76,7 @@ const SectionsManager: React.FC<SectionsManagerProps> = ({
               <BookOpen className="h-5 w-5 mr-2" />
               Exam Sections ({sections.length})
             </CardTitle>
-            <Button onClick={onAddSection} className="flex items-center">
+            <Button onClick={onAddSection} className="flex items-center cursor-pointer">
               <Plus className="h-4 w-4 mr-2" />
               Add Section
             </Button>
@@ -97,7 +97,7 @@ const SectionsManager: React.FC<SectionsManagerProps> = ({
                   }`}
                   onClick={() => setActiveSection(index)}
                 >
-                  <CardContent className="p-4">
+                  <CardContent className="p-4 pl-5">
                     <div className="flex items-center justify-between mb-2">
                       <h4 className="font-medium text-sm">{section.name}</h4>
                       {sections.length > 1 && (
@@ -108,14 +108,14 @@ const SectionsManager: React.FC<SectionsManagerProps> = ({
                             e.stopPropagation();
                             onDeleteSection(section.id);
                           }}
-                          className="text-red-600 hover:text-red-800"
+                          className="text-red-600 hover:text-red-800 cursor-pointer"
                         >
                           <Trash2 className="h-3 w-3" />
                         </Button>
                       )}
                     </div>
                     
-                    <div className="space-y-1 text-xs text-gray-600">
+                    <div className="space-y-1 text-xs text-gray-600 pr-4">
                       <div className="flex justify-between">
                         <span>Questions:</span>
                         <span className="font-medium">{stats.totalQuestions}</span>
@@ -123,10 +123,6 @@ const SectionsManager: React.FC<SectionsManagerProps> = ({
                       <div className="flex justify-between">
                         <span>Marks:</span>
                         <span className="font-medium">{stats.totalMarks}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Time:</span>
-                        <span className="font-medium">{formatTime(stats.timeLimit)}</span>
                       </div>
                     </div>
                   </CardContent>
@@ -141,10 +137,8 @@ const SectionsManager: React.FC<SectionsManagerProps> = ({
       {currentSection && (
         <Tabs defaultValue="details" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="details">Section Details</TabsTrigger>
-            <TabsTrigger value="questions">
-              Questions ({currentSection.questions?.length || 0})
-            </TabsTrigger>
+            <TabsTrigger value="details" className='cursor-pointer'>Section Details</TabsTrigger>
+            <TabsTrigger value="questions" className='cursor-pointer'>Questions ({currentSection.questions?.length || 0})</TabsTrigger>
           </TabsList>
           
           <TabsContent value="details" className="space-y-4">
@@ -156,32 +150,17 @@ const SectionsManager: React.FC<SectionsManagerProps> = ({
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="section-name">Section Name *</Label>
-                    <Input
-                      id="section-name"
-                      value={currentSection.name}
-                      onChange={(e) => handleSectionUpdate('name', e.target.value)}
-                      placeholder="Enter section name..."
-                      className="mt-1"
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="section-time">Time Limit (minutes)</Label>
-                    <Input
-                      id="section-time"
-                      type="number"
-                      value={currentSection.timeLimit || 0}
-                      onChange={(e) => handleSectionUpdate('timeLimit', parseInt(e.target.value) || 0)}
-                      placeholder="60"
-                      className="mt-1"
-                      min="0"
-                    />
-                  </div>
+                <div>
+                  <Label htmlFor="section-name">Section Name *</Label>
+                  <Input
+                    id="section-name"
+                    value={currentSection.name}
+                    onChange={(e) => handleSectionUpdate('name', e.target.value)}
+                    placeholder="Enter section name..."
+                    className="mt-1"
+                  />
                 </div>
-                
+
                 <div>
                   <Label htmlFor="section-description">Description</Label>
                   <Textarea
@@ -192,38 +171,6 @@ const SectionsManager: React.FC<SectionsManagerProps> = ({
                     className="mt-1"
                     rows={3}
                   />
-                </div>
-
-                {/* Section Statistics */}
-                <div className="border-t pt-4">
-                  <h4 className="font-medium mb-3">Section Statistics</h4>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="text-center">
-                      <div className="text-lg font-bold text-blue-600">
-                        {currentSection.questions?.length || 0}
-                      </div>
-                      <div className="text-xs text-gray-600">Questions</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-lg font-bold text-green-600">
-                        {currentSection.marks || 0}
-                      </div>
-                      <div className="text-xs text-gray-600">Marks</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-lg font-bold text-purple-600">
-                        {formatTime(currentSection.timeLimit || 0)}
-                      </div>
-                      <div className="text-xs text-gray-600">Time Limit</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-lg font-bold text-orange-600">
-                        {currentSection.questions?.length ? 
-                          Math.round((currentSection.timeLimit || 0) / currentSection.questions.length) : 0}
-                      </div>
-                      <div className="text-xs text-gray-600">Min/Question</div>
-                    </div>
-                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -237,7 +184,7 @@ const SectionsManager: React.FC<SectionsManagerProps> = ({
                     <Target className="h-4 w-4 mr-2" />
                     Section Questions
                   </CardTitle>
-                  <Button onClick={onAddQuestions} className="flex items-center">
+                  <Button onClick={onAddQuestions} className="flex items-center cursor-pointer">
                     <Plus className="h-4 w-4 mr-2" />
                     Add Questions
                   </Button>
@@ -253,7 +200,7 @@ const SectionsManager: React.FC<SectionsManagerProps> = ({
                     <p className="text-gray-600 mb-4">
                       Add questions to this section to build your exam.
                     </p>
-                    <Button onClick={onAddQuestions} className="flex items-center">
+                    <Button onClick={onAddQuestions} className="flex items-center cursor-pointer">
                       <Plus className="h-4 w-4 mr-2" />
                       Add Your First Question
                     </Button>
@@ -289,7 +236,7 @@ const SectionsManager: React.FC<SectionsManagerProps> = ({
                               variant="ghost"
                               size="sm"
                               onClick={() => onRemoveQuestion(currentSection.id, question.id)}
-                              className="text-red-600 hover:text-red-800 ml-2"
+                              className="text-red-600 hover:text-red-800 ml-2 cursor-pointer"
                             >
                               <Trash2 className="h-3 w-3" />
                             </Button>

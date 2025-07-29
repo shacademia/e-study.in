@@ -180,16 +180,15 @@ const EnhancedExamBuilderContent: React.FC<EnhancedExamBuilderProps> = ({
         onPreview={handlePreview}
         loading={loading}
         isEditing={!!editingExam?.id}
+        duration={examDetails.duration}
       />
 
       {/* Main content area */}
-      <div className="max-w-7xl mx-auto px-6 py-6">
+      <div className="max-w-7xl mx-auto px-6 py-6 mb-4">
         <Tabs defaultValue="details" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="details">Exam Details</TabsTrigger>
-            <TabsTrigger value="sections">
-              Sections & Questions ({getTotalQuestions()})
-            </TabsTrigger>
+            <TabsTrigger value="details" className='cursor-pointer'>Exam Details</TabsTrigger>
+            <TabsTrigger value="sections" className='cursor-pointer'>Sections & Questions</TabsTrigger>
           </TabsList>
           
           <TabsContent value="details" className="space-y-6">

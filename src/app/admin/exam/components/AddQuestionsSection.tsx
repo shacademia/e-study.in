@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,318 +20,96 @@ import {
   Eye,
   Grid,
   List,
-  Target,
   Tags,
   Shield,
-  Loader2
+  Loader2,
+  RefreshCw
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { Question, ExamSection, User } from '@/constants/types';
-import { questionService } from '@/services/question';
+import { Question, ExamSection } from '@/constants/types';
 import { examService } from '@/services/exam';
-import { authService } from '@/services/auth';
+
+// Custom hooks
+import { useQuestions } from '../create/hooks/useQuestions';
+import { useQuestionSelection } from '../create/hooks/useQuestionSelection';
+import { useQuestionFilters } from '../create/hooks/useQuestionFilters';
+import { useDebounce } from '../create/hooks/useDebounce';
+import { useUserPermissions } from '../create/hooks/useUserPermissions';
 
 interface AddQuestionsSectionProps {
   examId?: string;
   sectionId?: string;
   section?: ExamSection;
-  availableQuestions?: Question[];
   onQuestionsAdded?: (addedQuestions: Question[], totalQuestions: number) => void;
   onClose?: () => void;
   isOpen: boolean;
   mode?: 'dialog' | 'inline';
 }
 
-type ViewMode = 'grid' | 'list' | 'detailed';
+type ViewMode = 'grid' | 'list';
 
 const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
   examId,
   sectionId,
   section,
-  availableQuestions = [],
   onQuestionsAdded,
   onClose,
   isOpen,
   mode = 'dialog'
 }) => {
-  // State management
-  const [questions, setQuestions] = useState<Question[]>(availableQuestions);
-  const [selectedQuestions, setSelectedQuestions] = useState<Set<string>>(new Set());
+  // Custom hooks
+  const { questions, loading, error, loadQuestions, refreshQuestions } = useQuestions();
+  const { selectedQuestions, toggleSelection, clearSelection, selectedCount } = useQuestionSelection();
+  const { filters, updateFilter, toggleTag, clearFilters, filterOptions } = useQuestionFilters(questions);
+  const userPermissions = useUserPermissions();
+
+  // Local state
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>('list');
-  const [loading, setLoading] = useState(false);
   const [addingQuestions, setAddingQuestions] = useState(false);
-  
-  // User permission state
-  const [userPermissions, setUserPermissions] = useState({
-    canCreateQuestions: false,
-    userRole: 'UNKNOWN',
-    isActive: false,
-    hasToken: false
-  });
-  
-  // Filters
-  const [filters, setFilters] = useState({
-    subject: 'all',
-    difficulty: 'all',
-    topic: 'all',
-    tags: [] as string[],
-    markRange: 'all'
-  });
-
-  // Preview state
   const [previewQuestion, setPreviewQuestion] = useState<Question | null>(null);
 
-  const loadQuestions = useCallback(async () => {
-    try {
-      setLoading(true);
-      console.log('🔄 Loading questions with filters:', { 
-        subject: filters.subject, 
-        difficulty: filters.difficulty, 
-        searchTerm 
-      });
+  // Debounced search
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
-      // First, try with proper pagination parameters
-      const response = await questionService.getAllQuestions({
+  // Load questions when filters or search changes
+  React.useEffect(() => {
+    let isCancelled = false;
+
+    const loadData = async () => {
+      if (isCancelled) return;
+
+      const params = {
         page: 1,
-        limit: 50, // Within API constraints
+        limit: 50,
         subject: filters.subject !== 'all' ? filters.subject : undefined,
         difficulty: filters.difficulty !== 'all' ? filters.difficulty as 'EASY' | 'MEDIUM' | 'HARD' : undefined,
-        search: searchTerm || undefined
-      });
+        search: debouncedSearchTerm || undefined
+      };
 
-      console.log('📦 Questions API response:', response);
-      
-      // Handle different response structures
-      let questionsData: Question[] = [];
-      if (response?.data?.questions) {
-        questionsData = response.data.questions;
-      } else if (Array.isArray(response?.data)) {
-        questionsData = response.data;
-      } else if (Array.isArray(response)) {
-        questionsData = response;
-      }
-
-      console.log('✅ Processed questions:', questionsData);
-      setQuestions(questionsData);
-
-      if (questionsData.length === 0) {
-        // Provide some sample questions if no questions are found
-        const sampleQuestions: Question[] = [
-          {
-            id: 'sample-1',
-            content: 'What is the capital of France?',
-            options: ['London', 'Berlin', 'Paris', 'Rome'],
-            correctOption: 2,
-            difficulty: 'EASY',
-            subject: 'Geography',
-            topic: 'World Capitals',
-            tags: ['capitals', 'europe'],
-            author: {
-              id: 'sample-author',
-              name: 'Sample Author'
-            },
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          },
-          {
-            id: 'sample-2',
-            content: 'Which programming language is known for its simplicity and readability?',
-            options: ['C++', 'Python', 'Assembly', 'Machine Code'],
-            correctOption: 1,
-            difficulty: 'MEDIUM',
-            subject: 'Computer Science',
-            topic: 'Programming Languages',
-            tags: ['programming', 'languages'],
-            author: {
-              id: 'sample-author',
-              name: 'Sample Author'
-            },
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          },
-          {
-            id: 'sample-3',
-            content: 'What is the time complexity of binary search?',
-            options: ['O(n)', 'O(log n)', 'O(n²)', 'O(1)'],
-            correctOption: 1,
-            difficulty: 'HARD',
-            subject: 'Computer Science',
-            topic: 'Algorithms',
-            tags: ['algorithms', 'complexity'],
-            author: {
-              id: 'sample-author',
-              name: 'Sample Author'
-            },
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          }
-        ];
-        
-        setQuestions(sampleQuestions);
-        toast({
-          title: 'Sample Questions Loaded',
-          description: 'No questions found via API. Showing sample questions for demonstration.',
-          variant: 'default'
-        });
-      }
-    } catch (error) {
-      console.error('❌ Failed to load questions:', error);
-      
-      // More specific error handling
-      let errorMessage = 'Unknown error occurred';
-      if (error instanceof Error) {
-        errorMessage = error.message;
-      } else if (typeof error === 'object' && error !== null) {
-        if ('message' in error) {
-          errorMessage = String((error as { message: string }).message);
-        } else if ('error' in error) {
-          errorMessage = String((error as { error: string }).error);
-        } else {
-          errorMessage = JSON.stringify(error);
-        }
-      }
-
-      // Provide sample questions on error
-      const sampleQuestions: Question[] = [
-        {
-          id: 'sample-1',
-          content: 'What is the capital of France?',
-          options: ['London', 'Berlin', 'Paris', 'Rome'],
-          correctOption: 2,
-          difficulty: 'EASY',
-          subject: 'Geography',
-          topic: 'World Capitals',
-          tags: ['capitals', 'europe'],
-          author: { id: 'sample-author', name: 'Sample Author' },
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        },
-        {
-          id: 'sample-2',
-          content: 'Which programming language is known for its simplicity and readability?',
-          options: ['C++', 'Python', 'Assembly', 'Machine Code'],
-          correctOption: 1,
-          difficulty: 'MEDIUM',
-          subject: 'Computer Science',
-          topic: 'Programming Languages',
-          tags: ['programming', 'languages'],
-          author: { id: 'sample-author', name: 'Sample Author' },
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        }
-      ];
-      
-      setQuestions(sampleQuestions);
-      
-      toast({
-        title: 'API Error - Using Sample Data',
-        description: `API failed: ${errorMessage}. Showing sample questions for demonstration.`,
-        variant: 'destructive'
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [filters.subject, filters.difficulty, searchTerm]);
-
-  // Load questions on mount if not provided
-  useEffect(() => {
-    if (availableQuestions.length === 0) {
-      loadQuestions();
-    } else {
-      setQuestions(availableQuestions);
-    }
-  }, [availableQuestions, loadQuestions]);
-
-  // Check user permissions
-  useEffect(() => {
-    const checkPermissions = async () => {
-      try {
-        const token = authService.getToken();
-        
-        if (!token) {
-          setUserPermissions({
-            canCreateQuestions: false,
-            userRole: 'NO_TOKEN',
-            isActive: false,
-            hasToken: false
-          });
-          return;
-        }
-
-        // Try to get user profile to check permissions
-        const userProfile = await authService.getCurrentUser();
-        // Assume user is active if isActive property doesn't exist (for backward compatibility)
-        const isActive = (userProfile as User & { isActive?: boolean }).isActive !== false;
-        const canCreate = isActive && ['ADMIN', 'MODERATOR'].includes(userProfile.role);
-        
-        setUserPermissions({
-          canCreateQuestions: canCreate,
-          userRole: userProfile.role,
-          isActive: isActive,
-          hasToken: true
-        });
-      } catch (error) {
-        console.error('Permission check failed:', error);
-        setUserPermissions({
-          canCreateQuestions: false,
-          userRole: 'ERROR',
-          isActive: false,
-          hasToken: !!authService.getToken()
-        });
-      }
+      await loadQuestions(params);
     };
 
-    checkPermissions();
-  }, []);
+    loadData();
 
-  // Filter questions based on current filters
+    return () => {
+      isCancelled = true;
+    };
+  }, [loadQuestions, filters.subject, filters.difficulty, debouncedSearchTerm]);
+
+  // Client-side filtering for additional filters (tags, topic)
   const filteredQuestions = useMemo(() => {
     return questions.filter(question => {
-      const matchesSearch = !searchTerm || 
-        question.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        question.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        question.topic.toLowerCase().includes(searchTerm.toLowerCase());
-
-      const matchesSubject = filters.subject === 'all' || question.subject === filters.subject;
-      const matchesDifficulty = filters.difficulty === 'all' || question.difficulty === filters.difficulty;
       const matchesTopic = filters.topic === 'all' || question.topic === filters.topic;
       const matchesTags = filters.tags.length === 0 || 
         filters.tags.some(tag => question.tags.includes(tag));
 
-      return matchesSearch && matchesSubject && matchesDifficulty && matchesTopic && matchesTags;
+      return matchesTopic && matchesTags;
     });
-  }, [questions, searchTerm, filters]);
+  }, [questions, filters.topic, filters.tags]);
 
-  // Get unique values for filters
-  const subjects = useMemo(() => [...new Set(questions.map(q => q.subject))].filter(Boolean), [questions]);
-  const topics = useMemo(() => [...new Set(questions.map(q => q.topic))].filter(Boolean), [questions]);
-  const allTags = useMemo(() => [...new Set(questions.flatMap(q => q.tags))].filter(Boolean), [questions]);
-  const difficulties = ['EASY', 'MEDIUM', 'HARD'];
-
-  // Question selection handlers
-  const toggleQuestionSelection = (questionId: string) => {
-    const newSelected = new Set(selectedQuestions);
-    if (newSelected.has(questionId)) {
-      newSelected.delete(questionId);
-    } else {
-      newSelected.add(questionId);
-    }
-    setSelectedQuestions(newSelected);
-  };
-
-  const selectAllFiltered = () => {
-    const newSelected = new Set([...selectedQuestions, ...filteredQuestions.map(q => q.id)]);
-    setSelectedQuestions(newSelected);
-  };
-
-  const clearSelection = () => {
-    setSelectedQuestions(new Set());
-  };
-
-  // Add questions to section
+  // Handle adding questions
   const handleAddQuestions = async () => {
-    // Check permissions first
     if (!userPermissions.canCreateQuestions) {
       toast({
         title: 'Permission Denied',
@@ -345,7 +123,7 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
       return;
     }
 
-    if (selectedQuestions.size === 0) {
+    if (selectedCount === 0) {
       toast({
         title: 'No Questions Selected',
         description: 'Please select at least one question to add',
@@ -354,69 +132,44 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
       return;
     }
 
+    // Demo mode fallback
     if (!examId || !sectionId) {
-      toast({
-        title: 'Missing Information',
-        description: 'This is a demo mode. In a real application, exam ID and section ID would be required.',
-        variant: 'default'
-      });
-      
-      // Simulate success in demo mode
-      const addedQuestions = questions.filter(q => selectedQuestions.has(q.id));
+      const addedQuestions = filteredQuestions.filter(q => selectedQuestions.has(q.id));
       
       toast({
         title: 'Questions Added (Demo)',
-        description: `Successfully selected ${selectedQuestions.size} questions. In real mode, these would be added to ${section?.name || 'the section'}`,
+        description: `Successfully selected ${selectedCount} questions. In real mode, these would be added to ${section?.name || 'the section'}`,
       });
 
-      // Clear selection
-      setSelectedQuestions(new Set());
-
-      // Callback to parent
-      if (onQuestionsAdded) {
-        onQuestionsAdded(addedQuestions, selectedQuestions.size);
-      }
-
-      // Close dialog if in dialog mode
+      clearSelection();
+      onQuestionsAdded?.(addedQuestions, selectedCount);
+      
       if (mode === 'dialog' && onClose) {
         onClose();
       }
-      
       return;
     }
 
+    // Real API call
     try {
       setAddingQuestions(true);
       
       const selectedQuestionsList = Array.from(selectedQuestions);
-      console.log('Adding questions to section:', {
-        examId,
-        sectionId,
-        questionIds: selectedQuestionsList,
-        sectionName: section?.name
-      });
-
       await examService.addQuestionsToSection(examId, sectionId, {
         questionIds: selectedQuestionsList,
-        marks: 1 // Default marks per question
+        marks: 1
       });
 
-      const addedQuestions = questions.filter(q => selectedQuestionsList.includes(q.id));
+      const addedQuestions = filteredQuestions.filter(q => selectedQuestionsList.includes(q.id));
       
       toast({
         title: 'Questions Added Successfully',
-        description: `Successfully added ${selectedQuestions.size} questions to ${section?.name || 'the section'}`
+        description: `Successfully added ${selectedCount} questions to ${section?.name || 'the section'}`
       });
 
-      // Clear selection
-      setSelectedQuestions(new Set());
+      clearSelection();
+      onQuestionsAdded?.(addedQuestions, selectedCount);
 
-      // Callback to parent
-      if (onQuestionsAdded) {
-        onQuestionsAdded(addedQuestions, selectedQuestions.size);
-      }
-
-      // Close dialog if in dialog mode
       if (mode === 'dialog' && onClose) {
         onClose();
       }
@@ -424,14 +177,7 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
     } catch (error) {
       console.error('Failed to add questions:', error);
       
-      // More specific error messages
-      let errorMessage = 'Failed to add questions to section';
-      if (error instanceof Error) {
-        errorMessage = error.message;
-      } else if (typeof error === 'object' && error !== null && 'message' in error) {
-        errorMessage = (error as { message: string }).message;
-      }
-      
+      const errorMessage = error instanceof Error ? error.message : 'Failed to add questions to section';
       toast({
         title: 'Error Adding Questions',
         description: errorMessage,
@@ -442,32 +188,13 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
     }
   };
 
-  // Filter handlers
-  const handleFilterChange = (key: string, value: string) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
-  };
-
-  const handleTagToggle = (tag: string) => {
-    setFilters(prev => ({
-      ...prev,
-      tags: prev.tags.includes(tag) 
-        ? prev.tags.filter(t => t !== tag)
-        : [...prev.tags, tag]
-    }));
-  };
-
-  const clearFilters = () => {
-    setFilters({
-      subject: 'all',
-      difficulty: 'all',
-      topic: 'all',
-      tags: [],
-      markRange: 'all'
-    });
+  // Clear all filters and search
+  const handleClearAll = () => {
+    clearFilters();
     setSearchTerm('');
   };
 
-  // Question difficulty color
+  // Question difficulty color helper
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
       case 'EASY': return 'bg-green-100 text-green-800 border-green-200';
@@ -477,15 +204,15 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
     }
   };
 
-  // Question card component
-  const QuestionCard = ({ question, isSelected }: { question: Question; isSelected: boolean }) => (
+  // Question card component with React.memo for performance
+  const QuestionCard = React.memo(({ question, isSelected }: { question: Question; isSelected: boolean }) => (
     <Card className={`transition-all hover:shadow-md cursor-pointer ${isSelected ? 'ring-2 ring-blue-500 bg-blue-50' : ''}`}>
       <CardHeader className="pb-3">
         <div className="flex justify-between items-start">
           <div className="flex items-center space-x-2">
             <Checkbox
               checked={isSelected}
-              onCheckedChange={() => toggleQuestionSelection(question.id)}
+              onCheckedChange={() => toggleSelection(question.id)}
               onClick={(e) => e.stopPropagation()}
             />
             <div className="flex flex-wrap gap-1">
@@ -508,9 +235,9 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
         </div>
         <div className="text-sm text-muted-foreground">{question.topic}</div>
       </CardHeader>
-      <CardContent onClick={() => toggleQuestionSelection(question.id)}>
+      <CardContent onClick={() => toggleSelection(question.id)}>
         <p className="text-sm line-clamp-3 mb-3">{question.content}</p>
-        
+
         {/* Quick preview of options */}
         <div className="space-y-1">
           {question.options.slice(0, 2).map((option, index) => (
@@ -539,11 +266,32 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
         )}
       </CardContent>
     </Card>
-  );
+  ));
+
+  // Add display name
+  QuestionCard.displayName = 'QuestionCard';
+
+  // Error state
+  if (error) {
+    return (
+      <Card>
+        <CardContent className="flex flex-col items-center justify-center py-12">
+          <div className="text-center">
+            <h3 className="text-lg font-medium mb-2 text-red-600">Failed to Load Questions</h3>
+            <p className="text-muted-foreground mb-4">{error}</p>
+            <Button onClick={refreshQuestions} variant="outline" className='cursor-pointer'>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Try Again
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   // Main content
   const content = (
-    <div className="space-y-6">
+    <div className="space-y-6 px-2">
       {/* Permission Warning */}
       {!userPermissions.canCreateQuestions && (
         <Alert className="border-yellow-200 bg-yellow-50">
@@ -554,8 +302,6 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
               'You are not authenticated. Please log in to access question creation features.'
             ) : !userPermissions.isActive ? (
               'Your account is not active. Please contact an administrator.'
-            ) : userPermissions.userRole === 'STUDENT' ? (
-              'You have student access. Question creation requires ADMIN or MODERATOR role.'
             ) : (
               `You do not have permission to create questions. Current role: ${userPermissions.userRole}`
             )}
@@ -572,12 +318,8 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
           </p>
         </div>
         <div className="flex items-center space-x-2">
-          <Badge variant="secondary">
-            {selectedQuestions.size} selected
-          </Badge>
-          <Badge variant="outline">
-            {filteredQuestions.length} available
-          </Badge>
+          <Badge variant="secondary">{selectedCount} selected</Badge>
+          <Badge variant="outline">{filteredQuestions.length} available</Badge>
         </div>
       </div>
 
@@ -605,13 +347,13 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
               <Label>Subject</Label>
-              <Select value={filters.subject} onValueChange={(value) => handleFilterChange('subject', value)}>
+              <Select value={filters.subject} onValueChange={(value) => updateFilter('subject', value)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Subjects</SelectItem>
-                  {subjects.map(subject => (
+                  {filterOptions.subjects.map(subject => (
                     <SelectItem key={subject} value={subject}>{subject}</SelectItem>
                   ))}
                 </SelectContent>
@@ -620,13 +362,13 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
 
             <div>
               <Label>Difficulty</Label>
-              <Select value={filters.difficulty} onValueChange={(value) => handleFilterChange('difficulty', value)}>
+              <Select value={filters.difficulty} onValueChange={(value) => updateFilter('difficulty', value)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Difficulties</SelectItem>
-                  {difficulties.map(difficulty => (
+                  {filterOptions.difficulties.map(difficulty => (
                     <SelectItem key={difficulty} value={difficulty}>
                       {difficulty.charAt(0) + difficulty.slice(1).toLowerCase()}
                     </SelectItem>
@@ -637,13 +379,13 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
 
             <div>
               <Label>Topic</Label>
-              <Select value={filters.topic} onValueChange={(value) => handleFilterChange('topic', value)}>
+              <Select value={filters.topic} onValueChange={(value) => updateFilter('topic', value)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Topics</SelectItem>
-                  {topics.map(topic => (
+                  {filterOptions.topics.map(topic => (
                     <SelectItem key={topic} value={topic}>{topic}</SelectItem>
                   ))}
                 </SelectContent>
@@ -651,51 +393,36 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
             </div>
 
             <div className="flex items-end">
-              <Button variant="outline" onClick={clearFilters} className="w-full">
-                Clear Filters
+              <Button variant="outline" onClick={handleClearAll} className="w-full cursor-pointer">
+                Clear All
               </Button>
             </div>
           </div>
 
           {/* Tags Filter */}
-          {allTags.length > 0 && (
+          {filterOptions.allTags.length > 0 && (
             <div>
               <Label>Tags</Label>
               <div className="flex flex-wrap gap-2 mt-2">
-                {allTags.slice(0, 15).map(tag => (
+                {filterOptions.allTags.slice(0, 15).map(tag => (
                   <Badge
                     key={tag}
                     variant={filters.tags.includes(tag) ? "default" : "outline"}
                     className="cursor-pointer transition-colors"
-                    onClick={() => handleTagToggle(tag)}
+                    onClick={() => toggleTag(tag)}
                   >
                     <Tags className="h-3 w-3 mr-1" />
                     {tag}
                   </Badge>
                 ))}
+                {filterOptions.allTags.length > 15 && (
+                  <Badge variant="outline" className="cursor-default">
+                    +{filterOptions.allTags.length - 15} more
+                  </Badge>
+                )}
               </div>
             </div>
           )}
-        </CardContent>
-      </Card>
-
-      {/* Selection Tools */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center text-lg">
-            <Target className="h-5 w-5 mr-2" />
-            Selection Tools
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex space-x-2">
-            <Button variant="outline" onClick={selectAllFiltered}>
-              Select All Filtered ({filteredQuestions.length})
-            </Button>
-            <Button variant="outline" onClick={clearSelection}>
-              Clear Selection
-            </Button>
-          </div>
         </CardContent>
       </Card>
 
@@ -703,6 +430,7 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
       <div className="flex justify-between items-center">
         <div className="flex space-x-2">
           <Button
+            className='cursor-pointer'
             variant={viewMode === 'list' ? 'default' : 'outline'}
             size="sm"
             onClick={() => setViewMode('list')}
@@ -710,6 +438,7 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
             <List className="h-4 w-4" />
           </Button>
           <Button
+            className='cursor-pointer'
             variant={viewMode === 'grid' ? 'default' : 'outline'}
             size="sm"
             onClick={() => setViewMode('grid')}
@@ -736,9 +465,18 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
           <CardContent className="flex flex-col items-center justify-center py-12">
             <BookOpen className="h-12 w-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-medium mb-2">No questions found</h3>
-            <p className="text-muted-foreground text-center">
-              Try adjusting your search criteria or filters to find questions.
+            <p className="text-muted-foreground text-center mb-4">
+              {questions.length === 0 
+                ? 'No questions available in the database.'
+                : 'Try adjusting your search criteria or filters to find questions.'
+              }
             </p>
+            {questions.length === 0 && (
+              <Button onClick={refreshQuestions} variant="outline" className='cursor-pointer'>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refresh
+              </Button>
+            )}
           </CardContent>
         </Card>
       ) : (
@@ -757,41 +495,6 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
         </div>
       )}
 
-      {/* Action Buttons */}
-      <div className="flex justify-between items-center pt-6 border-t">
-        <div className="flex items-center space-x-2">
-          <CheckCircle className="h-5 w-5 text-green-600" />
-          <span className="font-medium">
-            {selectedQuestions.size} question{selectedQuestions.size !== 1 ? 's' : ''} selected
-          </span>
-        </div>
-        
-        <div className="flex space-x-2">
-          {mode === 'dialog' && (
-            <Button variant="outline" onClick={onClose}>
-              Cancel
-            </Button>
-          )}
-          <Button
-            onClick={handleAddQuestions}
-            disabled={selectedQuestions.size === 0 || addingQuestions || !userPermissions.canCreateQuestions}
-            title={!userPermissions.canCreateQuestions ? 'You do not have permission to add questions' : undefined}
-          >
-            {addingQuestions ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                Adding...
-              </>
-            ) : (
-              <>
-                <Plus className="h-4 w-4 mr-2" />
-                Add {selectedQuestions.size} Question{selectedQuestions.size !== 1 ? 's' : ''}
-              </>
-            )}
-          </Button>
-        </div>
-      </div>
-
       {/* Question Preview Dialog */}
       {previewQuestion && (
         <Dialog open={!!previewQuestion} onOpenChange={(open) => !open && setPreviewQuestion(null)}>
@@ -803,7 +506,7 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
               </DialogDescription>
             </DialogHeader>
             
-            <div className="space-y-4 max-w-full">
+            <div className="space-y-4">
               <div className="flex flex-wrap gap-2">
                 <Badge variant="outline">{previewQuestion.subject}</Badge>
                 <Badge className={getDifficultyColor(previewQuestion.difficulty)}>
@@ -816,7 +519,6 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
                 <Label>Question</Label>
                 <div className="mt-1 space-y-3">
                   <p className="p-3 border rounded break-words">{previewQuestion.content}</p>
-                  {/* Question Image */}
                   {previewQuestion.questionImage && (
                     <div className="flex justify-center w-full">
                       <div className="relative max-w-full">
@@ -855,7 +557,6 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
                         </div>
                         <div className="flex-1 min-w-0">
                           <span className="break-words">{option}</span>
-                          {/* Option Image */}
                           {previewQuestion.optionImages && previewQuestion.optionImages[index] && (
                             <div className="mt-3 flex justify-center">
                               <div className="relative max-w-full">
@@ -897,9 +598,10 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
               
               <div className="flex justify-end">
                 <Button
+                  className='cursor-pointer'
                   variant={selectedQuestions.has(previewQuestion.id) ? "destructive" : "default"}
                   onClick={() => {
-                    toggleQuestionSelection(previewQuestion.id);
+                    toggleSelection(previewQuestion.id);
                     setPreviewQuestion(null);
                   }}
                 >
@@ -910,6 +612,8 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
           </DialogContent>
         </Dialog>
       )}
+
+      
     </div>
   );
 
@@ -917,15 +621,47 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
   if (mode === 'dialog') {
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-7xl max-h-[90vh] overflow-y-auto pb-0">
           <DialogHeader>
-            <DialogTitle>Add Questions to Section</DialogTitle>
-            <DialogDescription>
-              Select questions from the question bank to add to {section?.name || 'your section'}
-            </DialogDescription>
+            <DialogTitle></DialogTitle>
+            <DialogDescription></DialogDescription>
           </DialogHeader>
           {content}
+          <div className="flex justify-between items-center py-4 border-t sticky bottom-0 bg-white">
+            <div className="flex items-center space-x-2">
+              <CheckCircle className="h-5 w-5 text-green-600" />
+              <span className="font-medium">
+                {selectedCount} question{selectedCount !== 1 ? 's' : ''} selected
+              </span>
+            </div>
+            <div className="flex space-x-2 bg-white">
+              {mode === 'dialog' && (
+                <Button variant="outline" onClick={onClose} className='cursor-pointer'>
+                  Cancel
+                </Button>
+              )}
+              <Button
+                className='cursor-pointer'
+                onClick={handleAddQuestions}
+                disabled={selectedCount === 0 || addingQuestions || !userPermissions.canCreateQuestions}
+                title={!userPermissions.canCreateQuestions ? 'You do not have permission to add questions' : undefined}
+              >
+                {addingQuestions ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Adding...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add {selectedCount} Question{selectedCount !== 1 ? 's' : ''}
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
+        {/* Footer Actions */}
       </Dialog>
     );
   }
