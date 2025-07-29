@@ -11,6 +11,8 @@ export function middleware(request: NextRequest) {
     '/api/users/login',
     '/api/users/signup',
     '/api/users/logout',
+    '/api/auth/forgot-password',
+    '/api/auth/reset-password',
     '/api/example',
     '/api/test-db',
     '/api/upload/imagekit/test'
@@ -24,6 +26,9 @@ export function middleware(request: NextRequest) {
     '/about',
     '/contact'
   ]
+
+  // Check if this is a forgot password page (dynamic route)
+  const isForgotPasswordPage = pathname.startsWith('/forgot-password/')
 
   // Define static assets and Next.js internal routes that should be ignored
   const staticRoutes = [
@@ -50,6 +55,12 @@ export function middleware(request: NextRequest) {
   const isPublicPage = publicPages.some(page => pathname === page)
   if (isPublicPage) {
     console.log('🌐 Public page, no auth required:', pathname)
+    return NextResponse.next()
+  }
+
+  // Check if this is a forgot password page
+  if (isForgotPasswordPage) {
+    console.log('🌐 Forgot password page, no auth required:', pathname)
     return NextResponse.next()
   }
 
