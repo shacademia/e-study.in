@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -35,6 +35,7 @@ import { useQuestionSelection } from '../create/hooks/useQuestionSelection';
 import { useQuestionFilters } from '../create/hooks/useQuestionFilters';
 import { useDebounce } from '../create/hooks/useDebounce';
 import { useUserPermissions } from '../create/hooks/useUserPermissions';
+import QuestionPreviewDialog from './QuestionPreviewDialog';
 
 interface AddQuestionsSectionProps {
   examId?: string;
@@ -58,19 +59,39 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
   mode = 'dialog'
 }) => {
   // Custom hooks
-  const { questions, loading, error, loadQuestions, refreshQuestions } = useQuestions();
+  const { questions, loading, error, loadQuestions, refreshQuestions, hasMore } = useQuestions();
   const { selectedQuestions, toggleSelection, clearSelection, selectedCount } = useQuestionSelection();
   const { filters, updateFilter, toggleTag, clearFilters, filterOptions } = useQuestionFilters(questions);
   const userPermissions = useUserPermissions();
 
-  // Local state
+  // State for question IDs already added to this section to filter them out
+  const [usedQuestionIds, setUsedQuestionIds] = useState<Set<string>>(new Set());
+
+  // Local UI state
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [addingQuestions, setAddingQuestions] = useState(false);
   const [previewQuestion, setPreviewQuestion] = useState<Question | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
 
-  // Debounced search
+  // Debounced search term for loading questions
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
+
+  // Load questions already added to this section by examId and sectionId
+  useEffect(() => {
+    const loadUsedQuestions = async () => {
+      if (!examId || !sectionId) return;
+      try {
+        const questionsInSection = await examService.getSectionQuestions(examId, sectionId);
+        const ids = questionsInSection?.map(q => q.id) || [];
+        setUsedQuestionIds(new Set(ids));
+      } catch (err) {
+        console.error('Failed to load used questions for section:', err);
+        setUsedQuestionIds(new Set());
+      }
+    };
+    loadUsedQuestions();
+  }, [examId, sectionId]);
 
   // Load questions when filters or search changes
   React.useEffect(() => {
@@ -80,14 +101,13 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
       if (isCancelled) return;
 
       const params = {
-        page: 1,
-        limit: 50,
         subject: filters.subject !== 'all' ? filters.subject : undefined,
         difficulty: filters.difficulty !== 'all' ? filters.difficulty as 'EASY' | 'MEDIUM' | 'HARD' : undefined,
-        search: debouncedSearchTerm || undefined
+        search: debouncedSearchTerm || undefined,
       };
 
-      await loadQuestions(params);
+      // Reset and load first batch
+      await loadQuestions(params, { reset: true });
     };
 
     loadData();
@@ -97,28 +117,45 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
     };
   }, [loadQuestions, filters.subject, filters.difficulty, debouncedSearchTerm]);
 
-  // Client-side filtering for additional filters (tags, topic)
+  // Filter out used questions and apply client-side filters for topic & tags
   const filteredQuestions = useMemo(() => {
     return questions.filter(question => {
+      // Exclude questions that are already used
+      if (usedQuestionIds.has(question.id)) return false;
+
       const matchesTopic = filters.topic === 'all' || question.topic === filters.topic;
-      const matchesTags = filters.tags.length === 0 || 
-        filters.tags.some(tag => question.tags.includes(tag));
+      const matchesTags = filters.tags.length === 0 || filters.tags.some(tag => question.tags.includes(tag));
 
       return matchesTopic && matchesTags;
     });
-  }, [questions, filters.topic, filters.tags]);
+  }, [questions, filters.topic, filters.tags, usedQuestionIds]);
 
-  // Handle adding questions
+  // Handle loading more questions
+  const handleLoadMore = async () => {
+    setLoadingMore(true);
+
+    const params = {
+      subject: filters.subject !== 'all' ? filters.subject : undefined,
+      difficulty: filters.difficulty !== 'all' ? filters.difficulty as 'EASY' | 'MEDIUM' | 'HARD' : undefined,
+      search: debouncedSearchTerm || undefined,
+    };
+
+    // Append next batch
+    await loadQuestions(params, { loadMore: true });
+    setLoadingMore(false);
+  };
+
+  // Handle adding questions selected by admin to the section
   const handleAddQuestions = async () => {
     if (!userPermissions.canCreateQuestions) {
       toast({
         title: 'Permission Denied',
-        description: !userPermissions.hasToken 
-          ? 'Please log in to add questions' 
-          : !userPermissions.isActive 
-          ? 'Your account is not active. Contact an administrator.'
-          : `You need ADMIN or MODERATOR role to add questions. Current role: ${userPermissions.userRole}`,
-        variant: 'destructive'
+        description: !userPermissions.hasToken
+          ? 'Please log in to add questions'
+          : !userPermissions.isActive
+            ? 'Your account is not active. Contact an administrator.'
+            : `You need ADMIN or MODERATOR role to add questions. Current role: ${userPermissions.userRole}`,
+        variant: 'destructive',
       });
       return;
     }
@@ -127,7 +164,7 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
       toast({
         title: 'No Questions Selected',
         description: 'Please select at least one question to add',
-        variant: 'destructive'
+        variant: 'destructive',
       });
       return;
     }
@@ -135,7 +172,7 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
     // Demo mode fallback
     if (!examId || !sectionId) {
       const addedQuestions = filteredQuestions.filter(q => selectedQuestions.has(q.id));
-      
+
       toast({
         title: 'Questions Added (Demo)',
         description: `Successfully selected ${selectedCount} questions. In real mode, these would be added to ${section?.name || 'the section'}`,
@@ -143,45 +180,49 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
 
       clearSelection();
       onQuestionsAdded?.(addedQuestions, selectedCount);
-      
+
       if (mode === 'dialog' && onClose) {
         onClose();
       }
       return;
     }
 
-    // Real API call
+    // Real API call to add questions to the section
     try {
       setAddingQuestions(true);
-      
+
       const selectedQuestionsList = Array.from(selectedQuestions);
       await examService.addQuestionsToSection(examId, sectionId, {
         questionIds: selectedQuestionsList,
-        marks: 1
+        marks: 1,
       });
 
       const addedQuestions = filteredQuestions.filter(q => selectedQuestionsList.includes(q.id));
-      
+
       toast({
         title: 'Questions Added Successfully',
-        description: `Successfully added ${selectedCount} questions to ${section?.name || 'the section'}`
+        description: `Successfully added ${selectedCount} questions to ${section?.name || 'the section'}`,
       });
 
       clearSelection();
       onQuestionsAdded?.(addedQuestions, selectedCount);
 
+      // Refresh used question IDs after successful add
+      const questionsInSection = await examService.getSectionQuestions(examId!, sectionId!);
+      const ids = questionsInSection?.map(q => q.id) ?? [];
+      setUsedQuestionIds(new Set(ids));
+
       if (mode === 'dialog' && onClose) {
         onClose();
       }
-
     } catch (error) {
       console.error('Failed to add questions:', error);
-      
+
       const errorMessage = error instanceof Error ? error.message : 'Failed to add questions to section';
       toast({
         title: 'Error Adding Questions',
         description: errorMessage,
-        variant: 'destructive'
+        variant: 'destructive',
       });
     } finally {
       setAddingQuestions(false);
@@ -205,70 +246,96 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
   };
 
   // Question card component with React.memo for performance
-  const QuestionCard = React.memo(({ question, isSelected }: { question: Question; isSelected: boolean }) => (
-    <Card className={`transition-all hover:shadow-md cursor-pointer ${isSelected ? 'ring-2 ring-blue-500 bg-blue-50' : ''}`}>
-      <CardHeader className="pb-3">
-        <div className="flex justify-between items-start">
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              checked={isSelected}
-              onCheckedChange={() => toggleSelection(question.id)}
-              onClick={(e) => e.stopPropagation()}
-            />
-            <div className="flex flex-wrap gap-1">
-              <Badge variant="outline" className="text-xs">{question.subject}</Badge>
-              <Badge className={`text-xs ${getDifficultyColor(question.difficulty)}`}>
-                {question.difficulty}
-              </Badge>
+  const QuestionCard = React.memo(({ question, isSelected }: { question: Question; isSelected: boolean }) => {
+    // Helper to render a single layer
+    const renderLayer = (
+      type: 'text' | 'image' | 'none',
+      text?: string,
+      imageUrl?: string
+    ) => {
+      if (type === 'text' && text) {
+        return <p className="text-sm line-clamp-3 mb-1 break-words">{text}</p>;
+      } else if (type === 'image' && imageUrl) {
+        return (
+          <div className="mb-1 flex justify-start">
+            <div className="relative w-full max-w-full h-auto max-h-[150px]">
+              <Image
+                src={imageUrl}
+                alt="Question layer image"
+                width={60}
+                height={50}
+                className="rounded-md object-contain border bg-white"
+                unoptimized={true} // Optional, if you're loading external URLs without next.config domains
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                }}
+              />
             </div>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              setPreviewQuestion(question);
-            }}
-          >
-            <Eye className="h-4 w-4" />
-          </Button>
-        </div>
-        <div className="text-sm text-muted-foreground">{question.topic}</div>
-      </CardHeader>
-      <CardContent onClick={() => toggleSelection(question.id)}>
-        <p className="text-sm line-clamp-3 mb-3">{question.content}</p>
+        );
+      }
+      return null; // none or missing content renders nothing
+    };
 
-        {/* Quick preview of options */}
-        <div className="space-y-1">
-          {question.options.slice(0, 2).map((option, index) => (
-            <div key={index} className="flex items-center text-xs text-gray-600">
-              <div className="w-4 h-4 rounded-full bg-gray-100 flex items-center justify-center mr-2">
-                {String.fromCharCode(65 + index)}
+    return (
+      <Card className={`transition-all hover:shadow-md cursor-pointer ${isSelected ? 'ring-2 ring-blue-500 bg-blue-50' : ''}`}>
+        <CardHeader className="pb-3">
+          <div className="flex justify-between items-start">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                checked={isSelected}
+                onCheckedChange={() => toggleSelection(question.id)}
+                onClick={(e) => e.stopPropagation()}
+              />
+              <div className="flex flex-wrap gap-1 cursor-text">
+                <Badge variant="outline">{question.subject}</Badge>
+                <Badge variant="secondary">{question.topic}</Badge>
+                <Badge className={`${getDifficultyColor(question.difficulty)} text-[10px] px-[6px] py-[1px] items-center`}>
+                  {question.difficulty}
+                </Badge>
               </div>
-              <span className="truncate">{option}</span>
             </div>
-          ))}
-          {question.options.length > 2 && (
-            <div className="text-xs text-gray-500">+{question.options.length - 2} more options</div>
-          )}
-        </div>
-
-        {/* Tags */}
-        {question.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-3">
-            {question.tags.slice(0, 3).map(tag => (
-              <Badge key={tag} variant="secondary" className="text-xs">{tag}</Badge>
-            ))}
-            {question.tags.length > 3 && (
-              <Badge variant="secondary" className="text-xs">+{question.tags.length - 3}</Badge>
-            )}
+            <div className="flex justify-start space-x-2">
+              <div className='flex items-center space-x-1 cursor-text'>
+                <Badge className='bg-green-100 text-green-800 border-green-200'>+ {question.positiveMarks}</Badge>
+                <Badge className="bg-red-100 text-red-800 border-red-200">- {question.negativeMarks}</Badge>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                className='cursor-pointer'
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setPreviewQuestion(question);
+                }}
+              >
+                <Eye className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
-        )}
-      </CardContent>
-    </Card>
-  ));
+        </CardHeader>
+        <CardContent onClick={() => toggleSelection(question.id)}>
+          {/* Render 3 layers with proper conditional content */}
+          {renderLayer(question.layer1Type, question.layer1Text, question.layer1Image)}
+          {renderLayer(question.layer2Type, question.layer2Text, question.layer2Image)}
+          {renderLayer(question.layer3Type, question.layer3Text, question.layer3Image)}
 
-  // Add display name
+          {/* Tags */}
+          {question.tags.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1 mt-3">
+              <span className='text-[12px] py-4 mt-[0.5px] cursor-text'>Tags: </span>
+              {question.tags.slice(0, 3).map(tag => (
+                <Badge key={tag} variant="secondary" className="text-xs cursor-text">{tag}</Badge>
+              ))}
+              {question.tags.length > 3 && (
+                <Badge variant="secondary" className="text-xs cursor-text">+{question.tags.length - 3}</Badge>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
+  });
   QuestionCard.displayName = 'QuestionCard';
 
   // Error state
@@ -310,7 +377,7 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
       )}
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mt-[-10px]">
         <div>
           <h2 className="text-2xl font-bold">Add Questions</h2>
           <p className="text-muted-foreground">
@@ -359,7 +426,6 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
                 </SelectContent>
               </Select>
             </div>
-
             <div>
               <Label>Difficulty</Label>
               <Select value={filters.difficulty} onValueChange={(value) => updateFilter('difficulty', value)}>
@@ -376,7 +442,6 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
                 </SelectContent>
               </Select>
             </div>
-
             <div>
               <Label>Topic</Label>
               <Select value={filters.topic} onValueChange={(value) => updateFilter('topic', value)}>
@@ -391,7 +456,6 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
                 </SelectContent>
               </Select>
             </div>
-
             <div className="flex items-end">
               <Button variant="outline" onClick={handleClearAll} className="w-full cursor-pointer">
                 Clear All
@@ -446,9 +510,9 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
             <Grid className="h-4 w-4" />
           </Button>
         </div>
-        
+
         <div className="text-sm text-muted-foreground">
-          {filteredQuestions.length} of {questions.length} questions
+          Showing {filteredQuestions.length} questions
         </div>
       </div>
 
@@ -466,7 +530,7 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
             <BookOpen className="h-12 w-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-medium mb-2">No questions found</h3>
             <p className="text-muted-foreground text-center mb-4">
-              {questions.length === 0 
+              {questions.length === 0
                 ? 'No questions available in the database.'
                 : 'Try adjusting your search criteria or filters to find questions.'
               }
@@ -480,140 +544,60 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
           </CardContent>
         </Card>
       ) : (
-        <div className={
-          viewMode === 'grid' 
-            ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'
-            : 'space-y-4'
-        }>
-          {filteredQuestions.map(question => (
-            <QuestionCard
-              key={question.id}
-              question={question}
-              isSelected={selectedQuestions.has(question.id)}
-            />
-          ))}
-        </div>
+        <>
+          <div className={
+            viewMode === 'grid'
+              ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'
+              : 'space-y-4'
+          }>
+            {filteredQuestions.map(question => (
+              <QuestionCard
+                key={question.id}
+                question={question}
+                isSelected={selectedQuestions.has(question.id)}
+              />
+            ))}
+          </div>
+
+          {/* Load More Button */}
+          {hasMore && (
+            <div className="flex justify-center pt-6">
+              <Button
+                variant="outline"
+                onClick={handleLoadMore}
+                disabled={loadingMore}
+                className="cursor-pointer"
+              >
+                {loadingMore ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Loading more questions...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Load More Questions
+                  </>
+                )}
+              </Button>
+            </div>
+          )}
+        </>
       )}
 
       {/* Question Preview Dialog */}
-      {previewQuestion && (
-        <Dialog open={!!previewQuestion} onOpenChange={(open) => !open && setPreviewQuestion(null)}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Question Preview</DialogTitle>
-              <DialogDescription>
-                {previewQuestion.subject} - {previewQuestion.topic}
-              </DialogDescription>
-            </DialogHeader>
-            
-            <div className="space-y-4">
-              <div className="flex flex-wrap gap-2">
-                <Badge variant="outline">{previewQuestion.subject}</Badge>
-                <Badge className={getDifficultyColor(previewQuestion.difficulty)}>
-                  {previewQuestion.difficulty}
-                </Badge>
-                <Badge variant="secondary">{previewQuestion.topic}</Badge>
-              </div>
-              
-              <div>
-                <Label>Question</Label>
-                <div className="mt-1 space-y-3">
-                  <p className="p-3 border rounded break-words">{previewQuestion.content}</p>
-                  {previewQuestion.questionImage && (
-                    <div className="flex justify-center w-full">
-                      <div className="relative max-w-full">
-                        <Image
-                          src={previewQuestion.questionImage}
-                          alt="Question image"
-                          width={300}
-                          height={200}
-                          className="rounded-md object-contain border bg-white max-w-full h-auto"
-                          style={{ maxHeight: '300px', width: 'auto' }}
-                          onError={(e) => {
-                            console.error('Failed to load question image:', previewQuestion.questionImage);
-                            e.currentTarget.style.display = 'none';
-                          }}
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              <div>
-                <Label>Options</Label>
-                <div className="mt-1 space-y-2">
-                  {previewQuestion.options.map((option, index) => (
-                    <div key={index} className={`p-3 border rounded ${
-                      index === previewQuestion.correctOption ? 'bg-green-50 border-green-200' : ''
-                    }`}>
-                      <div className="flex items-start space-x-3">
-                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-sm flex-shrink-0 ${
-                          index === previewQuestion.correctOption 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-gray-100 text-gray-600'
-                        }`}>
-                          {String.fromCharCode(65 + index)}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <span className="break-words">{option}</span>
-                          {previewQuestion.optionImages && previewQuestion.optionImages[index] && (
-                            <div className="mt-3 flex justify-center">
-                              <div className="relative max-w-full">
-                                <Image
-                                  src={previewQuestion.optionImages[index]}
-                                  alt={`Option ${String.fromCharCode(65 + index)} image`}
-                                  width={120}
-                                  height={90}
-                                  className="rounded-sm object-contain border bg-white max-w-full h-auto"
-                                  style={{ maxHeight: '120px', width: 'auto' }}
-                                  onError={(e) => {
-                                    console.error('Failed to load option image:', previewQuestion.optionImages?.[index]);
-                                    e.currentTarget.style.display = 'none';
-                                  }}
-                                />
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                        {index === previewQuestion.correctOption && (
-                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              
-              {previewQuestion.tags.length > 0 && (
-                <div>
-                  <Label>Tags</Label>
-                  <div className="mt-1 flex flex-wrap gap-1">
-                    {previewQuestion.tags.map(tag => (
-                      <Badge key={tag} variant="outline" className="text-xs">{tag}</Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-              
-              <div className="flex justify-end">
-                <Button
-                  className='cursor-pointer'
-                  variant={selectedQuestions.has(previewQuestion.id) ? "destructive" : "default"}
-                  onClick={() => {
-                    toggleSelection(previewQuestion.id);
-                    setPreviewQuestion(null);
-                  }}
-                >
-                  {selectedQuestions.has(previewQuestion.id) ? 'Remove from Selection' : 'Add to Selection'}
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
-
-      
+      <QuestionPreviewDialog
+        previewQuestion={previewQuestion}
+        setPreviewQuestion={setPreviewQuestion}
+        selectedQuestions={selectedQuestions}
+        toggleSelection={toggleSelection}
+        getDifficultyColor={getDifficultyColor}
+        handleAddQuestions={handleAddQuestions}
+        addingQuestions={addingQuestions}
+        selectedCount={selectedCount}
+        onClose={onClose}
+        mode={mode}
+      />
     </div>
   );
 
@@ -661,7 +645,6 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
             </div>
           </div>
         </DialogContent>
-        {/* Footer Actions */}
       </Dialog>
     );
   }

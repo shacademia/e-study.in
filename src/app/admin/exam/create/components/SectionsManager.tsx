@@ -1,4 +1,7 @@
-import React from 'react';
+'use client';
+
+import React, { useState } from 'react';
+import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,13 +13,14 @@ import {
   Plus, 
   Edit, 
   Trash2, 
-  BookOpen, 
-  Clock,
+  BookOpen,
   Target,
-  Users
+  Users,
+  Eye
 } from 'lucide-react';
 import { ExamSection, Question } from '@/constants/types';
 import { getDifficultyColor } from '../utils/examUtils';
+import QuestionPreviewDialog from '../../components/QuestionPreviewDialog';
 
 interface SectionsManagerProps {
   sections: ExamSection[];
@@ -40,6 +44,7 @@ const SectionsManager: React.FC<SectionsManagerProps> = ({
   onAddQuestions
 }) => {
   const currentSection = sections[activeSection];
+  const [previewQuestion, setPreviewQuestion] = useState<Question | null>(null);
 
   const handleSectionUpdate = (field: keyof ExamSection, value: string | number) => {
     if (currentSection) {
@@ -64,6 +69,42 @@ const SectionsManager: React.FC<SectionsManagerProps> = ({
       timeLimit: section.timeLimit || 0,
       difficultyCount
     };
+  };
+
+  // Helper to render a single question layer (text/image/none)
+  const renderLayer = (
+    type: 'text' | 'image' | 'none',
+    text?: string,
+    imageUrl?: string,
+    key?: React.Key
+  ) => {
+    if (type === 'text' && text) {
+      return (
+        <p key={`layer-text-${key}`} className="text-sm line-clamp-2 mb-1 break-words">
+          {text}
+        </p>
+      );
+    } 
+    if (type === 'image' && imageUrl) {
+      return (
+        <div key={`layer-image-${key}`} className="mb-1 flex justify-start">
+          <div className="relative w-full max-w-full h-auto max-h-[120px]">
+            <Image
+              src={imageUrl}
+              alt="Question layer image"
+              width={80}
+              height={60}
+              className="rounded-md object-contain border bg-white"
+              unoptimized={true}
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+              }}
+            />
+          </div>
+        </div>
+      );
+    }
+    return null;
   };
 
   return (
@@ -190,16 +231,14 @@ const SectionsManager: React.FC<SectionsManagerProps> = ({
                   </Button>
                 </div>
               </CardHeader>
+
+              {/* Display section questions */}
               <CardContent>
                 {!currentSection.questions || currentSection.questions.length === 0 ? (
                   <div className="text-center py-8">
                     <Users className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">
-                      No questions added yet
-                    </h3>
-                    <p className="text-gray-600 mb-4">
-                      Add questions to this section to build your exam.
-                    </p>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No questions added yet</h3>
+                    <p className="text-gray-600 mb-4">Add questions to this section to build your exam.</p>
                     <Button onClick={onAddQuestions} className="flex items-center cursor-pointer">
                       <Plus className="h-4 w-4 mr-2" />
                       Add Your First Question
@@ -214,32 +253,44 @@ const SectionsManager: React.FC<SectionsManagerProps> = ({
                             <div className="flex-1">
                               <div className="flex items-center space-x-2 mb-2">
                                 <span className="font-medium text-sm">Q{index + 1}.</span>
-                                <Badge variant="outline" className="text-xs">
-                                  {question.subject}
-                                </Badge>
-                                <Badge 
-                                  variant="outline" 
-                                  className={`text-xs ${getDifficultyColor(question.difficulty)}`}
-                                >
+                                <Badge variant="outline" className="text-xs">{question.subject}</Badge>
+                                <Badge variant="outline" className={`text-xs ${getDifficultyColor(question.difficulty)}`}>
                                   {question.difficulty}
                                 </Badge>
-                                <div className="flex items-center text-xs text-gray-500">
-                                  <Clock className="h-3 w-3 mr-1" />
-                                  {(question as Question & { marks?: number }).marks || 1} marks
-                                </div>
                               </div>
-                              <p className="text-sm text-gray-700 line-clamp-2">
-                                {question.content}
-                              </p>
+
+                              {/* Replace single content with 3-layer rendering */}
+                              <div>
+                                {renderLayer(question.layer1Type, question.layer1Text, question.layer1Image, `${question.id}-1`)}
+                                {renderLayer(question.layer2Type, question.layer2Text, question.layer2Image, `${question.id}-2`)}
+                                {renderLayer(question.layer3Type, question.layer3Text, question.layer3Image, `${question.id}-3`)}
+                              </div>
                             </div>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => onRemoveQuestion(currentSection.id, question.id)}
-                              className="text-red-600 hover:text-red-800 ml-2 cursor-pointer"
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
+
+                            <div className="flex items-center space-x-2 mt-[-4px]">
+                              <div className='flex items-center space-x-1 cursor-text'>
+                                <Badge className='bg-green-100 text-green-800 border-green-200'>+ {question.positiveMarks}</Badge>
+                                <Badge className="bg-red-100 text-red-800 border-red-200">- {question.negativeMarks}</Badge>
+                              </div>
+
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setPreviewQuestion(question)}
+                                className="cursor-pointer"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => onRemoveQuestion(currentSection.id, question.id)}
+                                className="text-red-600 hover:text-red-800 cursor-pointer"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
                         </CardContent>
                       </Card>
@@ -251,6 +302,13 @@ const SectionsManager: React.FC<SectionsManagerProps> = ({
           </TabsContent>
         </Tabs>
       )}
+
+      {/* Question Preview Dialog */}
+      <QuestionPreviewDialog
+        previewQuestion={previewQuestion}
+        setPreviewQuestion={setPreviewQuestion}
+        getDifficultyColor={getDifficultyColor}
+      />
     </div>
   );
 };
