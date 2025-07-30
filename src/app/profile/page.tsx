@@ -299,7 +299,7 @@ const ProfilePage = () => {
                         type="file"
                         accept="image/*"
                         onChange={handleFileSelect}
-                        className="mt-1"
+                        className="mt-1 cursor-pointer hover:bg-gray-100"
                       />
                       <p className="text-sm text-muted-foreground mt-1">
                         Maximum file size: 5MB. Supported formats: JPG, PNG, GIF
@@ -320,10 +320,10 @@ const ProfilePage = () => {
                       </div>
                     )}
                     <div className="flex justify-end space-x-2">
-                      <Button variant="outline" onClick={() => setIsPhotoDialogOpen(false)}>
+                      <Button className='cursor-pointer' variant="outline" onClick={() => setIsPhotoDialogOpen(false)}>
                         Cancel
                       </Button>
-                      <Button onClick={handlePhotoUpload} disabled={!selectedFile || isLoading}>
+                      <Button className='cursor-pointer' onClick={handlePhotoUpload} disabled={!selectedFile || isLoading}>
                         {isLoading ? 'Uploading...' : 'Upload'}
                       </Button>
                     </div>
@@ -530,7 +530,7 @@ const ProfilePage = () => {
 
           <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
             <DialogTrigger asChild>
-              <Button>
+              <Button className='cursor-pointer'>
                 <Edit className="mr-2 h-4 w-4" />
                 Edit Profile
               </Button>
@@ -569,7 +569,7 @@ const ProfilePage = () => {
                   />
                 </div>
                 <div className="flex justify-end space-x-2">
-                  <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                  <Button className='cursor-pointer' variant="outline" onClick={() => setIsEditDialogOpen(false)}>
                     Cancel
                   </Button>
                   <Button onClick={handleUpdateProfile} disabled={isLoading}>

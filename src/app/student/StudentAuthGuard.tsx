@@ -1,11 +1,11 @@
 "use client";
 
 import { useAuth } from "@/hooks/useApiServices";
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { LoadingSpinner } from "./dashboard/components";
 
-type AdminAuthGuardProps = {
+type StudentAuthGuardProps = {
   children: React.ReactNode;
 };
 
@@ -18,14 +18,15 @@ type userType = {
   name: string;
   phoneNumber: string | null;
   profileImage: string | null;
-  role: "ADMIN" | "STUDENT";
+  role: "ADMIN" | "USER";
   updatedAt: string;
 };
 
-export default function AdminAuthGuard({
+export default function StudentAuthGuard({
   children,
-}: AdminAuthGuardProps): React.JSX.Element | null {
+}: StudentAuthGuardProps): React.JSX.Element | null {
   const { getCurrentUser } = useAuth();
+  const router = useRouter();
   const [user, setUser] = useState<userType | null>(null);
   const [loading, setLoading] = useState(true);
   const [hasRedirected, setHasRedirected] = useState(false);
@@ -38,21 +39,20 @@ export default function AdminAuthGuard({
 
       try {
         const currentUser = await getCurrentUser() as userType | null;
-        console.log("Current user in AdminAuthGuard:", currentUser);
 
         if (!isMounted || hasRedirected) return;
 
         // If no user is logged in, redirect to login
         if (!currentUser) {
           setHasRedirected(true);
-          window.location.href = "/login";
+          router.push("/login");
           return;
         }
 
-        // If user is not admin, redirect to student dashboard
-        if (currentUser.role !== "ADMIN") {
+        // If user is not a student, redirect appropriately
+        if (currentUser.role !== "USER") {
           setHasRedirected(true);
-          window.location.href = "/student/dashboard";
+          router.push(currentUser.role === "ADMIN" ? "/admin/dashboard" : "/login");
           return;
         }
 
@@ -62,7 +62,7 @@ export default function AdminAuthGuard({
         if (!isMounted || hasRedirected) return;
         console.error("Error fetching user:", error);
         setHasRedirected(true);
-        window.location.href = "/login";
+        router.push("/login");
       }
     };
 
@@ -78,10 +78,7 @@ export default function AdminAuthGuard({
     return <LoadingSpinner />;
   }
 
-  // Only render children if user exists and is admin
-  if (!user || user.role !== "ADMIN") {
-    return <LoadingSpinner />;
-  }
-
+  // At this point, user should always exist and be a student
+  // Remove the redundant check and just render children
   return <>{children}</>;
 }
