@@ -2,9 +2,8 @@ import type { Metadata } from "next";
 import ClientLayout from "./ClientLayout";
 
 export const metadata: Metadata = {
-  title: "Admin Panel",
-  description: "Admin Panel for managing the application",
-  
+  title: "Student Panel",
+  description: "Student Panel for managing the application",
 };
 
 export default function AdminLayout({

@@ -13,20 +13,23 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { LogOut, Settings, UserCircle } from 'lucide-react';
 import { useAuth } from '@/hooks/useApiAuth';
+import { User } from '@/constants/types';
 
-interface UserProfileMenuProps {
-  user: {
-    id: string;
-    name?: string;
-    email?: string;
-    role?: string;
-  };
-}
+// interface UserProfileMenuProps {
+//   user: {
+//     id: string;
+//     name?: string;
+//     email?: string;
+//     role?: string;
+//   };
+// }
 
-export const UserProfileMenu = ({ user }: UserProfileMenuProps) => {
+export const UserProfileMenu = (users: {user: User}) => {
   const router = useRouter();
   const { logout } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
+
+  const user = users.user
 
   const handleLogout = async () => {
     try {
@@ -49,12 +52,15 @@ export const UserProfileMenu = ({ user }: UserProfileMenuProps) => {
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+        <Button variant="ghost" className="relative h-10 w-10 rounded-full cursor-pointer">
           <Avatar className="h-9 w-9">
-            <AvatarImage src="/placeholder.svg" alt={user?.name || "User"} />
+            {user?.profileImage? 
+            <AvatarImage src={ user.profileImage} alt={user?.name || "User"} />
+            :
             <AvatarFallback className="bg-primary text-primary-foreground">
               {getInitials(user?.name)}
             </AvatarFallback>
+            }
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
@@ -66,16 +72,16 @@ export const UserProfileMenu = ({ user }: UserProfileMenuProps) => {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => router.push('/profile')}>
+        <DropdownMenuItem className='cursor-pointer' onClick={() => router.push('/profile')}>
           <UserCircle className="mr-2 h-4 w-4" />
           <span>Profile</span>
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => router.push('/settings')}>
+        {/* <DropdownMenuItem onClick={() => router.push('/settings')}>
           <Settings className="mr-2 h-4 w-4" />
           <span>Settings</span>
-        </DropdownMenuItem>
+        </DropdownMenuItem> */}
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleLogout}>
+        <DropdownMenuItem className='cursor-pointer' onClick={handleLogout}>
           <LogOut className="mr-2 h-4 w-4" />
           <span>Log out</span>
         </DropdownMenuItem>
