@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -33,6 +33,9 @@ import {
   List,
   RefreshCw,
   Upload,
+  Eye,
+  Tags,
+  X
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Question, CreateQuestionRequest } from '@/constants/types';
@@ -45,57 +48,90 @@ import {
   useQuestionFilters,
   useStoreInitialization
 } from '@/store';
-
-// Define custom extended filters interface
-interface ExtendedQuestionFilters {
-  subject: string;
-  difficulty: string;
-  topic: string;
-  search: string;
-  tags?: string[];
-}
-
-// Import UI components
+import MathDisplay from '../../_questionbank/components/math-display';
+import QuestionPreviewDialog from '../../exam/components/QuestionPreviewDialog';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 import { QuestionForm } from '../components/forms/QuestionForm';
 
-// Temporary inline BulkUploadForm until module resolution is fixed
-const BulkUploadForm = ({ onUpload }: { onUpload: (questions: CreateQuestionRequest[]) => void }) => {
+// Enhanced BulkUploadForm with better error handling
+const BulkUploadForm = ({ onUpload }: { onUpload: (file: File) => void }) => {
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isValidating, setIsValidating] = useState(false);
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      validateFile(file);
+    }
+  };
+
+  const validateFile = async (file: File) => {
+    setIsValidating(true);
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      
+      if (!Array.isArray(data)) {
+        throw new Error('File must contain an array of questions');
+      }
+      
+      // Basic validation
+      if (data.length === 0) {
+        throw new Error('File is empty');
+      }
+      
+      toast({
+        title: 'File Valid',
+        description: `Found ${data.length} questions in file`,
+        variant: 'default'
+      });
+      
+    } catch (error) {
+      console.error('File validation error:', error);
+      toast({
+        title: 'Invalid File',
+        description: error instanceof Error ? error.message : 'Invalid JSON file',
+        variant: 'destructive'
+      });
+      setSelectedFile(null);
+    } finally {
+      setIsValidating(false);
+    }
+  };
+
+  const handleUpload = () => {
+    if (selectedFile) {
+      onUpload(selectedFile);
+      setSelectedFile(null);
+    }
+  };
+
   return (
-    <div className="p-4 text-center">
-      <p className="mb-4">Upload a JSON file with an array of question objects.</p>
-      <Button onClick={() => {
-        // Mock upload for now
-        const mockQuestions: CreateQuestionRequest[] = [{
-          content: 'Sample question',
-          questionImage: '',
-          layer1Type: 'none',
-          layer1Text: '',
-          layer1Image: '',
-          layer2Type: 'none',
-          layer2Text: '',
-          layer2Image: '',
-          layer3Type: 'none',
-          layer3Text: '',
-          layer3Image: '',
-          options: ['Option 1', 'Option 2', 'Option 3', 'Option 4'],
-          optionImages: ['', '', '', ''],
-          optionTypes: ['text', 'text', 'text', 'text'],
-          correctOption: 0,
-          positiveMarks: 4,
-          negativeMarks: 1,
-          explanationType: 'none',
-          explanationText: '',
-          explanationImage: '',
-          difficulty: 'EASY',
-          subject: 'General',
-          topic: 'Sample',
-          tags: ['sample'],
-        }];
-        onUpload(mockQuestions);
-      }}>
-        Upload Sample Question
-      </Button>
+    <div className="p-4 space-y-4">
+      <div>
+        <label htmlFor="file-upload" className="block text-sm font-medium mb-2">
+          Upload JSON file with questions
+        </label>
+        <input
+          id="file-upload"
+          type="file"
+          accept=".json"
+          onChange={handleFileSelect}
+          className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+        />
+      </div>
+      {selectedFile && (
+        <div className="flex items-center justify-between p-3 bg-gray-50 rounded">
+          <div className="flex items-center gap-2">
+            <span className="text-sm">{selectedFile.name}</span>
+            {isValidating && <RefreshCw className="h-4 w-4 animate-spin" />}
+          </div>
+          <Button onClick={handleUpload} size="sm" disabled={isValidating}>
+            Upload
+          </Button>
+        </div>
+      )}
     </div>
   );
 };
@@ -118,17 +154,15 @@ export const QuestionBankContainer: React.FC<QuestionBankContainerProps> = ({
 
   // Store hooks
   const questions = useQuestions();
-  console.log('Questions:', questions.length, questions.slice(0, 2));
   const filteredQuestions = useFilteredQuestions();
-  console.log('Filtered Questions:', filteredQuestions.length, filteredQuestions.slice(0, 2));
   const isLoading = useQuestionsLoading();
   const error = useQuestionsError();
   const { fetchQuestions, createQuestion, updateQuestion, deleteQuestion, setFilters, resetFilters } = useQuestionActions();
-
   const { filters } = useQuestionFilters();
 
-  // Local state
+  // Local state - minimized
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
+  const [previewQuestion, setPreviewQuestion] = useState<Question | null>(null);
   const [searchText, setSearchText] = useState(filters.search || '');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [showAddQuestion, setShowAddQuestion] = useState(false);
@@ -136,16 +170,17 @@ export const QuestionBankContainer: React.FC<QuestionBankContainerProps> = ({
   const [isSearching, setIsSearching] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
-  const [selectedQuestions, setSelectedQuestions] = useState<string[]>(preSelectedQuestions || []);
+  const [selectedQuestions, setSelectedQuestions] = useState<string[]>(preSelectedQuestions);
   const [showBulkUpload, setShowBulkUpload] = useState(false);
 
-  // Updated new question form state with all new fields
-  const [newQuestion, setNewQuestion] = useState<CreateQuestionRequest>({
-    // Legacy fields
+  // ✅ NEW: Tag filtering state
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [tagSearchTerm, setTagSearchTerm] = useState('');
+
+  // Optimized new question form state
+  const defaultQuestion: CreateQuestionRequest = useMemo(() => ({
     content: '',
     questionImage: '',
-
-    // 3-Layer system defaults
     layer1Type: 'none',
     layer1Text: '',
     layer1Image: '',
@@ -155,65 +190,140 @@ export const QuestionBankContainer: React.FC<QuestionBankContainerProps> = ({
     layer3Type: 'none',
     layer3Text: '',
     layer3Image: '',
-
-    // Options defaults
     options: ['', '', '', ''],
     optionImages: ['', '', '', ''],
     optionTypes: ['text', 'text', 'text', 'text'],
     correctOption: 0,
-
-    // Marking system defaults
     positiveMarks: 4,
     negativeMarks: 1,
-
-    // Explanation system defaults
     explanationType: 'none',
     explanationText: '',
     explanationImage: '',
-
-    // Other defaults
     difficulty: 'EASY',
     subject: '',
     topic: '',
     tags: [],
-  });
+  }), []);
 
-  // Available options for filters (derived from questions)
-  const subjects = React.useMemo(() =>
-    [...new Set(questions.map(q => q.subject))], [questions]
-  );
+  const [newQuestion, setNewQuestion] = useState<CreateQuestionRequest>(defaultQuestion);
 
-  const topics = React.useMemo(() =>
-    [...new Set(questions.map(q => q.topic))], [questions]
-  );
+  // Memoized derived data - only recalculate when questions change
+  const derivedData = useMemo(() => ({
+    subjects: [...new Set(questions.map(q => q.subject))].filter(Boolean).sort(),
+    topics: [...new Set(questions.map(q => q.topic))].filter(Boolean).sort(),
+    allTags: [...new Set(questions.flatMap(q => q.tags || []))].filter(Boolean).sort()
+  }), [questions]);
 
-  const allTags = React.useMemo(() =>
-    [...new Set(questions.flatMap(q => q.tags))], [questions]
-  );
+  // ✅ NEW: Filtered tags for search functionality
+  const filteredTagsForDisplay = useMemo(() => {
+    if (!tagSearchTerm) return derivedData.allTags.slice(0, 20);
+    return derivedData.allTags
+      .filter(tag => tag.toLowerCase().includes(tagSearchTerm.toLowerCase()))
+      .slice(0, 20);
+  }, [derivedData.allTags, tagSearchTerm]);
 
-  // Debug logging
-  React.useEffect(() => {
-    console.log('QuestionBank Debug:', {
-      questionsLength: questions.length,
-      filteredQuestionsLength: filteredQuestions.length,
-      isLoading,
-      error,
-      filters,
-      searchText,
-      strategy: questions.length === 0 ? 'NETWORK_FETCH' : 'LOCAL_FILTER',
-      questions: questions.slice(0, 2),
+  // ✅ NEW: Client-side tag filtering combined with store filtering
+  const tagFilteredQuestions = useMemo(() => {
+    if (selectedTags.length === 0) return filteredQuestions;
+    
+    return filteredQuestions.filter(question => {
+      // Question must have at least one of the selected tags
+      return selectedTags.some(selectedTag => 
+        question.tags && question.tags.includes(selectedTag)
+      );
     });
-  }, [questions, filteredQuestions, isLoading, error, filters, searchText]);
+  }, [filteredQuestions, selectedTags]);
 
-  // Debounced search effect
-  useEffect(() => {
-    if (searchText !== filters.search) {
-      setIsSearching(true);
+  // Memoized difficulty color function
+  const getDifficultyColor = useCallback((difficulty: string) => {
+    switch (difficulty) {
+      case 'EASY': return 'bg-green-100 text-green-800 border-green-200';
+      case 'MEDIUM': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'HARD': return 'bg-red-100 text-red-800 border-red-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  }, []);
+
+  // Memoized question content renderer with error handling
+  const renderQuestionContent = useCallback((question: Question) => {
+    const layers = [];
+
+    // Helper function to render images with error handling
+    const renderImage = (src: string, alt: string, key: string) => (
+      <div key={key} className="mb-2">
+        <Image
+          src={src}
+          alt={alt}
+          width={200}
+          height={120}
+          className="rounded-md object-contain max-h-32"
+          unoptimized={true}
+          onError={(e) => {
+            console.error('Image load error:', src);
+            e.currentTarget.style.display = 'none';
+          }}
+        />
+      </div>
+    );
+
+    // Layer 1
+    if (question.layer1Type === 'text' && question.layer1Text?.trim()) {
+      layers.push(
+        <div key="layer1" className="mb-2">
+          <MathDisplay>{question.layer1Text}</MathDisplay>
+        </div>
+      );
+    } else if (question.layer1Type === 'image' && question.layer1Image?.trim()) {
+      layers.push(renderImage(question.layer1Image, "Question layer 1", "layer1"));
     }
 
+    // Layer 2
+    if (question.layer2Type === 'text' && question.layer2Text?.trim()) {
+      layers.push(
+        <div key="layer2" className="mb-2">
+          <MathDisplay>{question.layer2Text}</MathDisplay>
+        </div>
+      );
+    } else if (question.layer2Type === 'image' && question.layer2Image?.trim()) {
+      layers.push(renderImage(question.layer2Image, "Question layer 2", "layer2"));
+    }
+
+    // Layer 3
+    if (question.layer3Type === 'text' && question.layer3Text?.trim()) {
+      layers.push(
+        <div key="layer3" className="mb-2">
+          <MathDisplay>{question.layer3Text}</MathDisplay>
+        </div>
+      );
+    } else if (question.layer3Type === 'image' && question.layer3Image?.trim()) {
+      layers.push(renderImage(question.layer3Image, "Question layer 3", "layer3"));
+    }
+
+    // Fallback to legacy content
+    if (layers.length === 0 && question.content?.trim()) {
+      layers.push(
+        <div key="legacy" className="mb-2">
+          <MathDisplay>{question.content}</MathDisplay>
+        </div>
+      );
+    }
+
+    // Legacy question image
+    if (question.questionImage?.trim()) {
+      layers.push(renderImage(question.questionImage, "Question", "legacy-image"));
+    }
+
+    return layers.length > 0 ? layers : <span className="text-gray-500 italic">No content available</span>;
+  }, []);
+
+  // Fixed search effect with proper cleanup
+  useEffect(() => {
+    if (searchText === filters.search) return;
+
+    setIsSearching(true);
     const timeout = setTimeout(async () => {
       try {
-        await setFilters({ search: searchText.trim() });
+        await setFilters({ ...filters, search: searchText.trim() });
       } catch (error) {
         console.error('Filter error:', error);
       } finally {
@@ -223,177 +333,134 @@ export const QuestionBankContainer: React.FC<QuestionBankContainerProps> = ({
 
     return () => {
       clearTimeout(timeout);
-      setIsSearching(false);
     };
-  }, [searchText, setFilters, filters.search]);
+  }, [searchText, filters, setFilters]);
 
-  // Sync local search text with store filter
+  // Sync search text with store filter only when needed
   useEffect(() => {
-    setSearchText(filters.search || '');
-  }, [filters.search]);
+    if (filters.search !== searchText) {
+      setSearchText(filters.search || '');
+    }
+  }, [filters.search, searchText]);
 
-  // Additional debugging for initial load
-  React.useEffect(() => {
-    console.log('Component mounted, triggering fetchQuestions...');
-
-    fetchQuestions().then(() => {
-      console.log('fetchQuestions completed');
-    }).catch(err => {
-      console.error('fetchQuestions failed:', err);
-    });
+  // Initial load - run only once
+  useEffect(() => {
+    fetchQuestions().catch(console.error);
   }, [fetchQuestions]);
 
-  // Update store filters when local search changes
-  const handleSearchChange = (value: string) => {
-    console.log('Search change:', value);
+  // Debug effect to track filter issues (remove in production)
+  useEffect(() => {
+    console.log('Filter Debug:', {
+      storeFilters: filters,
+      searchText,
+      selectedTags,
+      questionsCount: questions.length,
+      filteredCount: filteredQuestions.length,
+      tagFilteredCount: tagFilteredQuestions.length,
+      isLoading,
+      error
+    });
+  }, [filters, searchText, selectedTags, questions.length, filteredQuestions.length, tagFilteredQuestions.length, isLoading, error]);
+
+  // ✅ NEW: Tag filtering handlers
+  const toggleTag = useCallback((tag: string) => {
+    setSelectedTags(prev => {
+      if (prev.includes(tag)) {
+        return prev.filter(t => t !== tag);
+      } else {
+        return [...prev, tag];
+      }
+    });
+  }, []);
+
+  const removeTag = useCallback((tag: string) => {
+    setSelectedTags(prev => prev.filter(t => t !== tag));
+  }, []);
+
+  const clearAllTags = useCallback(() => {
+    setSelectedTags([]);
+    setTagSearchTerm('');
+  }, []);
+
+  // Optimized handlers
+  const handleSearchChange = useCallback((value: string) => {
     setSearchText(value);
-  };
+  }, []);
 
-  // Handle filter changes
-  const handleFilterChange = async (key: string, value: string) => {
-    console.log('Filter change:', { key, value, currentFilters: filters });
-    const newFilters = { ...filters, [key]: value };
-    console.log('New filters:', newFilters);
-
+  // Fixed filter change handler - no more "ALL" conversion
+  const handleFilterChange = useCallback(async (key: string, value: string) => {
+    // Convert "ALL" back to empty string for the store
+    const filterValue = value === 'ALL' ? '' : value;
+    const newFilters = { ...filters, [key]: filterValue };
     try {
       await setFilters(newFilters);
     } catch (error) {
       console.error('Filter change error:', error);
     }
-  };
+  }, [filters, setFilters]);
 
-  // Handle tag filter changes
-  const handleTagFilter = async (tag: string) => {
-    console.log('Tag filter:', tag);
-    // Create a custom filter object that includes tags
-    const customFilters = filters as ExtendedQuestionFilters;
-    
-    const currentTags = customFilters.tags || [];
-    const newTags = currentTags.includes(tag)
-      ? currentTags.filter((t: string) => t !== tag)
-      : [...currentTags, tag];
-
-    try {
-      // Set filters with a type assertion since our store might not have the tags property yet
-      await setFilters({ ...filters, tags: newTags } as ExtendedQuestionFilters);
-    } catch (error) {
-      console.error('Tag filter error:', error);
-    }
-  };
-
-  // Clear all filters
-  const clearFilters = async () => {
-    console.log('Clearing filters');
+  const clearFilters = useCallback(async () => {
     try {
       await resetFilters();
       setSearchText('');
+      // ✅ NEW: Also clear tag filters
+      setSelectedTags([]);
+      setTagSearchTerm('');
     } catch (error) {
       console.error('Clear filters error:', error);
     }
-  };
+  }, [resetFilters]);
 
-  // Toggle view mode between grid and list
-  const toggleViewMode = () => {
-    setViewMode(prev => prev === 'grid' ? 'list' : 'grid');
-  };
-
-  // Toggle filters visibility
-  const toggleFilters = () => {
-    setShowFilters(prev => !prev);
-  };
-
-  // Toggle question selection for multi-select mode
-  const toggleSelection = (questionId: string) => {
+  const toggleSelection = useCallback((questionId: string) => {
     if (!multiSelect) {
-      const newSelectedQuestions = selectedQuestions.includes(questionId) ? [] : [questionId];
-      setSelectedQuestions(newSelectedQuestions);
-      
+      const newSelected = selectedQuestions.includes(questionId) ? [] : [questionId];
+      setSelectedQuestions(newSelected);
       if (onSelectQuestions) {
-        const selectedQuestionObjects = questions.filter(q => newSelectedQuestions.includes(q.id));
+        const selectedQuestionObjects = questions.filter(q => newSelected.includes(q.id));
         onSelectQuestions(selectedQuestionObjects);
       }
       return;
     }
     
-    const newSelectedQuestions = selectedQuestions.includes(questionId)
+    const newSelected = selectedQuestions.includes(questionId)
       ? selectedQuestions.filter(id => id !== questionId)
       : [...selectedQuestions, questionId];
     
-    setSelectedQuestions(newSelectedQuestions);
+    setSelectedQuestions(newSelected);
     
     if (onSelectQuestions) {
-      const selectedQuestionObjects = questions.filter(q => newSelectedQuestions.includes(q.id));
+      const selectedQuestionObjects = questions.filter(q => newSelected.includes(q.id));
       onSelectQuestions(selectedQuestionObjects);
     }
-  };
+  }, [multiSelect, selectedQuestions, onSelectQuestions, questions]);
 
-  // Handle adding a new question
-  const handleAddQuestion = async () => {
+  // Optimized add question handler
+  const handleAddQuestion = useCallback(async () => {
     try {
       setIsCreating(true);
-
-      // Use the newQuestion state directly since it's already properly typed
-      const question: CreateQuestionRequest = {
-        ...newQuestion
-      };
-
-      await createQuestion(question);
-
+      await createQuestion(newQuestion);
       toast({
         title: 'Success',
         description: 'Question added successfully'
       });
-
-      // Reset form
-      setNewQuestion({
-        content: '',
-        questionImage: '',
-        layer1Type: 'none',
-        layer1Text: '',
-        layer1Image: '',
-        layer2Type: 'none',
-        layer2Text: '',
-        layer2Image: '',
-        layer3Type: 'none',
-        layer3Text: '',
-        layer3Image: '',
-        options: ['', '', '', ''],
-        optionImages: ['', '', '', ''],
-        optionTypes: ['text', 'text', 'text', 'text'],
-        correctOption: 0,
-        positiveMarks: 4,
-        negativeMarks: 1,
-        explanationType: 'none',
-        explanationText: '',
-        explanationImage: '',
-        difficulty: 'EASY',
-        subject: '',
-        topic: '',
-        tags: [],
-      });
+      setNewQuestion(defaultQuestion);
       setShowAddQuestion(false);
     } catch (error: unknown) {
       console.error('Failed to add question:', error);
-
-      let errorMessage = 'Failed to add question';
+      
+      const errorMsg = error instanceof Error ? error.message : String(error);
       let errorTitle = 'Error';
-
-      const errorMsg = error instanceof Error ? error.message :
-        (error && typeof error === 'object' && 'message' in error) ?
-          String((error as { message: unknown }).message) :
-          'Unknown error';
+      let errorMessage = 'Failed to add question';
 
       if (errorMsg.includes('permission') || errorMsg.includes('403')) {
         errorTitle = 'Permission Denied';
-        errorMessage = 'You do not have permission to create questions. Please contact your administrator to get ADMIN or MODERATOR access.';
-      } else if (errorMsg.includes('401') || errorMsg.includes('Authentication')) {
+        errorMessage = 'You do not have permission to create questions.';
+      } else if (errorMsg.includes('401')) {
         errorTitle = 'Authentication Required';
         errorMessage = 'Your session has expired. Please log in again.';
       } else if (errorMsg.includes('validation') || errorMsg.includes('400')) {
         errorTitle = 'Validation Error';
         errorMessage = 'Please check that all required fields are filled correctly.';
-      } else {
-        errorMessage = errorMsg || 'An unexpected error occurred while creating the question.';
       }
 
       toast({
@@ -404,14 +471,13 @@ export const QuestionBankContainer: React.FC<QuestionBankContainerProps> = ({
     } finally {
       setIsCreating(false);
     }
-  };
+  }, [newQuestion, createQuestion, defaultQuestion]);
 
-  // Handle editing a question
-  const handleEditQuestion = async (updatedQuestion: Question) => {
+  // Optimized edit question handler
+  const handleEditQuestion = useCallback(async (updatedQuestion: Question) => {
     try {
       setIsUpdating(true);
       await updateQuestion(updatedQuestion.id, updatedQuestion);
-
       setEditingQuestion(null);
       toast({
         title: 'Success',
@@ -419,37 +485,20 @@ export const QuestionBankContainer: React.FC<QuestionBankContainerProps> = ({
       });
     } catch (error: unknown) {
       console.error('Failed to update question:', error);
-
-      let errorMessage = 'Failed to update question';
-      let errorTitle = 'Error';
-
-      const errorMsg = error instanceof Error ? error.message :
-        (error && typeof error === 'object' && 'message' in error) ?
-          String((error as { message: unknown }).message) :
-          'Unknown error';
-
-      if (errorMsg.includes('permission') || errorMsg.includes('403')) {
-        errorTitle = 'Permission Denied';
-        errorMessage = 'You do not have permission to update questions. Please contact your administrator to get ADMIN or MODERATOR access.';
-      } else if (errorMsg.includes('401') || errorMsg.includes('Authentication')) {
-        errorTitle = 'Authentication Required';
-        errorMessage = 'Your session has expired. Please log in again.';
-      } else {
-        errorMessage = errorMsg || 'An unexpected error occurred while updating the question.';
-      }
-
+      
+      const errorMsg = error instanceof Error ? error.message : String(error);
       toast({
-        title: errorTitle,
-        description: errorMessage,
+        title: 'Error',
+        description: errorMsg.includes('permission') ? 'Permission denied' : 'Failed to update question',
         variant: 'destructive'
       });
     } finally {
       setIsUpdating(false);
     }
-  };
+  }, [updateQuestion]);
 
-  // Handle deleting a question
-  const handleDeleteQuestion = async (id: string) => {
+  // Optimized delete question handler
+  const handleDeleteQuestion = useCallback(async (id: string) => {
     try {
       await deleteQuestion(id);
       toast({
@@ -458,72 +507,86 @@ export const QuestionBankContainer: React.FC<QuestionBankContainerProps> = ({
       });
     } catch (error: unknown) {
       console.error('Failed to delete question:', error);
-
-      let errorMessage = 'Failed to delete question';
-      let errorTitle = 'Error';
-
-      const errorMsg = error instanceof Error ? error.message :
-        (error && typeof error === 'object' && 'message' in error) ?
-          String((error as { message: unknown }).message) :
-          'Unknown error';
-
-      if (errorMsg.includes('permission') || errorMsg.includes('403')) {
-        errorTitle = 'Permission Denied';
-        errorMessage = 'You do not have permission to delete questions. Please contact your administrator to get ADMIN or MODERATOR access.';
-      } else if (errorMsg.includes('401') || errorMsg.includes('Authentication')) {
-        errorTitle = 'Authentication Required';
-        errorMessage = 'Your session has expired. Please log in again.';
-      } else {
-        errorMessage = errorMsg || 'An unexpected error occurred while deleting the question.';
-      }
-
+      
+      const errorMsg = error instanceof Error ? error.message : String(error);
       toast({
-        title: errorTitle,
-        description: errorMessage,
+        title: 'Error',
+        description: errorMsg.includes('permission') ? 'Permission denied' : 'Failed to delete question',
         variant: 'destructive'
       });
     }
-  };
+  }, [deleteQuestion]);
 
-  // Handle bulk upload
-  const handleBulkUpload = async (questions: CreateQuestionRequest[]) => {
+  // Optimized bulk upload handler with parallel processing
+  const handleBulkUpload = useCallback(async (file: File) => {
     try {
-      for (const question of questions) {
-        await createQuestion(question);
-      }
+      const text = await file.text();
+      const questionsData = JSON.parse(text);
       
-      toast({
-        title: 'Success',
-        description: `${questions.length} questions uploaded successfully`
-      });
+      if (!Array.isArray(questionsData)) {
+        throw new Error('File must contain an array of questions');
+      }
+
+      if (questionsData.length === 0) {
+        throw new Error('File is empty');
+      }
+
+      // Create all questions in parallel for better performance
+      const results = await Promise.allSettled(
+        questionsData.map(questionData => createQuestion(questionData))
+      );
+
+      const successful = results.filter(result => result.status === 'fulfilled').length;
+      const failed = results.filter(result => result.status === 'rejected').length;
+
+      if (failed > 0) {
+        toast({
+          title: 'Partial Success',
+          description: `${successful} questions uploaded successfully, ${failed} failed`,
+          variant: 'default'
+        });
+      } else {
+        toast({
+          title: 'Success',
+          description: `${successful} questions uploaded successfully`
+        });
+      }
       
       setShowBulkUpload(false);
     } catch (error: unknown) {
       console.error('Failed to upload questions:', error);
-
-      const errorMessage = 'Failed to upload questions';
-      const errorTitle = 'Error';
-
+      
+      const errorMsg = error instanceof Error ? error.message : String(error);
       toast({
-        title: errorTitle,
-        description: errorMessage,
+        title: 'Upload Error',
+        description: errorMsg.includes('JSON') ? 'Invalid JSON file format' : 'Failed to upload questions',
         variant: 'destructive'
       });
     }
-  };
+  }, [createQuestion]);
 
-  // Render component
+  // ✅ UPDATED: Fixed active filter count to include tags
+  const activeFilterCount = useMemo(() => {
+    const storeFilters = [filters.difficulty, filters.subject, filters.topic]
+      .filter(value => value && value.trim() !== '').length;
+    const tagFilters = selectedTags.length;
+    return storeFilters + tagFilters;
+  }, [filters.difficulty, filters.subject, filters.topic, selectedTags.length]);
+
+  // ✅ UPDATED: Use tag-filtered questions as the final display
+  const displayQuestions = tagFilteredQuestions;
+
   return (
     <div className="flex flex-col min-h-screen">
       {/* Header */}
       <div className="border-b bg-white p-4 shadow-sm">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Button 
-              variant="ghost" 
-              size="icon" 
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={onBack}
-              className="rounded-full"
+              className="rounded-full cursor-pointer"
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
@@ -533,21 +596,21 @@ export const QuestionBankContainer: React.FC<QuestionBankContainerProps> = ({
             <Button
               variant="outline"
               onClick={() => setShowBulkUpload(true)}
-              className="hidden sm:flex"
+              className="hidden sm:flex cursor-pointer"
             >
               <Upload className="h-4 w-4 mr-2" />
               Bulk Upload
             </Button>
             <Button
               onClick={() => setShowAddQuestion(true)}
-              className="gap-1"
+              className="gap-1 cursor-pointer"
             >
               <Plus className="h-4 w-4" />
               <span className="hidden sm:inline">Add Question</span>
             </Button>
           </div>
         </div>
-        
+
         {/* Search and filters */}
         <div className="mt-4 flex flex-col sm:flex-row gap-2">
           <div className="relative flex-1">
@@ -567,53 +630,64 @@ export const QuestionBankContainer: React.FC<QuestionBankContainerProps> = ({
           </div>
           <Button
             variant="outline"
-            onClick={toggleFilters}
-            className="sm:w-auto w-full justify-center gap-1"
+            onClick={() => setShowFilters(!showFilters)}
+            className="sm:w-auto w-full justify-center gap-1 cursor-pointer"
           >
             <Filter className="h-4 w-4" />
             <span>Filters</span>
+            {activeFilterCount > 0 && (
+              <Badge variant="secondary" className="ml-1 text-xs">
+                {activeFilterCount}
+              </Badge>
+            )}
           </Button>
           <Button
             variant="outline"
-            onClick={toggleViewMode}
-            className="sm:w-auto w-full justify-center gap-1"
+            onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
+            className="sm:w-auto w-full justify-center gap-1 cursor-pointer"
           >
-            {viewMode === 'grid' ? (
-              <List className="h-4 w-4" />
-            ) : (
-              <Grid className="h-4 w-4" />
-            )}
-            <span className="sr-only">{viewMode === 'grid' ? 'List View' : 'Grid View'}</span>
+            {viewMode === 'grid' ? <List className="h-4 w-4" /> : <Grid className="h-4 w-4" />}
           </Button>
         </div>
-        
-        {/* Filter panel */}
+
+        {/* ✅ UPDATED: Enhanced Filter panel with tags */}
         {showFilters && (
-          <div className="mt-4 border rounded-md p-4 bg-gray-50">
-            <div className="flex justify-between items-center mb-3">
-              <h3 className="font-medium">Filter Questions</h3>
-              <Button 
-                variant="ghost" 
-                size="sm" 
+          <div className="mt-4 border rounded-md p-4 bg-gray-50 space-y-4">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4 text-gray-600" />
+                <h3 className="font-medium">Filter Questions</h3>
+                {activeFilterCount > 0 && (
+                  <Badge variant="secondary" className="text-xs">
+                    {activeFilterCount} active
+                  </Badge>
+                )}
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={clearFilters}
-                className="h-7 text-xs"
+                className="h-7 text-xs cursor-pointer"
+                disabled={activeFilterCount === 0}
               >
                 Clear All
               </Button>
             </div>
+
+            {/* Basic Filters */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <Label htmlFor="subject-filter">Subject</Label>
-                <Select 
-                  value={filters.subject} 
-                  onValueChange={(value) => handleFilterChange('subject', value)}
+                <Select
+                  value={filters.subject || 'ALL'}
+                  onValueChange={(value) => handleFilterChange('subject', value === 'ALL' ? '' : value)}
                 >
                   <SelectTrigger id="subject-filter">
                     <SelectValue placeholder="All Subjects" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="ALL">All Subjects</SelectItem>
-                    {subjects.map(subject => (
+                    {derivedData.subjects.map(subject => (
                       <SelectItem key={subject} value={subject}>{subject}</SelectItem>
                     ))}
                   </SelectContent>
@@ -621,16 +695,16 @@ export const QuestionBankContainer: React.FC<QuestionBankContainerProps> = ({
               </div>
               <div>
                 <Label htmlFor="topic-filter">Topic</Label>
-                <Select 
-                  value={filters.topic} 
-                  onValueChange={(value) => handleFilterChange('topic', value)}
+                <Select
+                  value={filters.topic || 'ALL'}
+                  onValueChange={(value) => handleFilterChange('topic', value === 'ALL' ? '' : value)}
                 >
                   <SelectTrigger id="topic-filter">
                     <SelectValue placeholder="All Topics" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="ALL">All Topics</SelectItem>
-                    {topics.map(topic => (
+                    {derivedData.topics.map(topic => (
                       <SelectItem key={topic} value={topic}>{topic}</SelectItem>
                     ))}
                   </SelectContent>
@@ -638,9 +712,9 @@ export const QuestionBankContainer: React.FC<QuestionBankContainerProps> = ({
               </div>
               <div>
                 <Label htmlFor="difficulty-filter">Difficulty</Label>
-                <Select 
-                  value={filters.difficulty} 
-                  onValueChange={(value) => handleFilterChange('difficulty', value)}
+                <Select
+                  value={filters.difficulty || 'ALL'}
+                  onValueChange={(value) => handleFilterChange('difficulty', value === 'ALL' ? '' : value)}
                 >
                   <SelectTrigger id="difficulty-filter">
                     <SelectValue placeholder="All Difficulties" />
@@ -654,22 +728,98 @@ export const QuestionBankContainer: React.FC<QuestionBankContainerProps> = ({
                 </Select>
               </div>
             </div>
-            
-            {allTags.length > 0 && (
-              <div className="mt-4">
-                <Label className="mb-2 block">Tags</Label>
-                <div className="flex flex-wrap gap-2">
-                  {allTags.map(tag => (
-                    <Badge 
-                      key={tag}
-                      variant={(filters as ExtendedQuestionFilters).tags?.includes(tag) ? "default" : "outline"}
-                      className="cursor-pointer"
-                      onClick={() => handleTagFilter(tag)}
+
+            {/* ✅ NEW: Tags Filter Section */}
+            {derivedData.allTags.length > 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label className="flex items-center gap-2">
+                    <Tags className="h-4 w-4" />
+                    Filter by Tags
+                    {selectedTags.length > 0 && (
+                      <Badge variant="secondary" className="text-xs">
+                        {selectedTags.length} selected
+                      </Badge>
+                    )}
+                  </Label>
+                  {selectedTags.length > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={clearAllTags}
+                      className="h-6 px-2 text-xs cursor-pointer"
                     >
+                      Clear Tags
+                    </Button>
+                  )}
+                </div>
+
+                {/* Selected Tags Display */}
+                {selectedTags.length > 0 && (
+                  <div className="flex flex-wrap gap-2 p-2 bg-blue-50 rounded-md border">
+                    <span className="text-xs text-blue-700 font-medium">Selected:</span>
+                    {selectedTags.map(tag => (
+                      <Badge
+                        key={tag}
+                        variant="default"
+                        className="cursor-pointer bg-blue-600 hover:bg-blue-700 flex items-center gap-1"
+                        onClick={() => removeTag(tag)}
+                      >
+                        {tag}
+                        <X className="h-3 w-3" />
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+
+                {/* Tag Search */}
+                {derivedData.allTags.length > 10 && (
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-2.5 h-3 w-3 text-gray-400" />
+                    <Input
+                      placeholder="Search tags..."
+                      value={tagSearchTerm}
+                      onChange={(e) => setTagSearchTerm(e.target.value)}
+                      className="pl-8 h-8 text-sm"
+                    />
+                  </div>
+                )}
+
+                {/* Available Tags */}
+                <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
+                  {filteredTagsForDisplay.map(tag => (
+                    <Badge
+                      key={tag}
+                      variant={selectedTags.includes(tag) ? "default" : "outline"}
+                      className="cursor-pointer transition-all hover:scale-105 focus:ring-2 focus:ring-blue-500"
+                      onClick={() => toggleTag(tag)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          toggleTag(tag);
+                        }
+                      }}
+                      tabIndex={0}
+                      role="button"
+                      aria-pressed={selectedTags.includes(tag)}
+                    >
+                      <Tags className="h-3 w-3 mr-1" />
                       {tag}
                     </Badge>
                   ))}
+                  {derivedData.allTags.length > 20 && !tagSearchTerm && (
+                    <Badge variant="outline" className="cursor-default text-gray-500">
+                      +{derivedData.allTags.length - 20} more tags available
+                    </Badge>
+                  )}
                 </div>
+
+                {/* Tag Statistics */}
+                {selectedTags.length > 0 && (
+                  <div className="text-xs text-gray-600">
+                    Showing {displayQuestions.length} questions with selected tags
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -679,9 +829,7 @@ export const QuestionBankContainer: React.FC<QuestionBankContainerProps> = ({
       {/* Main content */}
       <div className="flex-1 p-4 bg-gray-100 overflow-auto">
         {/* Loading state */}
-        {isLoading && (
-          <LoadingSpinner />
-        )}
+        {isLoading && <LoadingSpinner />}
         
         {/* Error state */}
         {error && !isLoading && (
@@ -693,7 +841,7 @@ export const QuestionBankContainer: React.FC<QuestionBankContainerProps> = ({
                 variant="outline" 
                 size="sm" 
                 onClick={() => fetchQuestions()}
-                className="mt-2 w-full"
+                className="mt-2 w-full cursor-pointer"
               >
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Retry
@@ -703,7 +851,7 @@ export const QuestionBankContainer: React.FC<QuestionBankContainerProps> = ({
         )}
         
         {/* Empty state */}
-        {!isLoading && !error && filteredQuestions.length === 0 && (
+        {!isLoading && !error && displayQuestions.length === 0 && (
           <div className="flex flex-col items-center justify-center h-64 text-center p-4">
             <div className="rounded-full bg-gray-100 p-3 mb-4">
               <BookOpen className="h-6 w-6 text-gray-400" />
@@ -712,28 +860,30 @@ export const QuestionBankContainer: React.FC<QuestionBankContainerProps> = ({
             <p className="text-gray-500 mb-4 max-w-md">
               {questions.length === 0
                 ? "Your question bank is empty. Add questions to get started."
+                : activeFilterCount > 0
+                ? "No questions match your current filters. Try adjusting your search, filters, or selected tags."
                 : "No questions match your current filters. Try adjusting your search or filters."}
             </p>
             {questions.length === 0 ? (
-              <Button onClick={() => setShowAddQuestion(true)}>
+              <Button onClick={() => setShowAddQuestion(true)} className="cursor-pointer">
                 <Plus className="h-4 w-4 mr-2" />
                 Add Question
               </Button>
             ) : (
-              <Button variant="outline" onClick={clearFilters}>
-                Clear Filters
+              <Button variant="outline" onClick={clearFilters} className="cursor-pointer">
+                Clear All Filters
               </Button>
             )}
           </div>
         )}
         
         {/* Questions grid/list */}
-        {!isLoading && !error && filteredQuestions.length > 0 && (
+        {!isLoading && !error && displayQuestions.length > 0 && (
           <div className={viewMode === 'grid' 
             ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" 
             : "space-y-4"
           }>
-            {filteredQuestions.map(question => (
+            {displayQuestions.map(question => (
               <Card 
                 key={question.id} 
                 className={`overflow-hidden transition-all hover:shadow-md ${
@@ -741,64 +891,81 @@ export const QuestionBankContainer: React.FC<QuestionBankContainerProps> = ({
                 }`}
                 onClick={() => multiSelect && toggleSelection(question.id)}
               >
-                <CardHeader className="p-4 pb-2 flex justify-between items-start">
-                  <div className="flex items-center gap-2">
-                    <Badge variant={
-                      question.difficulty === 'EASY' ? 'outline' :
-                      question.difficulty === 'MEDIUM' ? 'secondary' : 'destructive'
-                    }>
-                      {question.difficulty}
-                    </Badge>
-                    {multiSelect && (
-                      <div className="h-5 w-5 rounded-full border flex items-center justify-center">
-                        {selectedQuestions.includes(question.id) && (
-                          <CheckCircle className="h-5 w-5 text-primary" />
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div className="flex gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setEditingQuestion(question);
-                      }}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
+                <CardHeader className="p-4 pb-2">
+                  <div className="flex justify-between items-start">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge className={getDifficultyColor(question.difficulty)}>
+                        {question.difficulty}
+                      </Badge>
+                      {multiSelect && (
+                        <div className="h-5 w-5 rounded-full border flex items-center justify-center">
+                          {selectedQuestions.includes(question.id) && (
+                            <CheckCircle className="h-5 w-5 text-primary" />
+                          )}
+                        </div>
+                      )}
+                      {((question.explanationType === 'text' && question.explanationText) || 
+                        (question.explanationType === 'image' && question.explanationImage)) && (
+                        <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                          ✓ Explanation
+                        </Badge>
+                      )}
+                    </div>
                     
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-destructive"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Delete Question</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Are you sure you want to delete this question? This action cannot be undone.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => handleDeleteQuestion(question.id)}
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 cursor-pointer"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPreviewQuestion(question);
+                        }}
+                        title="Preview Question"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 cursor-pointer"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingQuestion(question);
+                        }}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive cursor-pointer"
+                            onClick={(e) => e.stopPropagation()}
                           >
-                            Delete
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Question</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to delete this question? This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleDeleteQuestion(question.id)}
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
                   </div>
                 </CardHeader>
                 
@@ -808,57 +975,86 @@ export const QuestionBankContainer: React.FC<QuestionBankContainerProps> = ({
                       {question.subject} {question.topic && `• ${question.topic}`}
                     </div>
                     <div className="font-medium break-words">
-                      {question.content}
-                      {question.questionImage && (
-                        <div className="mt-2">
-                          <Image
-                            src={question.questionImage}
-                            alt="Question"
-                            width={300}
-                            height={200}
-                            className="rounded-md object-contain max-h-40"
-                          />
-                        </div>
-                      )}
+                      {renderQuestionContent(question)}
                     </div>
                   </div>
                   
                   {Array.isArray(question.options) && question.options.length > 0 && (
                     <div className="space-y-2 mt-3">
-                      <div className="text-sm font-medium">Options:</div>
+                      <div className="text-sm font-medium">Options ({question.options.length}):</div>
                       <div className="grid grid-cols-2 gap-2">
-                        {question.options.map((option, i) => (
-                          <div 
-                            key={i}
-                            className={`text-sm p-2 rounded-md border ${
-                              question.correctOption === i ? 'bg-green-50 border-green-200' : ''
-                            }`}
-                          >
-                            {option}
-                            {question.optionImages && question.optionImages[i] && (
-                              <div className="mt-1">
+                        {question.options.map((option, i) => {
+                          const isCorrect = question.correctOption === i;
+                          const optionType = question.optionTypes?.[i] || 'text';
+                          const optionImage = question.optionImages?.[i];
+                          
+                          return (
+                            <div 
+                              key={i}
+                              className={`text-sm p-2 rounded-md border ${
+                                isCorrect ? 'bg-green-50 border-green-200' : ''
+                              }`}
+                            >
+                              {optionType === 'text' ? (
+                                option ? (
+                                  <MathDisplay className="text-sm">{option}</MathDisplay>
+                                ) : (
+                                  <span className="text-gray-400 italic">No text</span>
+                                )
+                              ) : optionType === 'image' && optionImage ? (
                                 <Image
-                                  src={question.optionImages[i]}
+                                  src={optionImage}
                                   alt={`Option ${i+1}`}
                                   width={100}
                                   height={60}
                                   className="rounded-md object-contain max-h-16"
+                                  unoptimized={true}
+                                  onError={(e) => {
+                                    console.error('Option image load error:', optionImage);
+                                    e.currentTarget.style.display = 'none';
+                                  }}
                                 />
-                              </div>
-                            )}
-                          </div>
-                        ))}
+                              ) : (
+                                <span className="text-gray-400 italic">No content</span>
+                              )}
+                              {isCorrect && (
+                                <Badge variant="secondary" className="ml-1 text-xs bg-green-100 text-green-800">
+                                  Correct
+                                </Badge>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
                   
+                  {/* ✅ ENHANCED: Clickable tags that can be used for filtering */}
                   {question.tags && question.tags.length > 0 && (
                     <div className="mt-3 flex flex-wrap gap-1">
-                      {question.tags.map(tag => (
-                        <Badge key={tag} variant="secondary" className="text-xs">
-                          {tag}
+                      {question.tags.slice(0, 3).map(tag => (
+                        <Badge 
+                          key={tag} 
+                          variant={selectedTags.includes(tag) ? "default" : "secondary"} 
+                          className={`text-xs cursor-pointer transition-colors ${
+                            selectedTags.includes(tag) 
+                              ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                              : 'hover:bg-gray-200'
+                          }`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleTag(tag);
+                          }}
+                          title={`Click to ${selectedTags.includes(tag) ? 'remove' : 'add'} tag filter`}
+                        >
+                          #{tag}
                         </Badge>
                       ))}
+                      {question.tags.length > 3 && (
+                        <Badge variant="secondary" className="text-xs cursor-default">
+                          +{question.tags.length - 3} more
+                        </Badge>
+                      )}
                     </div>
                   )}
                 </CardContent>
@@ -867,6 +1063,13 @@ export const QuestionBankContainer: React.FC<QuestionBankContainerProps> = ({
           </div>
         )}
       </div>
+      
+      {/* Question Preview Dialog */}
+      <QuestionPreviewDialog
+        previewQuestion={previewQuestion}
+        setPreviewQuestion={setPreviewQuestion}
+        getDifficultyColor={getDifficultyColor}
+      />
       
       {/* Add Question Dialog */}
       <Dialog open={showAddQuestion} onOpenChange={setShowAddQuestion}>
@@ -904,7 +1107,6 @@ export const QuestionBankContainer: React.FC<QuestionBankContainerProps> = ({
               <QuestionForm
                 question={editingQuestion}
                 onChange={(updatedQuestion) => {
-                  // Type assertion to handle different types correctly
                   setEditingQuestion(updatedQuestion as Question);
                 }}
                 isSubmitting={isUpdating}
@@ -916,13 +1118,13 @@ export const QuestionBankContainer: React.FC<QuestionBankContainerProps> = ({
         </Dialog>
       )}
       
-      {/* Bulk Upload Dialog */}
+      {/* Enhanced Bulk Upload Dialog */}
       <Dialog open={showBulkUpload} onOpenChange={setShowBulkUpload}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Bulk Upload Questions</DialogTitle>
             <DialogDescription>
-              Upload multiple questions at once using CSV or JSON format.
+              Upload multiple questions at once using JSON format. The file will be validated before upload.
             </DialogDescription>
           </DialogHeader>
           

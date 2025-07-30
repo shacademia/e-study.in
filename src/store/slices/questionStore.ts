@@ -13,9 +13,9 @@ const initialState = {
   error: null,
   lastFetch: null,
   filters: {
-    subject: "ALL",
-    difficulty: "ALL",
-    topic: "ALL",
+    subject: "",      
+    difficulty: "",  
+    topic: "",        
     search: "",
   },
 };
@@ -24,7 +24,7 @@ export const useQuestionStore = create<QuestionStore>()(
   devtools(
     persist(
       (set, get) => {
-        // Apply filters to questions
+        // Extracted and fixed applyFilters function
         const applyFilters = () => {
           const state = get();
           const { questions, filters } = state;
@@ -39,13 +39,10 @@ export const useQuestionStore = create<QuestionStore>()(
           const trimmedSearch = search?.trim().toLowerCase();
 
           const filtered = questions.filter((question) => {
-            const matchesSubject =
-              subject === "ALL" || question.subject === subject;
-
-            const matchesDifficulty =
-              difficulty === "ALL" || question.difficulty === difficulty;
-
-            const matchesTopic = topic === "ALL" || question.topic === topic;
+            // empty string means "show all"
+            const matchesSubject = !subject || subject === "" || question.subject === subject;
+            const matchesDifficulty = !difficulty || difficulty === "" || question.difficulty === difficulty;
+            const matchesTopic = !topic || topic === "" || question.topic === topic;
 
             const matchesSearch =
               !trimmedSearch ||
@@ -80,6 +77,8 @@ export const useQuestionStore = create<QuestionStore>()(
 
             // Check if cache is valid
             if (isCacheValid(state.lastFetch) && state.questions.length > 0) {
+              console.log("Using cached questions");
+              applyFilters(); // Apply filters to cached data
               return;
             }
 
@@ -130,9 +129,8 @@ export const useQuestionStore = create<QuestionStore>()(
               topic?: string;
             } = {};
 
-            // if (filters.search) apiFilters.search = filters.search;
-            if (filters.subject) apiFilters.subject = filters.subject;
-            if (filters.difficulty) {
+            if (filters.subject && filters.subject !== "") apiFilters.subject = filters.subject;
+            if (filters.difficulty && filters.difficulty !== "") {
               // Validate and convert difficulty
               const validDifficulties: QuestionDifficulty[] = [
                 "EASY",
@@ -148,7 +146,7 @@ export const useQuestionStore = create<QuestionStore>()(
                   filters.difficulty.toUpperCase() as QuestionDifficulty;
               }
             }
-            if (filters.topic) apiFilters.topic = filters.topic;
+            if (filters.topic && filters.topic !== "") apiFilters.topic = filters.topic;
 
             const { data, error } = await safeAsync(
               () => questionService.getAllQuestions(apiFilters),
@@ -189,7 +187,7 @@ export const useQuestionStore = create<QuestionStore>()(
             }
           },
 
-          // Set filters with smart fetching strategy
+          // setFilters with proper empty string handling
           setFilters: async (newFilters) => {
             const currentState = get();
 
@@ -207,21 +205,21 @@ export const useQuestionStore = create<QuestionStore>()(
               // Set loading state for network fetch
               set({ isLoading: true, error: null });
               
-              // Only make network call if we have no data
+              // filter check logic
               const hasActiveFilters =
-                updatedFilters.subject !== "ALL" ||
-                updatedFilters.difficulty !== "ALL" ||
-                updatedFilters.topic !== "ALL" ||
+                (updatedFilters.subject && updatedFilters.subject !== "") ||
+                (updatedFilters.difficulty && updatedFilters.difficulty !== "") ||
+                (updatedFilters.topic && updatedFilters.topic !== "") ||
                 (updatedFilters.search && updatedFilters.search.trim() !== "");
 
               try {
                 if (hasActiveFilters) {
                   const apiFilters: Record<string, string> = {};
-                  if (updatedFilters.subject !== "ALL")
+                  if (updatedFilters.subject && updatedFilters.subject !== "")
                     apiFilters.subject = updatedFilters.subject;
-                  if (updatedFilters.difficulty !== "ALL")
+                  if (updatedFilters.difficulty && updatedFilters.difficulty !== "")
                     apiFilters.difficulty = updatedFilters.difficulty;
-                  if (updatedFilters.topic !== "ALL")
+                  if (updatedFilters.topic && updatedFilters.topic !== "")
                     apiFilters.topic = updatedFilters.topic;
                   // Note: search is not passed to API, it's handled locally
 
@@ -236,17 +234,20 @@ export const useQuestionStore = create<QuestionStore>()(
               }
             }
           },
-          // Reset filters
+
+          // resetFilters
           resetFilters: () => {
-            set({
-              filters: {
-                subject: "ALL",
-                difficulty: "ALL",
-                topic: "ALL",
-                search: "", // ✅ reset search
-              },
-              filteredQuestions: get().questions,
-            });
+            const resetFilters = {
+              subject: "",
+              difficulty: "",
+              topic: "",
+              search: "",
+            };
+            
+            set({ filters: resetFilters });
+            
+            // Apply filters with the reset state
+            applyFilters();
           },
 
           // Clear error
@@ -272,38 +273,14 @@ export const useQuestionStore = create<QuestionStore>()(
             }
 
             if (data) {
-              // Add the new question to the store and re-apply filters
+              // Add the new question to the store
               const currentQuestions = get().questions;
               set({ 
                 questions: [data, ...currentQuestions],
                 lastFetch: getCurrentTimestamp()
               });
               
-              // Re-apply filters to include the new question if it matches
-              const state = get();
-              const applyFilters = () => {
-                const { questions, filters } = state;
-                const { subject, difficulty, topic, search } = filters;
-
-                const trimmedSearch = search?.trim().toLowerCase();
-
-                const filtered = questions.filter((question) => {
-                  const matchesSubject = subject === "ALL" || question.subject === subject;
-                  const matchesDifficulty = difficulty === "ALL" || question.difficulty === difficulty;
-                  const matchesTopic = topic === "ALL" || question.topic === topic;
-                  const matchesSearch = !trimmedSearch ||
-                    question.content?.toLowerCase().includes(trimmedSearch) ||
-                    (Array.isArray(question.options) &&
-                      question.options.some((option) =>
-                        option?.toLowerCase().includes(trimmedSearch)
-                      ));
-
-                  return matchesSubject && matchesDifficulty && matchesTopic && matchesSearch;
-                });
-
-                set({ filteredQuestions: filtered });
-              };
-              
+              // Use the shared applyFilters function
               applyFilters();
               return data;
             }
@@ -338,31 +315,7 @@ export const useQuestionStore = create<QuestionStore>()(
                 lastFetch: getCurrentTimestamp()
               });
               
-              // Re-apply filters
-              const state = get();
-              const applyFilters = () => {
-                const { questions, filters } = state;
-                const { subject, difficulty, topic, search } = filters;
-
-                const trimmedSearch = search?.trim().toLowerCase();
-
-                const filtered = questions.filter((question) => {
-                  const matchesSubject = subject === "ALL" || question.subject === subject;
-                  const matchesDifficulty = difficulty === "ALL" || question.difficulty === difficulty;
-                  const matchesTopic = topic === "ALL" || question.topic === topic;
-                  const matchesSearch = !trimmedSearch ||
-                    question.content?.toLowerCase().includes(trimmedSearch) ||
-                    (Array.isArray(question.options) &&
-                      question.options.some((option) =>
-                        option?.toLowerCase().includes(trimmedSearch)
-                      ));
-
-                  return matchesSubject && matchesDifficulty && matchesTopic && matchesSearch;
-                });
-
-                set({ filteredQuestions: filtered });
-              };
-              
+              // Use the shared applyFilters function
               applyFilters();
               return data;
             }
@@ -378,14 +331,10 @@ export const useQuestionStore = create<QuestionStore>()(
             if (error) {
               set({ error });
               
-              // Don't show a toast here - let the component handle the error display
-              // based on the specific error type and status code
-              
               // Prepare error data with additional context if available
               const errorToThrow = new Error(error);
               
               // Create a simpler approach by directly checking for specific error types
-              // This is safer than trying to cast the error object
               if (typeof error === 'string') {
                 if (error.includes('used in exams') || error.includes('QUESTION_IN_USE') || error.includes('409')) {
                   // @ts-expect-error - Adding custom property to Error object
@@ -407,31 +356,7 @@ export const useQuestionStore = create<QuestionStore>()(
               lastFetch: getCurrentTimestamp()
             });
             
-            // Re-apply filters
-            const state = get();
-            const applyFilters = () => {
-              const { questions, filters } = state;
-              const { subject, difficulty, topic, search } = filters;
-
-              const trimmedSearch = search?.trim().toLowerCase();
-
-              const filtered = questions.filter((question) => {
-                const matchesSubject = subject === "ALL" || question.subject === subject;
-                const matchesDifficulty = difficulty === "ALL" || question.difficulty === difficulty;
-                const matchesTopic = topic === "ALL" || question.topic === topic;
-                const matchesSearch = !trimmedSearch ||
-                  question.content?.toLowerCase().includes(trimmedSearch) ||
-                  (Array.isArray(question.options) &&
-                    question.options.some((option) =>
-                      option?.toLowerCase().includes(trimmedSearch)
-                    ));
-
-                return matchesSubject && matchesDifficulty && matchesTopic && matchesSearch;
-              });
-
-              set({ filteredQuestions: filtered });
-            };
-            
+            // Use the shared applyFilters function
             applyFilters();
             return data;
           },

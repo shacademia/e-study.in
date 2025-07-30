@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, Tags, Filter } from 'lucide-react';
 
 interface QuestionFiltersProps {
   filters: {
@@ -14,7 +14,7 @@ interface QuestionFiltersProps {
     subject?: string;
     topic?: string;
     tags?: string[];
-    [key: string]: any;
+    [key: string]: string | string[] | number | boolean | undefined;
   };
   subjects: string[];
   topics: string[];
@@ -33,12 +33,34 @@ export const QuestionFilters: React.FC<QuestionFiltersProps> = ({
   onTagFilter,
   onClearFilters
 }) => {
+  // Count active filters
+  const activeFilterCount = [
+    filters.difficulty,
+    filters.subject,
+    filters.topic,
+    ...(filters.tags || [])
+  ].filter(Boolean).length;
+
   return (
     <Card className="mt-4">
       <CardHeader className="pb-3">
         <div className="flex justify-between items-center">
-          <h3 className="font-semibold">Filter Questions</h3>
-          <Button variant="ghost" size="sm" onClick={onClearFilters}>
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-gray-600" />
+            <h3 className="font-semibold">Filter Questions</h3>
+            {activeFilterCount > 0 && (
+              <Badge variant="secondary" className="text-xs">
+                {activeFilterCount} active
+              </Badge>
+            )}
+          </div>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={onClearFilters}
+            disabled={activeFilterCount === 0}
+            className="cursor-pointer"
+          >
             Clear All
           </Button>
         </div>
@@ -56,9 +78,24 @@ export const QuestionFilters: React.FC<QuestionFiltersProps> = ({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="">Any difficulty</SelectItem>
-                <SelectItem value="EASY">Easy</SelectItem>
-                <SelectItem value="MEDIUM">Medium</SelectItem>
-                <SelectItem value="HARD">Hard</SelectItem>
+                <SelectItem value="EASY">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    Easy
+                  </div>
+                </SelectItem>
+                <SelectItem value="MEDIUM">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                    Medium
+                  </div>
+                </SelectItem>
+                <SelectItem value="HARD">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                    Hard
+                  </div>
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -75,7 +112,9 @@ export const QuestionFilters: React.FC<QuestionFiltersProps> = ({
               <SelectContent>
                 <SelectItem value="">Any subject</SelectItem>
                 {subjects.map(subject => (
-                  <SelectItem key={subject} value={subject}>{subject}</SelectItem>
+                  <SelectItem key={subject} value={subject}>
+                    {subject}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -93,7 +132,9 @@ export const QuestionFilters: React.FC<QuestionFiltersProps> = ({
               <SelectContent>
                 <SelectItem value="">Any topic</SelectItem>
                 {topics.map(topic => (
-                  <SelectItem key={topic} value={topic}>{topic}</SelectItem>
+                  <SelectItem key={topic} value={topic}>
+                    {topic}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -102,13 +143,21 @@ export const QuestionFilters: React.FC<QuestionFiltersProps> = ({
         
         {allTags.length > 0 && (
           <div className="mt-4">
-            <Label className="mb-2 block">Tags</Label>
+            <div className="flex items-center gap-2 mb-2">
+              <Tags className="h-4 w-4 text-gray-600" />
+              <Label>Tags</Label>
+              {filters.tags && filters.tags.length > 0 && (
+                <Badge variant="outline" className="text-xs">
+                  {filters.tags.length} selected
+                </Badge>
+              )}
+            </div>
             <div className="flex flex-wrap gap-2">
               {allTags.map(tag => (
                 <Badge 
                   key={tag} 
                   variant={filters.tags?.includes(tag) ? "default" : "outline"}
-                  className="cursor-pointer"
+                  className="cursor-pointer hover:bg-gray-100 transition-colors"
                   onClick={() => onTagFilter(tag)}
                 >
                   {tag}
@@ -117,6 +166,38 @@ export const QuestionFilters: React.FC<QuestionFiltersProps> = ({
                   )}
                 </Badge>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* Filter Summary */}
+        {activeFilterCount > 0 && (
+          <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center gap-2 text-sm text-blue-800">
+              <Filter className="h-4 w-4" />
+              <span className="font-medium">Active Filters:</span>
+              <div className="flex flex-wrap gap-1">
+                {filters.difficulty && (
+                  <Badge variant="secondary" className="text-xs bg-blue-100">
+                    {filters.difficulty}
+                  </Badge>
+                )}
+                {filters.subject && (
+                  <Badge variant="secondary" className="text-xs bg-blue-100">
+                    {filters.subject}
+                  </Badge>
+                )}
+                {filters.topic && (
+                  <Badge variant="secondary" className="text-xs bg-blue-100">
+                    {filters.topic}
+                  </Badge>
+                )}
+                {filters.tags?.map(tag => (
+                  <Badge key={tag} variant="secondary" className="text-xs bg-blue-100">
+                    #{tag}
+                  </Badge>
+                ))}
+              </div>
             </div>
           </div>
         )}

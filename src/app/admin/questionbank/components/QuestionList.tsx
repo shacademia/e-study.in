@@ -20,6 +20,7 @@ export const QuestionList: React.FC<QuestionListProps> = ({
   onDelete,
   onDuplicate
 }) => {
+
   if (questions.length === 0) {
     return (
       <div className="text-center py-12">
@@ -48,11 +49,11 @@ export const QuestionList: React.FC<QuestionListProps> = ({
 
   return (
     <div className={`
-      ${viewMode === 'grid' 
-        ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' 
+        ${viewMode === 'grid'
+        ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'
         : 'space-y-4'
       }
-    `}>
+      `}>
       {questions.map((question, index) => (
         <QuestionCard
           key={`${question.id}-${question.updatedAt || question.createdAt}-${index}`}
