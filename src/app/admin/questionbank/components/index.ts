@@ -1,5 +1,5 @@
 // Display Components
-export { QuestionCard } from './QuestionCard';
+export { QuestionCard } from '../containers/QuestionCard';
 export { QuestionList } from './display/QuestionList';
 export { QuestionGrid } from './display/QuestionGrid';
 export { EmptyState } from './display/EmptyState';

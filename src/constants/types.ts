@@ -96,8 +96,8 @@ export interface Question {
 
 export interface CreateQuestionRequest {
   // Legacy fields (for backward compatibility)
-  content: string;
-  questionImage?: string;
+  // content: string;
+  // questionImage?: string;
   
   // 3-Layer Question System
   layer1Type: 'text' | 'image' | 'none';
