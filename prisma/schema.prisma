@@ -30,6 +30,10 @@ model User {
   lastLogin DateTime? @default(now())
   lastActive DateTime? @default(now())
   isEmailVerified Boolean @default(false)
+  emailVerificationCode String?
+  emailVerificationExpiry DateTime?
+  forgotPasswordToken String?
+  forgotPasswordExpiry DateTime?
   createdExams Exam[]
   submissions Submission[]
   rankings Ranking[]

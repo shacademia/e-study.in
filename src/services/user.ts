@@ -61,7 +61,7 @@ class UserService {
    */
   async updateProfile(data: UpdateProfileRequest): Promise<User> {
     const response = await apiClient.put<ApiResponse<User>>(
-      API_ROUTES.UPDATE_PROFILE,
+      '/api/users/updateuserprofile',
       data
     );
     return response.data.data;
@@ -131,8 +131,14 @@ class UserService {
     currentPassword: string;
     newPassword: string;
     confirmPassword: string;
-  }): Promise<void> {
-    await apiClient.put('/api/users/change-password', data);
+  }): Promise<{ success: boolean; message: string }> {
+    console.log('🔄 Sending password change request:', { url: '/api/users/change-password', method: 'PUT' });
+    const response = await apiClient.put<{ success: boolean; message: string }>(
+      '/api/users/change-password',
+      data
+    );
+    console.log('✅ Password change response:', response.data);
+    return response.data;
   }
 
   /**
@@ -156,12 +162,18 @@ class UserService {
   /**
    * Upload profile image
    */
-  async uploadProfileImage(file: File): Promise<{ imageUrl: string }> {
+  async uploadProfileImage(file: File): Promise<{ 
+    user: User; 
+    upload: { id: string; url: string; fileName: string; fileSize: number } 
+  }> {
     const formData = new FormData();
     formData.append('image', file);
 
-    const response = await apiClient.post<ApiResponse<{ imageUrl: string }>>(
-      '/api/upload/profile-image',
+    const response = await apiClient.post<ApiResponse<{ 
+      user: User; 
+      upload: { id: string; url: string; fileName: string; fileSize: number } 
+    }>>(
+      '/api/users/upload-profile-image',
       formData,
       {
         headers: {
@@ -274,6 +286,27 @@ class UserService {
   async getCurrentUser(): Promise<User> {
     const response = await apiClient.get<ApiResponse<User>>(
       API_ROUTES.CURRENT_USER
+    );
+    return response.data.data;
+  }
+
+  /**
+   * Send email verification code
+   */
+  async sendEmailVerification(): Promise<{ success: boolean; message: string }> {
+    const response = await apiClient.post<{ success: boolean; message: string }>(
+      '/api/users/send-verification'
+    );
+    return response.data;
+  }
+
+  /**
+   * Verify email with code
+   */
+  async verifyEmail(code: string): Promise<User> {
+    const response = await apiClient.post<ApiResponse<User>>(
+      '/api/users/verify-email',
+      { code }
     );
     return response.data.data;
   }

@@ -64,6 +64,9 @@ const LoginPage: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState<"login" | "signup">("login");
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState("");
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotPasswordSubmitting, setForgotPasswordSubmitting] = useState(false);
 
   /* Password visibility */
   const [showLoginPassword, setShowLoginPassword] = useState(false);
@@ -186,6 +189,45 @@ const LoginPage: React.FC = () => {
       setErrors({ general: "Account creation failed. Please try again." });
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!forgotPasswordEmail.trim()) {
+      setErrors({ forgotPassword: "Email is required" });
+      return;
+    }
+    
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(forgotPasswordEmail)) {
+      setErrors({ forgotPassword: "Please enter a valid email" });
+      return;
+    }
+
+    setForgotPasswordSubmitting(true);
+    try {
+      const response = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: forgotPasswordEmail }),
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setErrors({ forgotPasswordSuccess: data.message });
+        setForgotPasswordEmail("");
+        setShowForgotPassword(false);
+      } else {
+        setErrors({ forgotPassword: data.error || "Failed to send reset email" });
+      }
+    } catch {
+      setErrors({ forgotPassword: "Failed to send reset email. Please try again." });
+    } finally {
+      setForgotPasswordSubmitting(false);
     }
   };
 
@@ -316,6 +358,74 @@ const LoginPage: React.FC = () => {
                       )}
                     </Button>
                   </form>
+
+                  {/* Forgot Password Section - Outside of main form */}
+                  <div className="mt-4">
+                    <div className="text-center">
+                      <Button
+                        type="button"
+                        variant="link"
+                        className="text-sm text-muted-foreground hover:text-primary"
+                        onClick={() => {
+                          setShowForgotPassword(!showForgotPassword);
+                          setErrors({});
+                        }}
+                      >
+                        Forgot your password?
+                      </Button>
+                    </div>
+
+                    {/* Forgot Password Form */}
+                    {showForgotPassword && (
+                      <div className="mt-4 p-4 border rounded-lg bg-muted/50">
+                        <h3 className="text-sm font-medium mb-2">Reset Password</h3>
+                        <form onSubmit={handleForgotPassword} className="space-y-3">
+                          <div className="relative">
+                            <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                            <Input
+                              type="email"
+                              placeholder="Enter your email"
+                              className="pl-10"
+                              value={forgotPasswordEmail}
+                              onChange={(e) => setForgotPasswordEmail(e.target.value)}
+                              required
+                            />
+                          </div>
+                          {errors.forgotPassword && (
+                            <ErrorAlert message={errors.forgotPassword} />
+                          )}
+                          {errors.forgotPasswordSuccess && (
+                            <SuccessAlert message={errors.forgotPasswordSuccess} />
+                          )}
+                          <div className="flex gap-2">
+                            <Button
+                              type="submit"
+                              size="sm"
+                              disabled={forgotPasswordSubmitting}
+                              className="flex-1"
+                            >
+                              {forgotPasswordSubmitting ? (
+                                <>
+                                  <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                                  Sending...
+                                </>
+                              ) : (
+                                "Send Reset Link"
+                              )}
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setShowForgotPassword(false)}
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        </form>
+                      </div>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>

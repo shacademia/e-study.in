@@ -56,3 +56,11 @@ export const optionImageUploadOptions: Partial<ImageKitUploadOptions> = {
   tags: ['question', 'option'],
   responseFields: ['fileId', 'name', 'size', 'filePath', 'url', 'fileType'],
 };
+
+// Default upload options for profile images
+export const profileImageUploadOptions: Partial<ImageKitUploadOptions> = {
+  folder: '/profiles',
+  useUniqueFileName: true,
+  tags: ['profile', 'user'],
+  responseFields: ['fileId', 'name', 'size', 'filePath', 'url', 'fileType'],
+};
