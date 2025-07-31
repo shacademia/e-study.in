@@ -39,7 +39,7 @@ export const useDashboardData = () => {
       let examResult;
       
       if (filter === 'all') {
-        examResult = await examsApi.getAllExams({ page: 1, limit: 100, published: false });
+        examResult = await examsApi.getAllExams({ page: 1, limit: 100 });
       } else if (filter === 'published') {
         examResult = await examsApi.getAllExams({ page: 1, limit: 100, published: true });
       } else if (filter === 'draft') {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useAuth } from "@/hooks/useApiServices";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { LoadingSpinner } from "./dashboard/components";
 
@@ -22,63 +22,47 @@ type userType = {
   updatedAt: string;
 };
 
-export default function StudentAuthGuard({
-  children,
-}: StudentAuthGuardProps): React.JSX.Element | null {
+export default function StudentAuthGuard({ children }: StudentAuthGuardProps) {
   const { getCurrentUser } = useAuth();
   const router = useRouter();
-  const [user, setUser] = useState<userType | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [hasRedirected, setHasRedirected] = useState(false);
+  const [authState, setAuthState] = useState<'loading' | 'authenticated' | 'redirecting'>('loading');
+  const hasCheckedAuth = useRef(false);
+
+  const checkAuth = useCallback(async () => {
+    // Prevent multiple auth checks
+    if (hasCheckedAuth.current) return;
+    hasCheckedAuth.current = true;
+
+    try {
+      const currentUser = await getCurrentUser() as userType;
+
+      if (!currentUser) {
+        setAuthState('redirecting');
+        router.push("/login");
+        return;
+      }
+
+      if (currentUser.role !== "USER") {
+        setAuthState('redirecting');
+        router.push(currentUser.role === "ADMIN" ? "/admin/dashboard" : "/login");
+        return;
+      }
+
+      setAuthState('authenticated');
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      setAuthState('redirecting');
+      router.push("/login");
+    }
+  }, [router]); // Remove getCurrentUser from dependencies
 
   useEffect(() => {
-    let isMounted = true;
+    checkAuth();
+  }, [checkAuth]);
 
-    const fetchUser = async () => {
-      if (hasRedirected) return;
-
-      try {
-        const currentUser = await getCurrentUser() as userType | null;
-
-        if (!isMounted || hasRedirected) return;
-
-        // If no user is logged in, redirect to login
-        if (!currentUser) {
-          setHasRedirected(true);
-          router.push("/login");
-          return;
-        }
-
-        // If user is not a student, redirect appropriately
-        if (currentUser.role !== "USER") {
-          setHasRedirected(true);
-          router.push(currentUser.role === "ADMIN" ? "/admin/dashboard" : "/login");
-          return;
-        }
-
-        setUser(currentUser);
-        setLoading(false);
-      } catch (error) {
-        if (!isMounted || hasRedirected) return;
-        console.error("Error fetching user:", error);
-        setHasRedirected(true);
-        router.push("/login");
-      }
-    };
-
-    fetchUser();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  // Show loading while checking auth or redirecting
-  if (loading || hasRedirected) {
+  if (authState !== 'authenticated') {
     return <LoadingSpinner />;
   }
 
-  // At this point, user should always exist and be a student
-  // Remove the redundant check and just render children
   return <>{children}</>;
 }
