@@ -12,7 +12,7 @@ import {
 import { toast } from '@/hooks/use-toast';
 import { Question, CreateQuestionRequest } from '@/constants/types';
 import {
-  useQuestions,
+  useQuestions as useQuestionFrom,
   useFilteredQuestions,
   useQuestionsLoading,
   useQuestionsError,
@@ -28,6 +28,9 @@ import { QuestionBankHeader } from './QuestionBankHeader';
 // ✅ NEW: Import the new dialog components
 import { AddQuestionDialog } from './AddQuestionDialog';
 import { EditQuestionDialog } from './EditQuestionDialog';
+
+import { useQuestions } from '@/hooks/useApiServices' 
+import { useRouter } from 'next/navigation';
 
 // Enhanced BulkUploadForm with better error handling
 const BulkUploadForm = ({ onUpload }: { onUpload: (file: File) => void }) => {
@@ -127,12 +130,16 @@ export const QuestionBankContainer: React.FC<QuestionBankContainerProps> = ({
   // Initialize stores
   useStoreInitialization();
 
+  const router = useRouter()
+
   // Store hooks
-  const questions = useQuestions();
+  const questions = useQuestionFrom();
+  const questionsAPI = useQuestions()
   const filteredQuestions = useFilteredQuestions();
   const isLoading = useQuestionsLoading();
   const error = useQuestionsError();
   const { fetchQuestions, createQuestion, updateQuestion, deleteQuestion, setFilters, resetFilters } = useQuestionActions();
+
   const { filters } = useQuestionFilters();
 
   // Local state - minimized
@@ -151,6 +158,14 @@ export const QuestionBankContainer: React.FC<QuestionBankContainerProps> = ({
   // Tag filtering state
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [tagSearchTerm, setTagSearchTerm] = useState('');
+
+  // Checking Data
+  console.log('From QB editingQuestion',editingQuestion)
+  console.log('From QB isUpdating',isUpdating)
+
+
+
+
 
   // Optimized new question form state
   const defaultQuestion: CreateQuestionRequest = useMemo(() => ({
@@ -393,6 +408,7 @@ export const QuestionBankContainer: React.FC<QuestionBankContainerProps> = ({
       });
       setNewQuestion(defaultQuestion);
       setShowAddQuestion(false);
+
     } catch (error: unknown) {
       console.error('Failed to add question:', error);
       
@@ -419,15 +435,21 @@ export const QuestionBankContainer: React.FC<QuestionBankContainerProps> = ({
     } finally {
       setIsCreating(false);
     }
-  }, [newQuestion, createQuestion, defaultQuestion]);
+  }, [newQuestion, createQuestion, defaultQuestion,router]);
 
   // ✅ UPDATED: Edit question handler for dialog
   const handleEditQuestion = useCallback(async () => {
     if (!editingQuestion) return;
     
+    // Console
+    console.log('from QB editingQuestion', editingQuestion)
+    console.log('from QB editingQuestion', editingQuestion)
+
+
     try {
       setIsUpdating(true);
-      await updateQuestion(editingQuestion.id, editingQuestion);
+      // await updateQuestion(editingQuestion.id, editingQuestion);
+      await questionsAPI.updateQuestion(editingQuestion.id, editingQuestion)
       setEditingQuestion(null);
       toast({
         title: 'Success',
@@ -445,7 +467,7 @@ export const QuestionBankContainer: React.FC<QuestionBankContainerProps> = ({
     } finally {
       setIsUpdating(false);
     }
-  }, [editingQuestion, updateQuestion]);
+  }, [editingQuestion,questionsAPI]);
 
   const handleDeleteQuestion = useCallback(async (id: string) => {
     try {

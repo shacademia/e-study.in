@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import jwt from "jsonwebtoken";
 import { z } from "zod";
+import { revalidatePath } from "next/cache";
 
 const JWT_SECRET = process.env.JWT_SECRET || "default_secret_key";
 
@@ -203,6 +204,7 @@ export async function POST(request: Request) {
   },
 });
 
+  revalidatePath('/admin/questionbank')
 
     return NextResponse.json(newQuestion, { status: 201 });
   } catch (error) {

@@ -221,7 +221,7 @@ export default function ImageUploadComponent({
                     console.log('✅ Image loaded successfully:', currentImageUrl);
                   }}
                 />
-                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity rounded flex items-center justify-center">
+                <div className="absolute inset-0 group-hover:bg-opacity-20 transition-opacity rounded flex items-center justify-center">
                   <Button
                     type="button"
                     variant="ghost"

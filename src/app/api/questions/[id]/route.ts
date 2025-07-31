@@ -5,16 +5,7 @@ import { z } from 'zod';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'default_secret_key';
 
-// Schema for updating a question
-const updateQuestionSchema = z.object({
-  content: z.string().optional(),
-  options: z.array(z.string()).optional(),
-  correctOption: z.number().optional(),
-  difficulty: z.enum(['EASY', 'MEDIUM', 'HARD']).optional(),
-  subject: z.string().optional(),
-  topic: z.string().optional(),
-  tags: z.array(z.string()).optional(),
-});
+
 
 // GET - Retrieve a specific question by ID
 export async function GET(
@@ -75,17 +66,11 @@ export async function PUT(
     // Verify JWT token
     const decoded = jwt.verify(token, JWT_SECRET) as { id: string; email: string };
     const userId = decoded.id;
-    const questionId = params.id;
+    const { id } = await params;
+    const questionId = id
 
     const body = await request.json();
-    const parsedData = updateQuestionSchema.safeParse(body);
-
-    if (!parsedData.success) {
-      return NextResponse.json(
-        { error: 'Invalid input data', details: parsedData.error.issues },
-        { status: 400 }
-      );
-    }
+    const { author, _count, createdAt, updatedAt, ...updateData } = body;
 
     // Check if the question exists and user has permission to update it
     const existingQuestion = await prisma.question.findUnique({
@@ -103,7 +88,7 @@ export async function PUT(
       select: { role: true },
     });
 
-    if (existingQuestion.authorId !== userId && !['ADMIN', 'MODERATOR'].includes(user?.role || '')) {
+    if (!['ADMIN', 'MODERATOR'].includes(user?.role || '')) {
       return NextResponse.json(
         { error: 'You do not have permission to update this question' },
         { status: 403 }
@@ -114,8 +99,7 @@ export async function PUT(
     const updatedQuestion = await prisma.question.update({
       where: { id: questionId },
       data: {
-        ...parsedData.data,
-        updatedAt: new Date(),
+        ...updateData,
       },
       include: {
         author: {
@@ -126,7 +110,8 @@ export async function PUT(
           },
         },
       },
-    });
+    }
+    );
 
     return NextResponse.json(updatedQuestion);
   } catch (error) {

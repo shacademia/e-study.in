@@ -91,7 +91,7 @@ export const ExamManagementHeader: React.FC<ExamManagementHeaderProps> = ({
           <BookOpen className="h-4 w-4 mr-2" />
           Question Bank
         </Button>
-        {exams.length > 0 && (
+        {/* {exams.length > 0 && (
           <Button
             variant="outline"
             className="cursor-pointer text-red-600 hover:text-red-700 hover:bg-red-50"
@@ -110,7 +110,7 @@ export const ExamManagementHeader: React.FC<ExamManagementHeaderProps> = ({
               </>
             )}
           </Button>
-        )}
+        )} */}
         <Button onClick={onCreateExam} className="cursor-pointer">
           <Plus className="h-4 w-4 mr-2" />
           Create Exam
