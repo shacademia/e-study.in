@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { CheckCircle } from 'lucide-react';
 import { Question } from '@/constants/types';
-import MathDisplay from '../../_questionbank/components/math-display';
+import MathDisplay from '../../../../components/math-display';
 
 interface QuestionPreviewDialogProps {
   previewQuestion: Question | null;

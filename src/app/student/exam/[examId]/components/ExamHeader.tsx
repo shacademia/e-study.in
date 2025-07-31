@@ -55,33 +55,34 @@ const ExamHeader: React.FC<ExamHeaderProps> = ({
               {exam.name}
             </h1>
           </div>
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center">
             {examStarted && (
-              <>
-                <div className={`px-4 py-2 rounded-lg font-medium border-2 flex items-center ${getTimeColor()}`}>
-                  <Clock className="h-5 w-5 mr-2" />
-                  {formatTime(timeLeft)}
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className='cursor-pointer'
-                  onClick={onTakeBreak}
-                  disabled={isOnBreak}
-                >
-                  <Coffee className="h-4 w-4 mr-2" />
-                  Take Break
-                </Button>
-              </>
+              <div className={`px-4 py-2 mr-8 rounded-lg font-medium border-2 flex items-center ${getTimeColor()}`}>
+                <Clock className="h-5 w-5 mr-3" />
+                {formatTime(timeLeft)}
+              </div>
             )}
-            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-              {answeredCount}/{totalQuestions} Answered
-            </Badge>
-            {exam.sections && exam.sections.length > 0 && (
-              <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
-                Section {currentSectionIndex + 1} of {exam.sections.length}
+            <div className="flex items-center space-x-3">
+              <Button
+                variant="outline"
+                size="sm"
+                className='cursor-pointer'
+                onClick={onTakeBreak}
+                disabled={isOnBreak}
+              >
+                <Coffee className="h-4 w-4 mr-2" />
+                Take Break
+              </Button>
+
+              <Badge variant="outline" className="">
+                {answeredCount}/{totalQuestions} Answered
               </Badge>
-            )}
+              {exam.sections && exam.sections.length > 0 && (
+                <Badge variant="outline" className="">
+                  Section {currentSectionIndex + 1} of {exam.sections.length}
+                </Badge>
+              )}
+            </div>
           </div>
         </div>
       </div>

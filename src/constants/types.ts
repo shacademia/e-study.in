@@ -233,6 +233,10 @@ export interface UpdateExamRequest {
   isDraft?: boolean;
 }
 
+export interface ExamsResponse {
+  exams: Exam[];
+}
+
 export interface ExamFilters {
   page?: number;
   limit?: number;
@@ -324,6 +328,10 @@ export interface Submission {
   };
   createdAt: string;
   updatedAt: string;
+}
+
+export interface SubmissionsResponse {
+  submissions: Submission[];
 }
 
 export interface SubmissionStatistics {
