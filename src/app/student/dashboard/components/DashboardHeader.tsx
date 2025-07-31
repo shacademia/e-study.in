@@ -23,13 +23,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ onRankingsClick }) =>
               variant="outline"
               size="sm"
               className="cursor-pointer"
-              // onClick={onRankingsClick}
-              onClick={() => {
-                toast({
-                  title: "Coming Soon!",
-                  description: "This feature is not yet available.",
-                });
-              }}
+              onClick={onRankingsClick}
             >
               <Trophy className="h-4 w-4 mr-2" />
               Rankings
