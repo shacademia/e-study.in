@@ -5,9 +5,9 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 export async function sendVerificationEmail(email: string, code: string, name: string) {
     try {
         const { data, error } = await resend.emails.send({
-            from: 'E-Study <onboarding@resend.dev>', // Using Resend's default domain for testing
-            // to: [email],
-            to: 'onlineshacademia@gmail.com',
+            from: 'SHACADEMIA <verify@shacademiaclasses.live>', // Using Resend's default domain for testing
+            to: [email],
+            // to: 'onlineshacademia@gmail.com',
             subject: 'Verify Your Email Address',
             html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -65,8 +65,8 @@ export async function sendPasswordResetEmail(email: string, resetToken: string, 
 
     try {
         const { data, error } = await resend.emails.send({
-            from: 'E-Study <onboarding@resend.dev>', // Using Resend's default domain for testing
-            to: 'onlineshacademia@gmail.com', // Using same test email for now
+          from: 'SHACADEMIA <reset@shacademiaclasses.live>',
+            to: [email], // Using same test email for now
             subject: 'Reset Your Password',
             html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
