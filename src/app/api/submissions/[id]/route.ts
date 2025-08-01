@@ -163,10 +163,11 @@ export async function GET(
         isCorrect,
         
         // Marking System
-        positiveMarks: question.positiveMarks,
-        negativeMarks: question.negativeMarks,
+        positiveMarks: question.positiveMarks || examQuestion.marks || 0,
+        negativeMarks: question.negativeMarks || 0,
         marks: examQuestion.marks,
-        earnedMarks: isCorrect ? examQuestion.marks : 0,
+        earnedMarks: isCorrect ? (question.positiveMarks || examQuestion.marks || 0) : 
+                   (userAnswer !== undefined ? -(question.negativeMarks || 0) : 0),
         
         // Question Status
         timeSpent: questionStatus?.timeSpent || 0,
@@ -252,7 +253,7 @@ export async function GET(
         percentage,
         totalQuestions: submission.totalQuestions,
         totalMarks: submission.exam.totalMarks,
-        earnedMarks: submission.score,
+        earnedMarks: questionAnalysis.reduce((sum, qa) => sum + qa.earnedMarks, 0),
         accuracy: totalAnswered > 0 ? Math.round((correctAnswers / totalAnswered) * 100) : 0,
         timeUtilization: submission.exam.timeLimit > 0 
           ? Math.round((submission.timeSpent / (submission.exam.timeLimit * 60)) * 100) 
