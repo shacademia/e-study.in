@@ -50,7 +50,7 @@ interface AddQuestionsSectionProps {
 type ViewMode = 'grid' | 'list';
 
 // Utility function to transform section questions for saveExamWithSections API
-const transformSectionQuestions = (questions: any[]) => {
+const transformSectionQuestions = (questions: unknown[]) => {
   return questions.map(q => ({
     questionId: q.questionId,
     order: q.order,
@@ -91,19 +91,37 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
     const loadUsedQuestions = async () => {
       if (!examId || !sectionId) return;
       try {
-        const questionsInSection = await examService.getSectionQuestions(examId, sectionId);
-        if (Array.isArray(questionsInSection)) {
-          const ids = questionsInSection.map(q => q.id);
-          setUsedQuestionIds(new Set(ids));
+        const response = await examService.getSectionQuestions(examId, sectionId);
+
+        // Handle the API response format: { section, questions, statistics }
+        let questionsArray = [];
+        if (Array.isArray(response)) {
+          // Direct array response (fallback)
+          questionsArray = response;
+        } else if (response && typeof response === 'object' && Array.isArray(response.questions)) {
+          // Expected format: { section, questions, statistics }
+          questionsArray = response.questions;
+        } else if (response && typeof response === 'object' && response.data && Array.isArray(response.data.questions)) {
+          // Nested data format: { data: { section, questions, statistics } }
+          questionsArray = response.data.questions;
         } else {
-          console.error('Invalid response format for section questions:', questionsInSection);
+          console.error('Invalid response format for section questions:', response);
           setUsedQuestionIds(new Set());
           toast({
             title: 'Warning',
-            description: 'Could not load existing questions',
+            description: 'Could not load existing questions - unexpected response format',
             variant: 'destructive'
           });
+          return;
         }
+
+        // Extract question IDs from the questions array
+        const ids = questionsArray.map(q => {
+          // Handle both direct question objects and nested question objects
+          return q.questionId || q.question?.id || q.id;
+        }).filter(Boolean);
+
+        setUsedQuestionIds(new Set(ids));
       } catch (err) {
         console.error('Failed to load used questions for section:', err);
         setUsedQuestionIds(new Set());
@@ -303,8 +321,22 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
 
       // Refresh used question IDs after successful add
       try {
-        const questionsInSection = await examService.getSectionQuestions(examId, sectionId);
-        const ids = questionsInSection?.map(q => q.id) ?? [];
+        const response = await examService.getSectionQuestions(examId, sectionId);
+
+        // Handle the API response format consistently
+        let questionsArray = [];
+        if (Array.isArray(response)) {
+          questionsArray = response;
+        } else if (response && typeof response === 'object' && Array.isArray(response.questions)) {
+          questionsArray = response.questions;
+        } else if (response && typeof response === 'object' && response.data && Array.isArray(response.data.questions)) {
+          questionsArray = response.data.questions;
+        }
+
+        const ids = questionsArray.map(q => {
+          return q.questionId || q.question?.id || q.id;
+        }).filter(Boolean);
+
         setUsedQuestionIds(new Set(ids));
       } catch (refreshError) {
         console.warn('Failed to refresh used questions:', refreshError);
