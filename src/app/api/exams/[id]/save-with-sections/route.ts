@@ -6,8 +6,8 @@ import { z } from 'zod';
 
 // Production-specific configurations
 const isProduction = process.env.NODE_ENV === 'production';
-const MAX_SECTIONS_PER_REQUEST = isProduction ? 5 : 50; // Limit sections in production
-const MAX_QUESTIONS_PER_SECTION = isProduction ? 20 : 200; // Limit questions per section in production
+const MAX_SECTIONS_PER_REQUEST = isProduction ? 10 : 50; // Limit sections in production
+const MAX_QUESTIONS_PER_SECTION = isProduction ? 50 : 200; // Limit questions per section in production
 
 const JWT_SECRET = process.env.JWT_SECRET || 'default_secret_key';
 
