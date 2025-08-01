@@ -29,7 +29,7 @@ import {
   Zap
 } from 'lucide-react';
 import { Question } from '@/constants/types';
-import MathDisplay from '../../_questionbank/components/math-display';
+import MathDisplay from '../../../../components/math-display';
 
 interface QuestionCardProps {
   question: Question;

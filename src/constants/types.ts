@@ -233,6 +233,10 @@ export interface UpdateExamRequest {
   isDraft?: boolean;
 }
 
+export interface ExamsResponse {
+  exams: Exam[];
+}
+
 export interface ExamFilters {
   page?: number;
   limit?: number;
@@ -299,6 +303,7 @@ export interface Submission {
   answers: Record<string, number>;
   questionStatuses?: Record<string, QuestionAnswerStatus>;
   score: number;
+  earnedMarks: number;
   totalQuestions: number;
   timeSpent: number;
   totalTimeSpent?: number;
@@ -324,6 +329,10 @@ export interface Submission {
   };
   createdAt: string;
   updatedAt: string;
+}
+
+export interface SubmissionsResponse {
+  submissions: Submission[];
 }
 
 export interface SubmissionStatistics {
@@ -360,6 +369,7 @@ export interface CreateSubmissionRequest {
   answers: Record<string, number>;
   questionStatuses?: Record<string, QuestionAnswerStatus>;
   score?: number;
+  earnedMarks?: number;
   timeSpent?: number;
   totalTimeSpent?: number;
   isSubmitted?: boolean;

@@ -19,7 +19,7 @@ const NavigationControls: React.FC<NavigationControlsProps> = ({
     : false;
 
   return (
-    <div className="flex justify-between items-center p-4 bg-white border rounded-lg shadow-sm">
+    <div className="flex justify-between items-center pt-2 px-2 bg-white rounded-lg">
       <div className="flex space-x-2">
         <Button
           variant="outline"
@@ -53,7 +53,7 @@ const NavigationControls: React.FC<NavigationControlsProps> = ({
           </Button>
         ) : (
           <Button
-            className='cursor-pointer bg-blue-600 hover:bg-blue-700 text-white'
+            className='cursor-pointer'
             onClick={onNextQuestion}
           >
             Next

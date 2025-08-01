@@ -20,7 +20,7 @@ import {
   useQuestionFilters,
   useStoreInitialization
 } from '@/store';
-import MathDisplay from '../../_questionbank/components/math-display';
+import MathDisplay from '../../../../components/math-display';
 import QuestionPreviewDialog from '../../exam/components/QuestionPreviewDialog';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 import { QuestionCard } from './QuestionCard';

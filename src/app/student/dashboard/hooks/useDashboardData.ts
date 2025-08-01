@@ -1,7 +1,15 @@
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/hooks/useApiAuth";
 import { useExams, useSubmissions, useRankings } from "@/hooks/useApiServices";
-import { Exam, Submission, StudentRanking } from "@/constants/types";
+// Import the required types, including the new response types
+import { 
+  Exam, 
+  Submission, 
+  StudentRanking, 
+  ApiResponse, 
+  ExamsResponse, 
+  SubmissionsResponse 
+} from "@/constants/types";
 import { calculateUserStats } from "../utils";
 import { DashboardData } from "../types";
 
@@ -35,32 +43,28 @@ const useDashboardData = (): DashboardData => {
           rankingsApi.getStudentRanking({ userId: user.id })
         ]);
 
-        // Handle exams result
+        // Handle exams result with proper typing
         if (examResult.status === 'fulfilled') {
-          console.log('Exam API Response:', examResult.value);
-          const examData = examResult.value.data as { exams: Exam[] };
-          setExams(Array.isArray(examData.exams) ? examData.exams : []);
+          const response = examResult.value as ApiResponse<ExamsResponse>;
+          setExams(response.data?.exams || []);
         } else {
           console.error('Failed to load exams:', examResult.reason);
           setExams([]);
         }
 
-        // Handle submissions result - Note: API returns { submissions: Submission[] }
+        // Handle submissions result with proper typing
         if (submissionResult.status === 'fulfilled') {
-          console.log('Submissions API Response:', submissionResult.value);
-          const submissionData = submissionResult.value.data as { submissions: Submission[] };
-          const submissions = submissionData?.submissions || [];
-          setUserSubmissions(Array.isArray(submissions) ? submissions : []);
+          const response = submissionResult.value as ApiResponse<SubmissionsResponse>;
+          setUserSubmissions(response.data?.submissions || []);
         } else {
           console.error('Failed to load submissions:', submissionResult.reason);
           setUserSubmissions([]);
         }
 
-        // Handle ranking result - Note: API returns StudentRanking directly in data
+        // Handle ranking result with proper typing
         if (rankingResult.status === 'fulfilled') {
-          console.log('Ranking API Response:', rankingResult.value);
-          const rankingData = rankingResult.value.data;
-          setUserRanking(rankingData || null);
+          const response = rankingResult.value as ApiResponse<StudentRanking>;
+          setUserRanking(response.data || null);
         } else {
           console.error('Failed to load ranking:', rankingResult.reason);
           setUserRanking(null);
@@ -73,8 +77,7 @@ const useDashboardData = (): DashboardData => {
     };
 
     loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id, dataLoaded]); // Only run when user.id changes or if data hasn't been loaded
+  }, []); // Only run when user.id changes or if data hasn't been loaded
 
   // Calculate user statistics from submissions
   const userStats = useMemo(() => {
@@ -83,8 +86,7 @@ const useDashboardData = (): DashboardData => {
 
   // Filter exams based on completed submissions
   const completedExamIds = useMemo(() => {
-    const submissions = Array.isArray(userSubmissions) ? userSubmissions : [];
-    return submissions.map(sub => sub.examId) || [];
+    return userSubmissions.map(sub => sub.examId);
   }, [userSubmissions]);
 
   const availableExams = useMemo(
