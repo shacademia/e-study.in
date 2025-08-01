@@ -306,6 +306,31 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
         sections: updatedSections,
       };
 
+      // Check payload size and processing requirements
+      const totalQuestions = updatedSections.reduce((sum, section) => 
+        sum + section.questions.length, 0
+      );
+      
+      const payloadSize = JSON.stringify(savePayload).length;
+      const isLargePayload = payloadSize > 1024 * 1024; // 1MB
+      const isManyQuestions = totalQuestions > 50;
+      
+      console.log(`📊 Save operation:`, {
+        sections: updatedSections.length,
+        totalQuestions,
+        payloadSizeKB: Math.round(payloadSize / 1024),
+        isLargePayload,
+        isManyQuestions
+      });
+
+      // Warn user about potential timeout in production
+      if (isManyQuestions || isLargePayload) {
+        toast({
+          title: 'Large Dataset Detected',
+          description: `Saving ${totalQuestions} questions (${Math.round(payloadSize / 1024)}KB). This may take longer in production.`,
+        });
+      }
+
       // Save using the atomic saveExamWithSections API
       await examService.saveExamWithSections(examId, savePayload);
 

@@ -1,0 +1,11 @@
+{
+  "functions": {
+    "src/app/api/exams/[id]/save-with-sections/route.ts": {
+      "maxDuration": 30
+    },
+    "src/app/api/exams/[id]/save-sections-chunked/route.ts": {
+      "maxDuration": 15
+    }
+  },
+  "regions": ["sin1"]
+}
