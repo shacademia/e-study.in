@@ -77,8 +77,7 @@ const useDashboardData = (): DashboardData => {
     };
 
     loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id, dataLoaded]); // Only run when user.id changes or if data hasn't been loaded
+  }, []); // Only run when user.id changes or if data hasn't been loaded
 
   // Calculate user statistics from submissions
   const userStats = useMemo(() => {

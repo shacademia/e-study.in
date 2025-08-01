@@ -121,7 +121,7 @@ const EnhancedImage: React.FC<{
           width={0}
           height={0}
           sizes="100vw"
-          className={`w-auto h-auto object-contain hover:scale-[1.02] transition-transform duration-200 ${className}`}
+          className={`w-auto h-auto object-contain transition-transform duration-200 ${className}`}
           style={{ maxHeight, minHeight: isLoading ? '120px' : 'auto' }}
           unoptimized
           onLoad={handleImageLoad}
@@ -576,29 +576,6 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
           </div>
         </div>
 
-        {/* SELECTED ANSWER INDICATOR */}
-        {answer !== undefined && answer !== -1 && !isReviewMode && (
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="w-4 h-4 bg-blue-600 rounded-full flex items-center justify-center">
-                <CheckCircle className="h-3 w-3 text-white" />
-              </div>
-              <span className="text-blue-900 font-semibold">
-                Selected Answer: Option {String.fromCharCode(65 + answer)}
-              </span>
-            </div>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleClearAnswer} 
-              className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 transition-colors"
-            >
-              <X className="h-4 w-4 mr-1" />
-              Clear
-            </Button>
-          </div>
-        )}
-
         {/* ✅ FIXED: Answer Options Section with null safety */}
         <div className="bg-white rounded-lg p-6 border border-gray-200 shadow-sm">
           <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
@@ -643,9 +620,9 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
                     key={`${question.id}-${index}`} 
                     className={`group relative transition-all duration-200 ${
                       !isReviewMode && answer === index 
-                        ? 'scale-[1.02] shadow-lg' 
+                        ? '' 
                         : !isReviewMode 
-                          ? 'hover:scale-[1.01] hover:shadow-md'
+                          ? ''
                           : ''
                     }`}
                   >
@@ -706,7 +683,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
                               src={optionImage}
                               alt={`Option ${String.fromCharCode(65 + index)}`}
                               onClick={() => setSelectedImagePreview(optionImage)}
-                              className="group-hover/img:scale-105 transition-transform duration-200"
+                              className="transition-transform duration-200"
                               maxHeight="200px"
                               showLoadingSpinner={true}
                             />
@@ -750,6 +727,29 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
 
         {/* EXPLANATION SECTION (Review Mode) */}
         {showExplanation && renderExplanation()}
+
+        {/* SELECTED ANSWER INDICATOR */}
+        {answer !== undefined && answer !== -1 && !isReviewMode && (
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 p-4 mt-[-16px]">
+            <div className="flex items-center gap-3">
+              <div className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
+                <CheckCircle className="h-3 w-3 text-white" />
+              </div>
+              <span className="text-blue-500 font-semibold">
+                Selected Answer: Option {String.fromCharCode(65 + answer)}
+              </span>
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleClearAnswer} 
+              className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 transition-colors"
+            >
+              <X className="h-4 w-4 mr-1" />
+              Clear
+            </Button>
+          </div>
+        )}
       </CardContent>
 
       {/* IMAGE PREVIEW DIALOG */}
