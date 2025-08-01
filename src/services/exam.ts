@@ -247,9 +247,31 @@ class ExamService {
   }
 
   /**
-   * Get questions in section
+   * Get questions in section with full details
    */
-  async getSectionQuestions(examId: string, sectionId: string): Promise<Question[]> {
+  async getSectionQuestions(examId: string, sectionId: string): Promise<{
+    section: {
+      id: string;
+      name: string;
+      description?: string;
+      timeLimit?: number;
+      marks?: number;
+    };
+    questions: Array<{
+      id: string;
+      questionId: string;
+      order: number;
+      marks: number;
+      question: Question;
+    }>;
+    statistics: {
+      totalQuestions: number;
+      totalMarks: number;
+      difficultyStats: Record<string, number>;
+      subjectStats: Record<string, number>;
+      averageMarksPerQuestion: number;
+    };
+  }> {
     try {
       const response = await axios.get(
         EXAM_ROUTES.EXAM_SECTION_QUESTIONS(examId, sectionId),
@@ -257,6 +279,18 @@ class ExamService {
       );
       
       return response.data.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  /**
+   * Get just the questions array from a section (for backward compatibility)
+   */
+  async getSectionQuestionsArray(examId: string, sectionId: string): Promise<Question[]> {
+    try {
+      const sectionData = await this.getSectionQuestions(examId, sectionId);
+      return sectionData.questions.map(sq => sq.question);
     } catch (error) {
       throw this.handleError(error);
     }
