@@ -303,6 +303,7 @@ export interface Submission {
   answers: Record<string, number>;
   questionStatuses?: Record<string, QuestionAnswerStatus>;
   score: number;
+  earnedMarks: number;
   totalQuestions: number;
   timeSpent: number;
   totalTimeSpent?: number;
@@ -368,6 +369,7 @@ export interface CreateSubmissionRequest {
   answers: Record<string, number>;
   questionStatuses?: Record<string, QuestionAnswerStatus>;
   score?: number;
+  earnedMarks?: number;
   timeSpent?: number;
   totalTimeSpent?: number;
   isSubmitted?: boolean;

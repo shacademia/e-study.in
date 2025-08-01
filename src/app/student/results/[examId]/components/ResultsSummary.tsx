@@ -74,7 +74,7 @@ const ResultsSummary: React.FC<ResultsSummaryProps> = ({
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <div className="p-4 rounded bg-gray-50 border text-center">
             <div className="text-xs text-gray-500 mb-1">Score</div>
-            <div className="text-2xl font-bold text-blue-600">{submission.score}</div>
+            <div className="text-2xl font-bold text-blue-600">{submission.earnedMarks}</div>
           </div>
           <div className="p-4 rounded bg-gray-50 border text-center">
             <div className="text-xs text-gray-500 mb-1">Correct</div>
