@@ -1,6 +1,5 @@
 "use client";
 import type { ApiResponse } from "@/app/student/results/[examId]/types";
-import submission from "@/services/submission";
 import { createContext, useState } from "react";
 import { useContext } from "react";
 

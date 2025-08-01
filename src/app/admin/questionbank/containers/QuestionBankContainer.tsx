@@ -31,7 +31,8 @@ import { EditQuestionDialog } from './EditQuestionDialog';
 
 import { useQuestions } from '@/hooks/useApiServices' 
 import { useRouter } from 'next/navigation';
-
+import { useQuestionsContextData } from '@/context/QuestionContext';
+import type { QuestionsListApiResponse } from '@/app/admin/questionbank/types/QuestionTypes.d.ts';
 // Enhanced BulkUploadForm with better error handling
 const BulkUploadForm = ({ onUpload }: { onUpload: (file: File) => void }) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -133,12 +134,15 @@ export const QuestionBankContainer: React.FC<QuestionBankContainerProps> = ({
   const router = useRouter()
 
   // Store hooks
-  const questions = useQuestionFrom();
+  // const questions:Question[] = useQuestionFrom();
+  const { questions, questionApiResponse, setQuestions, fetchQuestionData, loading } = useQuestionsContextData();
+
   const questionsAPI = useQuestions()
   const filteredQuestions = useFilteredQuestions();
   const isLoading = useQuestionsLoading();
   const error = useQuestionsError();
   const { fetchQuestions, createQuestion, updateQuestion, deleteQuestion, setFilters, resetFilters } = useQuestionActions();
+
 
   const { filters } = useQuestionFilters();
 
@@ -197,9 +201,9 @@ export const QuestionBankContainer: React.FC<QuestionBankContainerProps> = ({
 
   // Memoized derived data - only recalculate when questions change
   const derivedData = useMemo(() => ({
-    subjects: [...new Set(questions.map(q => q.subject))].filter(Boolean).sort(),
-    topics: [...new Set(questions.map(q => q.topic))].filter(Boolean).sort(),
-    allTags: [...new Set(questions.flatMap(q => q.tags || []))].filter(Boolean).sort()
+    subjects: [...new Set(questions?.map(q => q.subject))].filter(Boolean).sort(),
+    topics: [...new Set(questions?.map(q => q.topic))].filter(Boolean).sort(),
+    allTags: [...new Set(questions?.flatMap(q => q.tags || []))].filter(Boolean).sort()
   }), [questions]);
 
   // Filtered tags for search functionality
@@ -212,7 +216,7 @@ export const QuestionBankContainer: React.FC<QuestionBankContainerProps> = ({
 
   // Client-side tag filtering combined with store filtering
   const tagFilteredQuestions = useMemo(() => {
-    if (selectedTags.length === 0) return filteredQuestions;
+    if (selectedTags?.length === 0) return filteredQuestions;
     
     return filteredQuestions.filter(question => {
       return selectedTags.some(selectedTag => 
@@ -283,7 +287,7 @@ export const QuestionBankContainer: React.FC<QuestionBankContainerProps> = ({
       layers.push(renderImage(question.layer3Image, "Question layer 3", "layer3"));
     }
 
-    if (layers.length === 0 && question.content?.trim()) {
+    if (layers?.length === 0 && question.content?.trim()) {
       layers.push(
         <div key="legacy" className="mb-2">
           <MathDisplay>{question.content}</MathDisplay>
@@ -295,7 +299,7 @@ export const QuestionBankContainer: React.FC<QuestionBankContainerProps> = ({
       layers.push(renderImage(question.questionImage, "Question", "legacy-image"));
     }
 
-    return layers.length > 0 ? layers : <span className="text-gray-500 italic">No content available</span>;
+    return layers?.length > 0 ? layers : <span className="text-gray-500 italic">No content available</span>;
   }, []);
 
   // Effects
@@ -392,7 +396,7 @@ export const QuestionBankContainer: React.FC<QuestionBankContainerProps> = ({
     setSelectedQuestions(newSelected);
     
     if (onSelectQuestions) {
-      const selectedQuestionObjects = questions.filter(q => newSelected.includes(q.id));
+      const selectedQuestionObjects = questions ? questions.filter(q => newSelected.includes(q.id)) : [];
       onSelectQuestions(selectedQuestionObjects);
     }
   }, [multiSelect, selectedQuestions, onSelectQuestions, questions]);
@@ -497,12 +501,12 @@ export const QuestionBankContainer: React.FC<QuestionBankContainerProps> = ({
         throw new Error('File must contain an array of questions');
       }
 
-      if (questionsData.length === 0) {
+      if (questionsData?.length === 0) {
         throw new Error('File is empty');
       }
 
       const results = await Promise.allSettled(
-        questionsData.map(questionData => createQuestion(questionData))
+        questionsData?.map(questionData => createQuestion(questionData))
       );
 
       const successful = results.filter(result => result.status === 'fulfilled').length;
@@ -537,10 +541,10 @@ export const QuestionBankContainer: React.FC<QuestionBankContainerProps> = ({
   // Computed values
   const activeFilterCount = useMemo(() => {
     const storeFilters = [filters.difficulty, filters.subject, filters.topic]
-      .filter(value => value && value.trim() !== '').length;
-    const tagFilters = selectedTags.length;
+      .filter(value => value && value.trim() !== '')?.length;
+    const tagFilters = selectedTags?.length;
     return storeFilters + tagFilters;
-  }, [filters.difficulty, filters.subject, filters.topic, selectedTags.length]);
+  }, [filters.difficulty, filters.subject, filters.topic, selectedTags?.length]);
 
   const displayQuestions = tagFilteredQuestions;
 
@@ -585,7 +589,7 @@ export const QuestionBankContainer: React.FC<QuestionBankContainerProps> = ({
         onBulkUpload={() => setShowBulkUpload(true)}
         
         // Statistics
-        displayQuestionsCount={displayQuestions.length}
+        displayQuestionsCount={displayQuestions?.length}
       />
       
       {/* Main content */}
@@ -613,20 +617,20 @@ export const QuestionBankContainer: React.FC<QuestionBankContainerProps> = ({
         )}
         
         {/* Empty state */}
-        {!isLoading && !error && displayQuestions.length === 0 && (
+        {!isLoading && !error && displayQuestions?.length === 0 && (
           <div className="flex flex-col items-center justify-center h-64 text-center p-4">
             <div className="rounded-full bg-gray-100 p-3 mb-4">
               <BookOpen className="h-6 w-6 text-gray-400" />
             </div>
             <h3 className="text-lg font-medium mb-1">No questions found</h3>
             <p className="text-gray-500 mb-4 max-w-md">
-              {questions.length === 0
+              {questions?.length === 0
                 ? "Your question bank is empty. Add questions to get started."
                 : activeFilterCount > 0
                 ? "No questions match your current filters. Try adjusting your search, filters, or selected tags."
                 : "No questions match your current filters. Try adjusting your search or filters."}
             </p>
-            {questions.length === 0 ? (
+            {questions?.length === 0 ? (
               <Button onClick={() => setShowAddQuestion(true)} className="cursor-pointer">
                 <Plus className="h-4 w-4 mr-2" />
                 Add Question
@@ -645,7 +649,7 @@ export const QuestionBankContainer: React.FC<QuestionBankContainerProps> = ({
             ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" 
             : "space-y-4"
           }>
-            {displayQuestions.map(question => (
+            {displayQuestions?.map(question => (
               <QuestionCard
                 key={question.id}
                 question={question}

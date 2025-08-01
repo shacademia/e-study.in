@@ -43,9 +43,9 @@ export async function PUT(
       );
     }
 
-    if (adminUser.role !== 'ADMIN') {
+    if (adminUser.role !== 'ADMIN' && adminUser.role !== 'MODERATOR') {
       return NextResponse.json(
-        { success: false, error: 'Insufficient permissions. Only ADMIN users can update roles.' },
+        { success: false, error: 'Insufficient permissions. Only ADMIN and MODERATOR users can update roles.' },
         { status: 403 }
       );
     }

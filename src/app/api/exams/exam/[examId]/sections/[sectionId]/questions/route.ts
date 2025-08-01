@@ -56,7 +56,10 @@ export async function POST(
       return NextResponse.json({ error: 'Exam not found' }, { status: 404 });
     }
 
-    if (user.role !== 'ADMIN' && exam.createdById !== userId) {
+    // && exam.createdById !== userId
+    // EDITED
+
+    if (user.role !== 'ADMIN' && user.role !== 'MODERATOR') {
       return NextResponse.json({ error: 'Insufficient permissions to modify this exam' }, { status: 403 });
     }
 
@@ -247,7 +250,11 @@ export async function GET(
 
     // Check permissions
     if (user.role !== 'ADMIN' && user.role !== 'MODERATOR') {
-      if (!section.exam.isPublished && section.exam.createdById !== userId) {
+
+      //&& section.exam.createdById !== userId
+      // EDITED
+      
+      if (!section.exam.isPublished) {
         return NextResponse.json({ error: 'Section not found' }, { status: 404 });
       }
     }

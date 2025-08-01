@@ -61,7 +61,11 @@ export async function POST(
     }
 
     // Additional permission check - only creator or admin can publish
-    if (user.role !== 'ADMIN' && exam.createdById !== userId) {
+
+    // EDITED
+    //&& exam.createdById !== userId
+
+    if (user.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Insufficient permissions to publish this exam' }, { status: 403 });
     }
 

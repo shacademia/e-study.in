@@ -55,9 +55,12 @@ export async function POST(
     if (!exam) {
       return NextResponse.json({ error: 'Exam not found' }, { status: 404 });
     }
+    
+    // EDITED
+    //  && exam.createdById !== userId
 
     // Check if exam is published (unless user is admin/creator)
-    if (!exam.isPublished && user.role !== 'ADMIN' && user.role !== 'MODERATOR' && exam.createdById !== userId) {
+    if (!exam.isPublished && user.role !== 'ADMIN' && user.role !== 'MODERATOR') {
       return NextResponse.json({ error: 'Exam not available' }, { status: 404 });
     }
 

@@ -47,7 +47,10 @@ export async function DELETE(
       return NextResponse.json({ error: 'Exam not found' }, { status: 404 });
     }
 
-    if (user.role !== 'ADMIN' && exam.createdById !== userId) {
+    // && exam.createdById !== userId
+    // EDITED
+
+    if (user.role !== 'ADMIN' && user.role !== 'MODERATOR') {
       return NextResponse.json({ error: 'Insufficient permissions to modify this exam' }, { status: 403 });
     }
 

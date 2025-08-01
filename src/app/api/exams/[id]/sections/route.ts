@@ -73,7 +73,11 @@ export async function POST(
     }
 
     // Check permissions - only exam creator or admin can add sections
-    if (user.role !== 'ADMIN' && user.role !== 'MODERATOR' && exam.createdById !== userId) {
+
+    // EDITED
+    // && exam.createdById !== userId
+
+    if (user.role !== 'ADMIN' && user.role !== 'MODERATOR') {
       return NextResponse.json({ error: 'Insufficient permissions to modify this exam' }, { status: 403 });
     }
 
@@ -226,7 +230,9 @@ export async function GET(
 
     // Check permissions - non-admin users can only see published exams or their own
     if (user.role !== 'ADMIN' && user.role !== 'MODERATOR') {
-      if (!exam.isPublished && exam.createdById !== userId) {
+      // && exam.createdById !== userId
+      // EDITED
+      if (!exam.isPublished) {
         return NextResponse.json({ error: 'Exam not found' }, { status: 404 });
       }
     }
