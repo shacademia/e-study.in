@@ -62,7 +62,10 @@ export async function GET(
 
     // Check permissions
     if (user.role !== 'ADMIN' && user.role !== 'MODERATOR') {
-      if (!exam.isPublished && exam.createdById !== userId) {
+
+      // && exam.createdById !== userId
+      // EDITED
+      if (!exam.isPublished) {
         return NextResponse.json({ error: 'Exam not found' }, { status: 404 });
       }
     }
@@ -193,7 +196,10 @@ export async function PUT(
     }
 
     // Check permissions - only exam creator or admin can update
-    if (user.role !== 'ADMIN' && exam.createdById !== userId) {
+
+    // && exam.createdById !== userId
+    // EDITED
+    if (user.role !== 'ADMIN' && user.role !== 'MODERATOR') {
       return NextResponse.json({ error: 'Insufficient permissions to modify this exam' }, { status: 403 });
     }
 
@@ -345,7 +351,10 @@ export async function DELETE(
     }
 
     // Check permissions - only exam creator or admin can delete
-    if (user.role !== 'ADMIN' && exam.createdById !== userId) {
+    // && exam.createdById !== userId
+    // EDITED
+
+    if (user.role !== 'ADMIN' && user.role !== 'MODERATOR') {
       return NextResponse.json({ error: 'Insufficient permissions to modify this exam' }, { status: 403 });
     }
 

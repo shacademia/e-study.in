@@ -46,9 +46,9 @@ export async function DELETE(
       );
     }
 
-    if (adminUser.role !== 'ADMIN') {
+    if (adminUser.role !== 'ADMIN' && adminUser.role !== 'MODERATOR') {
       return NextResponse.json(
-        { success: false, error: 'Insufficient permissions. Only ADMIN users can delete accounts.' },
+        { success: false, error: 'Insufficient permissions. Only ADMIN and MODERATOR users can delete accounts.' },
         { status: 403 }
       );
     }

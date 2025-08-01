@@ -187,7 +187,9 @@ export async function GET(
 
     // Check permissions - non-admin users can only see published exams or their own drafts
     if (user.role !== "ADMIN" && user.role !== "MODERATOR") {
-      if (!exam.isPublished && exam.createdById !== userId) {
+      // && exam.createdById !== userId
+      //EDITED
+      if (!exam.isPublished) {
         return NextResponse.json({ error: "Exam not found" }, { status: 404 });
       }
     }
@@ -413,7 +415,11 @@ export async function DELETE(
     }
 
     // Additional permission check - only creator or admin can delete
-    if (user.role !== "ADMIN" && exam.createdById !== userId) {
+
+    // && exam.createdById !== userId
+    // EDITED
+
+    if (user.role !== "ADMIN" && user.role !== "MODERATOR") {
       return NextResponse.json(
         { error: "Insufficient permissions to delete this exam" },
         { status: 403 }

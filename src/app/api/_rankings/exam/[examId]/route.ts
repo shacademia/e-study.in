@@ -92,7 +92,9 @@ export async function GET(
 
     // Check permissions - non-admin users can only see published exams or their own
     if (user.role !== 'ADMIN' && user.role !== 'MODERATOR') {
-      if (!exam.isPublished && exam.createdById !== userId) {
+      // && exam.createdById !== userId
+      // EDITED
+      if (!exam.isPublished) {
         return NextResponse.json(
           { success: false, error: 'Exam not found' },
           { status: 404 }
