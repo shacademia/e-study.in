@@ -9,27 +9,47 @@ import ResultsNotFound from './components/ResultsNotFound';
 import ResultsSummary from './components/ResultsSummary';
 import QuestionResultsList from './components/QuestionResultsList';
 import ResultsActions from './components/ResultsActions';
+import { useResult } from '@/context/ResultContext';
 
-interface ExamResultsProps {
-  examId: string;
-}
 
-const ExamResults: React.FC<ExamResultsProps> = ({ examId }) => {
-  const { exam, submission, loading, error } = useExamResults(examId);
+
+const ExamResults= () => {
+  // const { exam, submission, loading, error } = useExamResults(examId);
+ const {ResultData, loading } = useResult();
+
   
   // Only calculate results when we have valid data
-  const { correctAnswers, totalQuestions, percentage, grade } = useResultsCalculation(
-    loading ? null : exam, 
-    loading ? null : submission
-  );
+  // const { correctAnswers, totalQuestions, percentage, grade } = useResultsCalculation(
+  //   loading ? null : exam, 
+  //   loading ? null : submission
+  // );
 
-  if (loading) {
+
+  if(loading){
     return <ResultsLoading />;
   }
-
-  if (error || !exam || !submission) {
+  if (!ResultData || !ResultData.success) {
     return <ResultsNotFound />;
   }
+  if (!ResultData?.success) {
+    return <ResultsNotFound />;
+  }
+
+  const data = ResultData.data;
+
+  const statistics = data.statistics;
+  const exam = data.exam;
+  const submission = data;
+  const correctAnswers = statistics.correctAnswers;
+  const totalQuestions = statistics.totalQuestions;
+  const percentage = statistics.percentage;
+  const grade = data.performance.grade;
+  const remarks = data.performance.remarks;
+  const questions = data.questionAnalysis;
+
+  console.log("ExamResults - ResultData:", ResultData);
+
+
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -44,6 +64,7 @@ const ExamResults: React.FC<ExamResultsProps> = ({ examId }) => {
             totalQuestions={totalQuestions}
             percentage={percentage}
             grade={grade}
+            statistics={statistics}
           />
 
           <QuestionResultsList exam={exam} submission={submission} />

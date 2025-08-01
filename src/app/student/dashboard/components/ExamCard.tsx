@@ -27,6 +27,7 @@ export interface ExamCardProps {
     isPasswordProtected: boolean;
   };
   submission?: {
+    id: string;
     score: number;
     completedAt: string | Date;
   };
@@ -281,7 +282,7 @@ const ExamCard: React.FC<ExamCardProps> = memo(({
 
   // EVENT HANDLERS - Memoized click handlers
   const handleStartExam = useCallback(() => onStartExam(exam.id), [onStartExam, exam.id]);
-  const handleViewResults = useCallback(() => onViewResults(exam.id), [onViewResults, exam.id]);
+  const handleViewResults = useCallback(() => (submission ? onViewResults(submission.id) : null), [onViewResults, submission]);
 
   // CARD STYLING - Determine card appearance based on state
   const cardVariant = isCompleted ? "completed" : exam.isPasswordProtected ? "secured" : "available";

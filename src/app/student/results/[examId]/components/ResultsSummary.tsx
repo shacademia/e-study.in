@@ -3,15 +3,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Trophy, Calendar } from 'lucide-react';
-import { Exam, Submission } from '@/constants/types';
+// import { Exam, Submission } from '@/constants/types';
+import { Exam, ExamSubmissionData, Statistics } from '../types/index';
 
 interface ResultsSummaryProps {
   exam: Exam;
-  submission: Submission;
+  submission: ExamSubmissionData;
   correctAnswers: number;
   totalQuestions: number;
   percentage: number;
   grade: string;
+  statistics: Statistics;
 }
 
 const ResultsSummary: React.FC<ResultsSummaryProps> = ({
@@ -21,6 +23,7 @@ const ResultsSummary: React.FC<ResultsSummaryProps> = ({
   totalQuestions,
   percentage,
   grade,
+  statistics
 }) => {
   const incorrectAnswers = totalQuestions - correctAnswers;
 
@@ -74,7 +77,7 @@ const ResultsSummary: React.FC<ResultsSummaryProps> = ({
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <div className="p-4 rounded bg-gray-50 border text-center">
             <div className="text-xs text-gray-500 mb-1">Score</div>
-            <div className="text-2xl font-bold text-blue-600">{submission.earnedMarks}</div>
+            <div className="text-2xl font-bold text-blue-600">{statistics.earnedMarks}</div>
           </div>
           <div className="p-4 rounded bg-gray-50 border text-center">
             <div className="text-xs text-gray-500 mb-1">Correct</div>

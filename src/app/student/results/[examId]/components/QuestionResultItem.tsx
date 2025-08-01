@@ -18,9 +18,10 @@ import {
 } from 'lucide-react';
 import { Question } from '@/constants/types';
 import MathDisplay from '@/components/math-display';
+import { QuestionAnalysis } from '../types';
 
 interface QuestionResultItemProps {
-  question: Question;
+  question: QuestionAnalysis;
   index: number;
   userAnswer: number | undefined;
   isCorrect: boolean;
@@ -129,18 +130,18 @@ const QuestionResultItem: React.FC<QuestionResultItemProps> = ({
     );
   }
 
-  // Safety check for options
-  const options = Array.isArray(question.options) ? question.options : [];
-  if (options.length === 0) {
-    return (
-      <div className="border rounded-lg p-4 bg-gray-50">
-        <p className="text-gray-500">Question options not available</p>
-        {question.content && (
-          <p className="text-sm text-gray-400 mt-1">Content: {question.content}</p>
-        )}
-      </div>
-    );
-  }
+  // // Safety check for options
+  // const options = Array.isArray(question.options) ? question.options : [];
+  // if (options.length === 0) {
+  //   return (
+  //     <div className="border rounded-lg p-4 bg-gray-50">
+  //       <p className="text-gray-500">Question options not available</p>
+  //       {question.content && (
+  //         <p className="text-sm text-gray-400 mt-1">Content: {question.content}</p>
+  //       )}
+  //     </div>
+  //   );
+  // }
 
   // ✅ ENHANCED: Render 3-layer question content
   const renderQuestionContent = () => {
@@ -206,14 +207,14 @@ const QuestionResultItem: React.FC<QuestionResultItemProps> = ({
       );
     }
 
-    // Fallback to legacy content (backward compatibility)
-    if (layers.length === 0 && question.content?.trim()) {
-      layers.push(
-        <div key="legacy-content" className="mb-3">
-          <MathDisplay className="text-gray-800 leading-relaxed">{question.content}</MathDisplay>
-        </div>
-      );
-    }
+    // // Fallback to legacy content (backward compatibility)
+    // if (layers.length === 0 && question.content?.trim()) {
+    //   layers.push(
+    //     <div key="legacy-content" className="mb-3">
+    //       <MathDisplay className="text-gray-800 leading-relaxed">{question.content}</MathDisplay>
+    //     </div>
+    //   );
+    // }
 
     // Legacy question image
     if (question.questionImage?.trim()) {
@@ -358,7 +359,7 @@ const QuestionResultItem: React.FC<QuestionResultItemProps> = ({
             Answer Options
           </h4>
           <div className="grid grid-cols-1 gap-2">
-            {options.map((option: string, optionIndex: number) => {
+            {question.options.map((option: string, optionIndex: number) => {
               const isOptionCorrect = optionIndex === question.correctOption;
               const isUserChoice = userAnswer === optionIndex;
               const isUserIncorrect = isUserChoice && !isCorrect;

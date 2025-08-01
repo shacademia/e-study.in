@@ -1,11 +1,12 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Exam, Submission, Question } from '@/constants/types';
+// import { Exam, Submission, Question } from '@/constants/types';
+import { Exam, ExamSubmissionData, QuestionAnalysis } from '../types/index';
 import QuestionResultItem from './QuestionResultItem';
 
 interface QuestionResultsListProps {
   exam: Exam;
-  submission: Submission;
+  submission: ExamSubmissionData;
 }
 
 const QuestionResultsList: React.FC<QuestionResultsListProps> = ({
@@ -13,8 +14,8 @@ const QuestionResultsList: React.FC<QuestionResultsListProps> = ({
   submission,
 }) => {
   // Safety check - don't render if essential data is missing
-  if (!exam || !submission || !submission.answers) {
-    console.warn('QuestionResultsList: Invalid props', { exam: !!exam, submission: !!submission, answers: !!submission?.answers });
+  if (!exam || !submission || !submission.questionAnalysis || !Array.isArray(submission.questionAnalysis) || submission.questionAnalysis.length === 0) {
+    console.warn('QuestionResultsList: Invalid props', { exam: !!exam, submission: !!submission, answers: !!submission?.questionAnalysis, answersType: Array.isArray(submission?.questionAnalysis) ? 'array' : typeof submission?.questionAnalysis });
     return (
       <Card>
         <CardHeader>
@@ -31,12 +32,12 @@ const QuestionResultsList: React.FC<QuestionResultsListProps> = ({
   }
 
   // Debug: Check exam questions structure
-  console.log('QuestionResultsList: Exam questions structure:', {
-    hasQuestions: !!exam.questions,
-    questionsLength: exam.questions?.length || 0,
-    firstQuestion: exam.questions?.[0],
-    questionsType: Array.isArray(exam.questions) ? 'array' : typeof exam.questions,
-  });
+  // console.log('QuestionResultsList: Exam questions structure:', {
+  //   hasQuestions: !!exam.questions,
+  //   questionsLength: exam.questions?.length || 0,
+  //   firstQuestion: exam.questions?.[0],
+  //   questionsType: Array.isArray(exam.questions) ? 'array' : typeof exam.questions,
+  // });
 
   return (
     <Card>
@@ -48,14 +49,14 @@ const QuestionResultsList: React.FC<QuestionResultsListProps> = ({
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {(exam.questions || []).map((question: Question, index: number) => {
+          {(submission.questionAnalysis || []).map((question: QuestionAnalysis, index: number) => {
             // Safety check for submission answers
-            const userAnswer = submission.answers?.[question.id];
+            const userAnswer = question.userAnswer;
             const isCorrect = userAnswer !== undefined && userAnswer === question.correctOption;
 
             return (
               <QuestionResultItem
-                key={question.id}
+                key={index}
                 question={question}
                 index={index}
                 userAnswer={userAnswer}
