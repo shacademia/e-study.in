@@ -49,6 +49,15 @@ interface AddQuestionsSectionProps {
 
 type ViewMode = 'grid' | 'list';
 
+// Utility function to transform section questions for saveExamWithSections API
+const transformSectionQuestions = (questions: any[]) => {
+  return questions.map(q => ({
+    questionId: q.questionId,
+    order: q.order,
+    marks: q.marks,
+  }));
+};
+
 const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
   examId,
   sectionId,
@@ -83,11 +92,26 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
       if (!examId || !sectionId) return;
       try {
         const questionsInSection = await examService.getSectionQuestions(examId, sectionId);
-        const ids = questionsInSection?.map(q => q.id) || [];
-        setUsedQuestionIds(new Set(ids));
+        if (Array.isArray(questionsInSection)) {
+          const ids = questionsInSection.map(q => q.id);
+          setUsedQuestionIds(new Set(ids));
+        } else {
+          console.error('Invalid response format for section questions:', questionsInSection);
+          setUsedQuestionIds(new Set());
+          toast({
+            title: 'Warning',
+            description: 'Could not load existing questions',
+            variant: 'destructive'
+          });
+        }
       } catch (err) {
         console.error('Failed to load used questions for section:', err);
         setUsedQuestionIds(new Set());
+        toast({
+          title: 'Error',
+          description: 'Failed to load section questions',
+          variant: 'destructive'
+        });
       }
     };
     loadUsedQuestions();
@@ -145,7 +169,7 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
     setLoadingMore(false);
   };
 
-  // Handle adding questions selected by admin to the section
+  // Handle adding questions selected by admin to the section using saveExamWithSections
   const handleAddQuestions = async () => {
     if (!userPermissions.canCreateQuestions) {
       toast({
@@ -187,17 +211,87 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
       return;
     }
 
-    // Real API call to add questions to the section
+    // Real API call using saveExamWithSections for atomic operation
+    // Benefits: 
+    // - Atomic transaction ensures data consistency
+    // - Updates both exam-section and exam-question relationships
+    // - Handles section marks calculation automatically
+    // - More reliable than individual API calls
     try {
       setAddingQuestions(true);
 
-      const selectedQuestionsList = Array.from(selectedQuestions);
-      await examService.addQuestionsToSection(examId, sectionId, {
-        questionIds: selectedQuestionsList,
-        marks: 1,
+      // First, get the current exam data to preserve existing structure
+      toast({
+        title: 'Loading exam data...',
+        description: 'Fetching current exam structure',
       });
 
-      const addedQuestions = filteredQuestions.filter(q => selectedQuestionsList.includes(q.id));
+      const currentExamData = await examService.getExamForEdit(examId);
+
+      if (!currentExamData || !currentExamData.exam || !currentExamData.sections) {
+        throw new Error('Failed to load current exam data or invalid data structure');
+      }
+
+      const { exam, sections } = currentExamData;
+
+      // Find the target section and add new questions to it
+      const updatedSections = sections.map(existingSection => {
+        if (existingSection.id === sectionId) {
+          // Get existing questions in this section
+          const existingQuestions = existingSection.questions || [];
+
+          // Create new question entries for selected questions
+          const selectedQuestionsList = Array.from(selectedQuestions);
+          const newQuestions = selectedQuestionsList.map((questionId, index) => ({
+            questionId,
+            order: existingQuestions.length + index,
+            marks: 1, // Default marks, could be made configurable
+          }));
+
+          // Combine existing and new questions
+          const allQuestions = [
+            ...transformSectionQuestions(existingQuestions),
+            ...newQuestions
+          ];
+
+          return {
+            id: existingSection.id,
+            name: existingSection.name,
+            description: existingSection.description,
+            timeLimit: existingSection.timeLimit,
+            questions: allQuestions,
+          };
+        }
+
+        // Return other sections unchanged
+        return {
+          id: existingSection.id,
+          name: existingSection.name,
+          description: existingSection.description,
+          timeLimit: existingSection.timeLimit,
+          questions: transformSectionQuestions(existingSection.questions || []),
+        };
+      });
+
+      // Prepare the payload for saveExamWithSections
+      const savePayload = {
+        exam: {
+          name: exam.name,
+          description: exam.description || '',
+          timeLimit: exam.timeLimit,
+          isPasswordProtected: exam.isPasswordProtected || false,
+          password: exam.password || undefined,
+          instructions: exam.instructions || '',
+          isPublished: exam.isPublished || false,
+          isDraft: exam.isDraft !== false, // Default to true if not explicitly false
+        },
+        sections: updatedSections,
+      };
+
+      // Save using the atomic saveExamWithSections API
+      await examService.saveExamWithSections(examId, savePayload);
+
+      const addedQuestions = filteredQuestions.filter(q => selectedQuestions.has(q.id));
 
       toast({
         title: 'Questions Added Successfully',
@@ -208,9 +302,14 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
       onQuestionsAdded?.(addedQuestions, selectedCount);
 
       // Refresh used question IDs after successful add
-      const questionsInSection = await examService.getSectionQuestions(examId!, sectionId!);
-      const ids = questionsInSection?.map(q => q.id) ?? [];
-      setUsedQuestionIds(new Set(ids));
+      try {
+        const questionsInSection = await examService.getSectionQuestions(examId, sectionId);
+        const ids = questionsInSection?.map(q => q.id) ?? [];
+        setUsedQuestionIds(new Set(ids));
+      } catch (refreshError) {
+        console.warn('Failed to refresh used questions:', refreshError);
+        // Non-critical error, don't show to user
+      }
 
       if (mode === 'dialog' && onClose) {
         onClose();
@@ -218,7 +317,14 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
     } catch (error) {
       console.error('Failed to add questions:', error);
 
-      const errorMessage = error instanceof Error ? error.message : 'Failed to add questions to section';
+      let errorMessage = 'Failed to add questions to section';
+
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'object' && error !== null && 'error' in error) {
+        errorMessage = (error as unknown).error || errorMessage;
+      }
+
       toast({
         title: 'Error Adding Questions',
         description: errorMessage,
