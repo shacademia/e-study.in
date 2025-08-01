@@ -7,7 +7,7 @@ import { useResult } from '@/context/ResultContext';
 const ExamResultsPage = () => {
   const params = useParams();
   const submissionId = params?.examId as string;
-  const { fetchResultData, ResultData } = useResult();
+  const { fetchResultData } = useResult();
 
   useEffect(() => {
     if (submissionId) {
@@ -15,7 +15,7 @@ const ExamResultsPage = () => {
     }
   }, []);
 
-  console.log("ExamResultsPage - ResultData:", ResultData);
+  // console.log("ExamResultsPage - ResultData:", ResultData);
 
   return <ExamResults/>;
 };

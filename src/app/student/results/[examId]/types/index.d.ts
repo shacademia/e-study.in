@@ -30,7 +30,7 @@ interface Exam {
 }
 
 interface Statistics {
-  correctAnswers: number;
+  correctAnswers: number | null;
   wrongAnswers: number;
   unanswered: number;
   percentage: number;

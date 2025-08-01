@@ -9,7 +9,7 @@ import { Exam, ExamSubmissionData, Statistics } from '../types/index';
 interface ResultsSummaryProps {
   exam: Exam;
   submission: ExamSubmissionData;
-  correctAnswers: number;
+  correctAnswers: number | null;
   totalQuestions: number;
   percentage: number;
   grade: string;
@@ -25,7 +25,7 @@ const ResultsSummary: React.FC<ResultsSummaryProps> = ({
   grade,
   statistics
 }) => {
-  const incorrectAnswers = totalQuestions - correctAnswers;
+  const incorrectAnswers = totalQuestions - (correctAnswers?? 0);
 
   // Message and color mapping
   const getMessage = () => {
@@ -81,7 +81,7 @@ const ResultsSummary: React.FC<ResultsSummaryProps> = ({
           </div>
           <div className="p-4 rounded bg-gray-50 border text-center">
             <div className="text-xs text-gray-500 mb-1">Correct</div>
-            <div className="text-2xl font-bold text-emerald-600">{correctAnswers}</div>
+            <div className="text-2xl font-bold text-emerald-600">{correctAnswers?? 0}</div>
           </div>
           <div className="p-4 rounded bg-gray-50 border text-center">
             <div className="text-xs text-gray-500 mb-1">Incorrect</div>
