@@ -1,25 +1,32 @@
-import { Exam, ExamSection, QuestionAnswerStatus } from "@/constants/types";
+import { Exam, ExamSection, Question, QuestionAnswerStatus } from "@/constants/types";
+
+// ✅ NEW: A single helper to get all questions, avoiding repeated logic.
+export const getAllQuestions = (exam: Exam | null): Question[] => {
+  if (!exam) return [];
+
+  if (exam.sections && exam.sections.length > 0) {
+    return exam.sections.flatMap(section => section.questions || []);
+  }
+  
+  return exam.questions || [];
+};
 
 export const formatTime = (seconds: number): string => {
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
-  const secs = seconds % 60;
+  const secs = Math.floor(seconds % 60); // Use Math.floor to handle potential decimals
 
   if (hours > 0) {
-    return `${hours}:${minutes.toString().padStart(2, "0")}:${secs
-      .toString()
-      .padStart(2, "0")}`;
+    return `${hours}:${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   }
   return `${minutes}:${secs.toString().padStart(2, "0")}`;
 };
 
 export const getTimeColor = (timeLeft: number): string => {
-  if (timeLeft <= 300) {
-    // 5 minutes or less
+  if (timeLeft <= 300) { // 5 minutes or less
     return "text-red-600 bg-red-50 border-red-200 animate-pulse";
   }
-  if (timeLeft <= 600) {
-    // 10 minutes or less
+  if (timeLeft <= 600) { // 10 minutes or less
     return "text-yellow-600 bg-yellow-50 border-yellow-200";
   }
   return "text-green-600 bg-green-50 border-green-200";
@@ -44,25 +51,20 @@ export const getSectionProgress = (
   section: ExamSection,
   questionStatuses: Record<string, QuestionAnswerStatus>
 ): number => {
-  const sectionQuestions = (section.questions ?? []).map((q) => q.id);
+  const sectionQuestions = section.questions ?? [];
+  // ✅ FIX: Avoid division by zero if a section has no questions.
+  if (sectionQuestions.length === 0) {
+    return 0;
+  }
   const answered = sectionQuestions.filter(
-    (qId) => questionStatuses[qId]?.status === "ANSWERED"
+    (q) => questionStatuses[q.id]?.status === "ANSWERED"
   ).length;
   return (answered / sectionQuestions.length) * 100;
 };
 
+// ✅ REFACTORED: Simplified using the new helper.
 export const getTotalQuestions = (exam: Exam | null): number => {
-  if (!exam) return 0;
-  
-  // If exam has sections, count questions in all sections
-  if (exam.sections && exam.sections.length > 0) {
-    return exam.sections.reduce((total, section) => {
-      return total + (section.questions?.length || 0);
-    }, 0);
-  }
-  
-  // Otherwise count direct questions
-  return exam.questions?.length || 0;
+  return getAllQuestions(exam).length;
 };
 
 export const getAnsweredCount = (questionStatuses: Record<string, QuestionAnswerStatus>): number => {
@@ -77,63 +79,47 @@ export const getMarkedForReviewCount = (questionStatuses: Record<string, Questio
   ).length;
 };
 
+// ✅ CRITICAL FIX: Correctly calculates score based on positive/negative marks.
 export const calculateScore = (
   exam: Exam | null,
   answers: Record<string, number>
 ): number => {
   if (!exam) return 0;
   
+  const allQuestions = getAllQuestions(exam);
   let score = 0;
-  
-  // Calculate score for questions in sections
-  if (exam.sections && exam.sections.length > 0) {
-    exam.sections.forEach(section => {
-      if (section.questions && section.questions.length > 0) {
-        section.questions.forEach(question => {
-          if (answers[question.id] === question.correctOption) {
-            score += 1;
-          }
-        });
-      }
-    });
-  } 
-  // Or calculate score for direct questions
-  else if (exam.questions && exam.questions.length > 0) {
-    exam.questions.forEach(question => {
-      if (answers[question.id] === question.correctOption) {
-        score += 1;
-      }
-    });
+
+  for (const question of allQuestions) {
+    const userAnswerIndex = answers[question.id];
+    
+    if (userAnswerIndex === undefined || userAnswerIndex === -1) {
+      // Unanswered question, no change in score.
+      continue;
+    }
+    
+    if (userAnswerIndex === question.correctOption) {
+      // Correct answer
+      score += question.positiveMarks;
+    } else {
+      // Incorrect answer
+      score -= question.negativeMarks;
+    }
   }
   
   return score;
 };
 
+// ✅ REFACTORED: Simplified using the new helper.
 export const initializeQuestionStatuses = (exam: Exam): Record<string, QuestionAnswerStatus> => {
+  const allQuestions = getAllQuestions(exam);
   const initialStatuses: Record<string, QuestionAnswerStatus> = {};
   
-  // Handle questions from sections if they exist
-  if (exam.sections && exam.sections.length > 0) {
-    exam.sections.forEach(section => {
-      if (section.questions && section.questions.length > 0) {
-        section.questions.forEach(q => {
-          initialStatuses[q.id] = {
-            status: "NOT_ANSWERED",
-            timeSpent: 0,
-          };
-        });
-      }
-    });
-  } 
-  // Handle direct questions if they exist
-  else if (exam.questions) {
-    exam.questions.forEach((q) => {
-      initialStatuses[q.id] = {
-        status: "NOT_ANSWERED",
-        timeSpent: 0,
-      };
-    });
-  }
+  allQuestions.forEach((q) => {
+    initialStatuses[q.id] = {
+      status: "NOT_ANSWERED",
+      timeSpent: 0,
+    };
+  });
   
   return initialStatuses;
 };

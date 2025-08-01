@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Exam, ExamSection, Question } from '@/constants/types';
 import { 
   useExamForEdit, 
@@ -33,20 +33,57 @@ interface UseExamBuilderReturn {
   questions: Question[];
   activeSection: number;
   showQuestionSelector: boolean;
+  loading: boolean;
+  error: string | null;
+  examForEdit: any;
+  
+  // Actions
   setActiveSection: (index: number) => void;
   setShowQuestionSelector: (show: boolean) => void;
   handleAddSection: () => void;
   handleDeleteSection: (sectionId: string) => void;
   handleUpdateSection: (sectionId: string, updates: Partial<ExamSection>) => void;
   handleRemoveQuestion: (sectionId: string, questionId: string) => void;
-  handleSaveExam: (status: 'draft' | 'published') => Promise<void>;
+  handleAddQuestionsToSection: (sectionId: string, questions: Question[], marks?: number) => void;
+  handleSaveExam: (status: 'draft' | 'published') => Promise<boolean>;
+  resetExam: () => void;
+  
+  // Computed values
   getTotalQuestions: () => number;
   getTotalMarks: () => number;
-  loading: boolean;
-  examForEdit: any;
+  isValid: boolean;
+  canPublish: boolean;
 }
 
-export const useExamBuilder = ({ editingExam, availableQuestions }: UseExamBuilderProps): UseExamBuilderReturn => {
+// Default states
+const DEFAULT_EXAM_DETAILS: ExamDetails = {
+  title: '',
+  description: '',
+  duration: 180,
+  totalMarks: 0,
+  instructions: '',
+  status: 'draft',
+  password: '',
+  isPasswordRequired: false
+};
+
+const createDefaultSection = (index: number = 1): ExamSection => ({
+  id: `section-${Date.now()}-${index}`,
+  name: `Section ${index}`,
+  description: '',
+  questions: [],
+  timeLimit: 0,
+  marks: 0,
+  examId: '',
+  questionsCount: 0,
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString()
+});
+
+export const useExamBuilder = ({ 
+  editingExam, 
+  availableQuestions 
+}: UseExamBuilderProps): UseExamBuilderReturn => {
   // Initialize stores
   useStoreInitialization();
 
@@ -68,81 +105,90 @@ export const useExamBuilder = ({ editingExam, availableQuestions }: UseExamBuild
     setShowQuestionSelector
   } = useExamBuilderUI();
 
+  // Local state
   const [loading, setLoading] = useState(false);
-
-  // Local state for exam details and sections
-  const [examDetails, setExamDetails] = useState<ExamDetails>({
-    title: '',
-    description: '',
-    duration: 180,
-    totalMarks: 0,
-    instructions: '',
-    status: 'draft',
-    password: '',
-    isPasswordRequired: false
-  });
-
-  const [sections, setSections] = useState<ExamSection[]>([
-    {
-      id: '1',
-      name: 'Section 1',
-      description: 'Main section of the exam',
-      questions: [],
-      timeLimit: 60,
-      marks: 0,
-      examId: '',
-      questionsCount: 0,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    }
-  ]);
+  const [error, setError] = useState<string | null>(null);
+  const [examDetails, setExamDetails] = useState<ExamDetails>(DEFAULT_EXAM_DETAILS);
+  const [sections, setSections] = useState<ExamSection[]>([createDefaultSection(1)]);
 
   // Use available questions from store or props
-  const questions = availableQuestions?.length ? availableQuestions : filteredQuestions;
+  const questions = useMemo(() => {
+    return availableQuestions?.length ? availableQuestions : filteredQuestions;
+  }, [availableQuestions, filteredQuestions]);
 
-  // Update state when exam data loads from store
+  // Computed values
+  const getTotalQuestions = useCallback(() => {
+    return sections.reduce((total, section) => total + (section.questions?.length || 0), 0);
+  }, [sections]);
+
+  const getTotalMarks = useCallback(() => {
+    return sections.reduce((total, section) => total + (section.marks || 0), 0);
+  }, [sections]);
+
+  const isValid = useMemo(() => {
+    return examDetails.title.trim().length > 0 && sections.length > 0;
+  }, [examDetails.title, sections.length]);
+
+  const canPublish = useMemo(() => {
+    return isValid && getTotalQuestions() > 0;
+  }, [isValid, getTotalQuestions]);
+
+  // Reset function
+  const resetExam = useCallback(() => {
+    setExamDetails(DEFAULT_EXAM_DETAILS);
+    setSections([createDefaultSection(1)]);
+    setActiveSection(0);
+    setError(null);
+    clearExamForEdit();
+  }, [setActiveSection, clearExamForEdit]);
+
+  // Load exam data for editing
   useEffect(() => {
-    if (editingExam?.id) {
-      fetchExamForEdit(editingExam.id);
-    } else {
-      // Clear cached exam data when creating new exam
-      clearExamForEdit();
-    }
+    let isCancelled = false;
+
+    const loadExamData = async () => {
+      if (editingExam?.id) {
+        try {
+          setLoading(true);
+          setError(null);
+          await fetchExamForEdit(editingExam.id);
+        } catch (err) {
+          if (!isCancelled) {
+            const errorMessage = err instanceof Error ? err.message : 'Failed to load exam data';
+            setError(errorMessage);
+            toast({
+              title: 'Error Loading Exam',
+              description: errorMessage,
+              variant: 'destructive'
+            });
+          }
+        } finally {
+          if (!isCancelled) {
+            setLoading(false);
+          }
+        }
+      } else {
+        // Clear cached exam data when creating new exam
+        clearExamForEdit();
+      }
+    };
+
+    loadExamData();
+
+    return () => {
+      isCancelled = true;
+    };
   }, [editingExam?.id, fetchExamForEdit, clearExamForEdit]);
 
   // Reset form when switching to create mode
   useEffect(() => {
     if (!editingExam?.id) {
-      // Reset to default values for new exam creation
-      setExamDetails({
-        title: '',
-        description: '',
-        duration: 180,
-        totalMarks: 0,
-        instructions: '',
-        status: 'draft',
-        password: '',
-        isPasswordRequired: false
-      });
-      
-      // Reset sections to default empty section
-      setSections([{
-        id: 'section-1',
-        name: 'Section 1',
-        description: '',
-        timeLimit: 0,
-        marks: 0,
-        questionsCount: 0,
-        examId: '',
-        questions: [],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      }]);
+      resetExam();
     }
-  }, [editingExam?.id]);
+  }, [editingExam?.id, resetExam]);
 
+  // Update local state when exam data loads from store
   useEffect(() => {
-    // Only apply exam data if we're in edit mode AND have exam data
     if (editingExam?.id && examForEdit && examForEdit.exam) {
       // Set exam details from store data
       setExamDetails({
@@ -156,19 +202,14 @@ export const useExamBuilder = ({ editingExam, availableQuestions }: UseExamBuild
         isPasswordRequired: examForEdit.exam.isPasswordProtected || false
       });
       
-      // Handle both sections and direct questions
+      // Handle sections with complete question data
       if (examForEdit.sections && examForEdit.sections.length > 0) {
-        // Transform and set sections with complete question data
         const transformedSections: ExamSection[] = examForEdit.sections.map((section) => {
-          const sectionQuestions: Question[] = section.questions?.map((esq) => {
-            // The esq should have the structure { question: Question, marks: number, order: number }
-            return {
-              ...esq.question,
-              // Add marks and order as additional properties on the Question
-              marks: esq.marks,
-              order: esq.order
-            } as Question & { marks: number; order: number };
-          }) || [];
+          const sectionQuestions: Question[] = section.questions?.map((esq) => ({
+            ...esq.question,
+            marks: esq.marks,
+            order: esq.order
+          } as Question & { marks: number; order: number })) || [];
 
           return {
             id: section.id,
@@ -204,68 +245,107 @@ export const useExamBuilder = ({ editingExam, availableQuestions }: UseExamBuild
     }
   }, [examForEdit, editingExam]);
 
+  // Section management
   const handleAddSection = useCallback(() => {
-    const newSection: ExamSection = {
-      id: `section-${Date.now()}`,
-      name: `Section ${sections.length + 1}`,
-      description: '',
-      questions: [],
-      timeLimit: 60,
-      marks: 0,
-      examId: '',
-      questionsCount: 0,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
+    const newSection = createDefaultSection(sections.length + 1);
     setSections(prev => [...prev, newSection]);
   }, [sections.length]);
 
   const handleDeleteSection = useCallback((sectionId: string) => {
-    setSections(prev => prev.filter((s) => s.id !== sectionId));
-    if (activeSection >= sections.length - 1) {
-      setActiveSection(Math.max(0, sections.length - 2));
-    }
-  }, [activeSection, sections.length, setActiveSection]);
+    setSections(prev => {
+      const filtered = prev.filter((s) => s.id !== sectionId);
+      // Ensure we always have at least one section
+      return filtered.length > 0 ? filtered : [createDefaultSection(1)];
+    });
+    
+    // Adjust active section if necessary
+    setSections(current => {
+      if (activeSection >= current.length) {
+        setActiveSection(Math.max(0, current.length - 1));
+      }
+      return current;
+    });
+  }, [activeSection, setActiveSection]);
 
   const handleUpdateSection = useCallback((sectionId: string, updates: Partial<ExamSection>) => {
     setSections(prev => prev.map((s) =>
-      s.id === sectionId ? { ...s, ...updates } : s
+      s.id === sectionId ? { 
+        ...s, 
+        ...updates, 
+        updatedAt: new Date().toISOString() 
+      } : s
     ));
   }, []);
 
+  // Question management
   const handleRemoveQuestion = useCallback((sectionId: string, questionId: string) => {
-    const section = sections.find((s) => s.id === sectionId);
-    if (section && section.questions) {
-      const updatedQuestions = section.questions.filter((q) => q.id !== questionId);
-      const updatedMarks = updatedQuestions.length * 1; // 1 mark per question
-      handleUpdateSection(sectionId, {
-        questions: updatedQuestions,
-        marks: updatedMarks,
-        questionsCount: updatedQuestions.length
-      });
-    }
-  }, [sections, handleUpdateSection]);
+    setSections(prev => prev.map(section => {
+      if (section.id === sectionId && section.questions) {
+        const updatedQuestions = section.questions.filter((q) => q.id !== questionId);
+        const updatedMarks = updatedQuestions.reduce((total, q) => total + ((q as any).marks || 1), 0);
+        
+        return {
+          ...section,
+          questions: updatedQuestions,
+          marks: updatedMarks,
+          questionsCount: updatedQuestions.length,
+          updatedAt: new Date().toISOString()
+        };
+      }
+      return section;
+    }));
+  }, []);
 
-  const getTotalQuestions = useCallback(() => {
-    return sections.reduce((total, section) => total + (section.questions?.length || 0), 0);
-  }, [sections]);
+  const handleAddQuestionsToSection = useCallback((
+    sectionId: string, 
+    questionsToAdd: Question[], 
+    marksPerQuestion: number = 1
+  ) => {
+    setSections(prev => prev.map(section => {
+      if (section.id === sectionId) {
+        const existingQuestionIds = new Set(section.questions?.map(q => q.id) || []);
+        const newQuestions = questionsToAdd
+          .filter(q => !existingQuestionIds.has(q.id))
+          .map((q, index) => ({
+            ...q,
+            marks: marksPerQuestion,
+            order: (section.questions?.length || 0) + index
+          }));
 
-  const getTotalMarks = useCallback(() => {
-    return sections.reduce((total, section) => total + (section.marks || 0), 0);
-  }, [sections]);
+        const updatedQuestions = [...(section.questions || []), ...newQuestions];
+        const updatedMarks = updatedQuestions.reduce((total, q) => total + ((q as any).marks || 1), 0);
 
-  const handleSaveExam = useCallback(async (status: 'draft' | 'published') => {
+        return {
+          ...section,
+          questions: updatedQuestions,
+          marks: updatedMarks,
+          questionsCount: updatedQuestions.length,
+          updatedAt: new Date().toISOString()
+        };
+      }
+      return section;
+    }));
+
+    toast({
+      title: 'Questions Added',
+      description: `Successfully added ${questionsToAdd.length} questions to the section`,
+    });
+  }, []);
+
+  // Save exam
+  const handleSaveExam = useCallback(async (status: 'draft' | 'published'): Promise<boolean> => {
     try {
       setLoading(true);
+      setError(null);
       
-      // Validation
+      // Enhanced validation
       if (!examDetails.title.trim()) {
         toast({
           title: "Validation Error",
           description: "Exam title is required",
           variant: "destructive",
         });
-        return;
+        return false;
       }
 
       if (sections.length === 0) {
@@ -274,10 +354,9 @@ export const useExamBuilder = ({ editingExam, availableQuestions }: UseExamBuild
           description: "At least one section is required",
           variant: "destructive",
         });
-        return;
+        return false;
       }
 
-      // Check if we have questions in sections (for published exams)
       const totalQuestions = getTotalQuestions();
       if (status === 'published' && totalQuestions === 0) {
         toast({
@@ -285,25 +364,36 @@ export const useExamBuilder = ({ editingExam, availableQuestions }: UseExamBuild
           description: "Cannot publish exam without questions. Please add questions to sections.",
           variant: "destructive",
         });
-        return;
+        return false;
+      }
+
+      // Validate section data
+      const invalidSections = sections.filter(s => !s.name.trim());
+      if (invalidSections.length > 0) {
+        toast({
+          title: "Validation Error",
+          description: "All sections must have a name",
+          variant: "destructive",
+        });
+        return false;
       }
 
       const examData = {
-        name: examDetails.title,
-        description: examDetails.description,
+        name: examDetails.title.trim(),
+        description: examDetails.description.trim(),
         timeLimit: examDetails.duration,
-        instructions: examDetails.instructions,
+        instructions: examDetails.instructions.trim(),
         password: examDetails.password,
         isPasswordProtected: examDetails.isPasswordRequired,
         isPublished: status === 'published',
         isDraft: status === 'draft',
       };
 
-      // Transform sections for API - ensure we have proper data
+      // Transform sections for API
       const sectionsData = sections.map(section => ({
         id: section.id,
-        name: section.name,
-        description: section.description || '',
+        name: section.name.trim(),
+        description: section.description?.trim() || '',
         timeLimit: section.timeLimit || 0,
         questions: (section.questions || []).map((question, index) => ({
           questionId: question.id,
@@ -319,42 +409,53 @@ export const useExamBuilder = ({ editingExam, availableQuestions }: UseExamBuild
 
       console.log('💾 Saving exam with payload:', payload);
 
+      let result;
       if (editingExam && editingExam.id) {
-        // Update existing exam with sections
-        await saveExamWithSections(editingExam.id, payload);
-        toast({
-          title: "Success",
-          description: `Exam ${status === 'published' ? 'published' : 'saved as draft'} successfully!`,
-        });
+        // Update existing exam
+        result = await saveExamWithSections(editingExam.id, payload);
       } else {
-        // Create new exam first, then save with sections
-        console.log('🆕 Creating new exam with data:', examData);
+        // Create new exam
         const newExam = await createExam(examData);
         
         if (newExam && newExam.id) {
-          console.log('✅ Exam created, now saving sections:', newExam.id);
-          const result = await saveExamWithSections(newExam.id, payload);
-          if (result) {
-            toast({
-              title: "Success",
-              description: `Exam ${status === 'published' ? 'created and published' : 'created as draft'} successfully!`,
-            });
-          }
+          result = await saveExamWithSections(newExam.id, payload);
         } else {
           throw new Error('Failed to create exam - no ID returned');
         }
       }
+
+      if (result) {
+        toast({
+          title: "Success",
+          description: `Exam ${status === 'published' ? 'published' : 'saved as draft'} successfully!`,
+        });
+        return true;
+      }
+
+      return false;
+
     } catch (error) {
       console.error('❌ Failed to save exam:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to save exam';
+      setError(errorMessage);
+      
       toast({
         title: "Error",
-        description: "Failed to save exam. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
+      return false;
     } finally {
       setLoading(false);
     }
-  }, [examDetails, sections, getTotalQuestions, editingExam, saveExamWithSections, createExam]);
+  }, [
+    examDetails, 
+    sections, 
+    getTotalQuestions, 
+    editingExam, 
+    saveExamWithSections, 
+    createExam
+  ]);
 
   return {
     examDetails,
@@ -364,16 +465,25 @@ export const useExamBuilder = ({ editingExam, availableQuestions }: UseExamBuild
     questions,
     activeSection,
     showQuestionSelector,
+    loading,
+    error,
+    examForEdit,
+    
+    // Actions
     setActiveSection,
     setShowQuestionSelector,
     handleAddSection,
     handleDeleteSection,
     handleUpdateSection,
     handleRemoveQuestion,
+    handleAddQuestionsToSection,
     handleSaveExam,
+    resetExam,
+    
+    // Computed values
     getTotalQuestions,
     getTotalMarks,
-    loading,
-    examForEdit
+    isValid,
+    canPublish
   };
 };

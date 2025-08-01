@@ -6,6 +6,8 @@ export interface User {
   role: 'ADMIN' | 'USER' | 'MODERATOR' | 'GUEST';
   profileImage?: string;
   bio?: string;
+  isEmailVerified?: boolean;
+  phoneNumber?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -16,7 +18,8 @@ export interface LoginRequest {
 }
 
 export interface SignupRequest {
-  name?: string;
+  name: string;
+  phoneNumber: string;
   email: string;
   password: string;
   role?: 'ADMIN' | 'USER' | 'MODERATOR' | 'GUEST';
@@ -93,8 +96,8 @@ export interface Question {
 
 export interface CreateQuestionRequest {
   // Legacy fields (for backward compatibility)
-  content: string;
-  questionImage?: string;
+  // content: string;
+  // questionImage?: string;
   
   // 3-Layer Question System
   layer1Type: 'text' | 'image' | 'none';
@@ -230,6 +233,10 @@ export interface UpdateExamRequest {
   isDraft?: boolean;
 }
 
+export interface ExamsResponse {
+  exams: Exam[];
+}
+
 export interface ExamFilters {
   page?: number;
   limit?: number;
@@ -296,6 +303,7 @@ export interface Submission {
   answers: Record<string, number>;
   questionStatuses?: Record<string, QuestionAnswerStatus>;
   score: number;
+  earnedMarks: number;
   totalQuestions: number;
   timeSpent: number;
   totalTimeSpent?: number;
@@ -321,6 +329,10 @@ export interface Submission {
   };
   createdAt: string;
   updatedAt: string;
+}
+
+export interface SubmissionsResponse {
+  submissions: Submission[];
 }
 
 export interface SubmissionStatistics {
@@ -357,6 +369,7 @@ export interface CreateSubmissionRequest {
   answers: Record<string, number>;
   questionStatuses?: Record<string, QuestionAnswerStatus>;
   score?: number;
+  earnedMarks?: number;
   timeSpent?: number;
   totalTimeSpent?: number;
   isSubmitted?: boolean;

@@ -6,6 +6,8 @@ import bcrypt from "bcrypt";
 // zod schema for user signup
 
 const SignUpSchema = z.object({
+  phoneNumber: z.string().min(10, "Phone number must be at least 10 digits").max(15, "Phone number must be at most 15 digits"),
+  name: z.string().min(1, "Name is required"),
   email: z.email(),
   password: z.string().min(6, "Password must be at least 6 characters long"),
 });
@@ -23,7 +25,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const { email, password } = parsedData.data;
+    const { email, password, phoneNumber, name } = parsedData.data;
     const existingUser = await prisma.user.findUnique({
       where: { email },
     });
@@ -39,6 +41,8 @@ export async function POST(req: Request) {
 
     const newUser = await prisma.user.create({
       data: {
+        name,
+        phoneNumber,
         email,
         password: hashedPassword,
       },

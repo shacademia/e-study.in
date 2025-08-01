@@ -7,22 +7,23 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const token = request.headers.get('x-auth-token');
+
   try {
     // Get the token from the Authorization header
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json(
-        { success: false, message: 'Authorization token required' },
-        { status: 401 }
-      );
-    }
-
-    const token = authHeader.substring(7);
+ 
+   if (!token) {
+     return NextResponse.json(
+       { success: false, error: 'Authentication required' },
+       { status: 401 }
+     );
+   }
+ 
     
     // Verify JWT token
     let decodedToken;
     try {
-      decodedToken = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string, role: string };
+      decodedToken = jwt.verify(token, process.env.JWT_SECRET!) as { id: string, email: string };
     } catch {
       return NextResponse.json(
         { success: false, message: 'Invalid token' },
@@ -57,7 +58,40 @@ export async function GET(
           include: {
             questions: {
               include: {
-                question: true
+                question: {
+                  select: {
+                    id: true,
+                    content: true,
+                    questionImage: true,
+                    // 3-Layer Question System
+                    layer1Type: true,
+                    layer1Text: true,
+                    layer1Image: true,
+                    layer2Type: true,
+                    layer2Text: true,
+                    layer2Image: true,
+                    layer3Type: true,
+                    layer3Text: true,
+                    layer3Image: true,
+                    // Enhanced Options System
+                    options: true,
+                    optionImages: true,
+                    optionTypes: true,
+                    correctOption: true,
+                    // Marking System
+                    positiveMarks: true,
+                    negativeMarks: true,
+                    // Explanation System
+                    explanationType: true,
+                    explanationText: true,
+                    explanationImage: true,
+                    // Classification
+                    difficulty: true,
+                    subject: true,
+                    topic: true,
+                    tags: true
+                  }
+                },
               },
               orderBy: {
                 order: 'asc'
@@ -80,7 +114,7 @@ export async function GET(
     }
 
     // Check authorization - users can only see their own submissions unless they're admin
-    if (decodedToken.role !== 'ADMIN' && decodedToken.role !== 'MODERATOR' && submission.userId !== decodedToken.userId) {
+    if (submission.userId !== decodedToken.id) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized access' },
         { status: 403 }
@@ -104,18 +138,50 @@ export async function GET(
       
       return {
         questionId: question.id,
-        question: question.content,
+        
+        // Legacy content
+        question: question.content || "",
+        questionImage: question.questionImage,
+        
+        // 3-Layer Question System
+        layer1Type: question.layer1Type,
+        layer1Text: question.layer1Text,
+        layer1Image: question.layer1Image,
+        layer2Type: question.layer2Type,
+        layer2Text: question.layer2Text,
+        layer2Image: question.layer2Image,
+        layer3Type: question.layer3Type,
+        layer3Text: question.layer3Text,
+        layer3Image: question.layer3Image,
+        
+        // Enhanced Options System
         options: question.options,
+        optionImages: question.optionImages || [],
+        optionTypes: question.optionTypes,
         correctOption: question.correctOption,
         userAnswer: userAnswer !== undefined ? userAnswer : null,
         isCorrect,
+        
+        // Marking System
+        positiveMarks: question.positiveMarks || examQuestion.marks || 0,
+        negativeMarks: question.negativeMarks || 0,
+        marks: examQuestion.marks,
+        earnedMarks: isCorrect ? (question.positiveMarks || examQuestion.marks || 0) : 
+                   (userAnswer !== undefined ? -(question.negativeMarks || 0) : 0),
+        
+        // Question Status
         timeSpent: questionStatus?.timeSpent || 0,
         status: questionStatus?.status || "NOT_ANSWERED",
+        
+        // Classification
         subject: question.subject,
         topic: question.topic,
         difficulty: question.difficulty,
-        marks: examQuestion.marks,
-        earnedMarks: isCorrect ? examQuestion.marks : 0
+        
+        // Explanation System (only shown after submission)
+        explanationType: question.explanationType,
+        explanationText: isCorrect || submission.isSubmitted ? question.explanationText : undefined,
+        explanationImage: isCorrect || submission.isSubmitted ? question.explanationImage : undefined
       };
     });
 
@@ -187,7 +253,7 @@ export async function GET(
         percentage,
         totalQuestions: submission.totalQuestions,
         totalMarks: submission.exam.totalMarks,
-        earnedMarks: submission.score,
+        earnedMarks: questionAnalysis.reduce((sum, qa) => sum + qa.earnedMarks, 0),
         accuracy: totalAnswered > 0 ? Math.round((correctAnswers / totalAnswered) * 100) : 0,
         timeUtilization: submission.exam.timeLimit > 0 
           ? Math.round((submission.timeSpent / (submission.exam.timeLimit * 60)) * 100) 

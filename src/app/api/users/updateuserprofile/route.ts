@@ -1,132 +1,90 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
-import jwt from 'jsonwebtoken';
-import { z } from 'zod';
-import bcrypt from 'bcrypt';
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/db";
+import jwt from "jsonwebtoken";
+import { z } from "zod";
 
 // Validation schema for user profile update
-const updateProfileSchema = z.object({
-  name: z.string().min(1, 'Name is required').max(100, 'Name too long'),
-  email: z.string().email('Invalid email format').optional(),
-  bio: z.string().max(500, 'Bio too long').optional(),
-  currentPassword: z.string().optional(),
-  newPassword: z.string().min(6, 'Password must be at least 6 characters').optional()
-}).refine(
-  (data) => {
-    // If newPassword is provided, currentPassword must also be provided
-    if (data.newPassword && !data.currentPassword) {
-      return false;
-    }
-    return true;
-  },
-  {
-    message: "Current password is required when setting a new password",
-    path: ["currentPassword"]
+const updateProfileSchema = z
+  .object({
+    name: z.string().min(1, "Name is required").max(100, "Name too long").optional(),
+    phoneNumber: z.string().max(20, "Phone number too long").optional(),
+    bio: z.string().max(500, "Bio too long").optional(),
   }
-);
+  );
 
 export async function PUT(request: NextRequest) {
   try {
-    // Get the token from the Authorization header
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    // Get the token from the x-auth-token header (consistent with other routes)
+    const token = request.headers.get("x-auth-token");
+
+    if (!token) {
       return NextResponse.json(
-        { success: false, message: 'Authorization token required' },
+        { success: false, error: "Authorization token required" },
         { status: 401 }
       );
     }
-
-    const token = authHeader.substring(7);
 
     // Verify JWT token
     let decodedToken;
     try {
-      decodedToken = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string };
+      decodedToken = jwt.verify(token, process.env.JWT_SECRET!) as {
+        id: string;
+      };
     } catch {
       return NextResponse.json(
-        { success: false, message: 'Invalid token' },
+        { success: false, error: "Invalid token" },
         { status: 401 }
       );
     }
 
-    const userId = decodedToken.userId;
+    const userId = decodedToken.id;
 
     // Verify user exists
     const existingUser = await prisma.user.findUnique({
-      where: { id: userId }
+      where: { id: userId },
     });
 
     if (!existingUser) {
       return NextResponse.json(
-        { success: false, message: 'User not found' },
+        { success: false, error: "User not found" },
         { status: 404 }
       );
     }
 
     // Parse and validate request body
     const body = await request.json();
-    let validatedData;
-    try {
-      validatedData = updateProfileSchema.parse(body);
-    } catch (error) {
+    const validation = updateProfileSchema.safeParse(body);
+
+    if (!validation.success) {
       return NextResponse.json(
-        { success: false, message: 'Invalid input data', errors: error },
+        { success: false, error: validation.error.issues[0]?.message || "Invalid input data" },
         { status: 400 }
       );
     }
 
-    const { name, email, bio, currentPassword, newPassword } = validatedData;
-
-    // Check if email is being changed and if it's already taken
-    if (email && email !== existingUser.email) {
-      const emailExists = await prisma.user.findUnique({
-        where: { email }
-      });
-
-      if (emailExists) {
-        return NextResponse.json(
-          { success: false, message: 'Email already in use' },
-          { status: 400 }
-        );
-      }
-    }
+    const { name, phoneNumber, bio } = validation.data;
 
     // Prepare update data
     const updateData: {
-      name: string;
-      email?: string;
+      name?: string;
+      phoneNumber?: string;
       bio?: string;
-      password?: string;
       updatedAt: Date;
     } = {
-      name,
-      updatedAt: new Date()
+      updatedAt: new Date(),
     };
 
     // Add optional fields if provided
-    if (email && email !== existingUser.email) {
-      updateData.email = email;
+    if (name !== undefined) {
+      updateData.name = name;
+    }
+
+    if (phoneNumber !== undefined) {
+      updateData.phoneNumber = phoneNumber;
     }
 
     if (bio !== undefined) {
       updateData.bio = bio;
-    }
-
-    // Handle password change
-    if (newPassword && currentPassword) {
-      // Verify current password
-      const isCurrentPasswordValid = await bcrypt.compare(currentPassword, existingUser.password);
-      
-      if (!isCurrentPasswordValid) {
-        return NextResponse.json(
-          { success: false, message: 'Current password is incorrect' },
-          { status: 400 }
-        );
-      }
-
-      // Hash new password
-      const saltRounds = 12;
-      updateData.password = await bcrypt.hash(newPassword, saltRounds);
     }
 
     // Update user profile
@@ -137,6 +95,7 @@ export async function PUT(request: NextRequest) {
         id: true,
         email: true,
         name: true,
+        phoneNumber: true,
         bio: true,
         profileImage: true,
         role: true,
@@ -144,22 +103,19 @@ export async function PUT(request: NextRequest) {
         updatedAt: true,
         isActive: true,
         lastLogin: true,
-        isEmailVerified: true
-      }
+        isEmailVerified: true,
+      },
     });
 
     return NextResponse.json({
       success: true,
-      message: 'Profile updated successfully',
-      data: {
-        user: updatedUser,
-        passwordChanged: !!newPassword
-      }
+      message: "Profile updated successfully",
+      data: updatedUser,
     });
   } catch (error) {
-    console.error('Profile update error:', error);
+    console.error("Profile update error:", error);
     return NextResponse.json(
-      { success: false, message: 'Internal server error' },
+      { success: false, error: "Internal server error" },
       { status: 500 }
     );
   }

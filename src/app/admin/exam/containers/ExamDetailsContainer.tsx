@@ -273,7 +273,7 @@ const ExamDetailsContainer: React.FC<ExamDetailsContainerProps> = ({ examId }) =
                 <div className="text-center py-8 text-gray-600">
                   <BookOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p>This exam contains {exam.questions.length} questions</p>
-                  <p className="text-sm mt-1">Click "Preview" to see the questions</p>
+                  <p className="text-sm mt-1">Click &quot;Preview&quot; to see the questions</p>
                 </div>
               </CardContent>
             </Card>

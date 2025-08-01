@@ -1,4 +1,7 @@
-import React from 'react';
+'use client';
+
+import React, { useState } from 'react';
+import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,13 +13,14 @@ import {
   Plus, 
   Edit, 
   Trash2, 
-  BookOpen, 
-  Clock,
+  BookOpen,
   Target,
-  Users
+  Users,
+  Eye
 } from 'lucide-react';
 import { ExamSection, Question } from '@/constants/types';
-import { getDifficultyColor, formatTime } from '../utils/examUtils';
+import { getDifficultyColor } from '../utils/examUtils';
+import QuestionPreviewDialog from '../../components/QuestionPreviewDialog';
 
 interface SectionsManagerProps {
   sections: ExamSection[];
@@ -40,6 +44,7 @@ const SectionsManager: React.FC<SectionsManagerProps> = ({
   onAddQuestions
 }) => {
   const currentSection = sections[activeSection];
+  const [previewQuestion, setPreviewQuestion] = useState<Question | null>(null);
 
   const handleSectionUpdate = (field: keyof ExamSection, value: string | number) => {
     if (currentSection) {
@@ -66,6 +71,42 @@ const SectionsManager: React.FC<SectionsManagerProps> = ({
     };
   };
 
+  // Helper to render a single question layer (text/image/none)
+  const renderLayer = (
+    type: 'text' | 'image' | 'none',
+    text?: string,
+    imageUrl?: string,
+    key?: React.Key
+  ) => {
+    if (type === 'text' && text) {
+      return (
+        <p key={`layer-text-${key}`} className="text-sm line-clamp-2 mb-1 break-words">
+          {text}
+        </p>
+      );
+    } 
+    if (type === 'image' && imageUrl) {
+      return (
+        <div key={`layer-image-${key}`} className="mb-1 flex justify-start">
+          <div className="relative w-full max-w-full h-auto max-h-[120px]">
+            <Image
+              src={imageUrl}
+              alt="Question layer image"
+              width={80}
+              height={60}
+              className="rounded-md object-contain border bg-white"
+              unoptimized={true}
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+              }}
+            />
+          </div>
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
     <div className="space-y-6">
       {/* Sections Header */}
@@ -76,7 +117,7 @@ const SectionsManager: React.FC<SectionsManagerProps> = ({
               <BookOpen className="h-5 w-5 mr-2" />
               Exam Sections ({sections.length})
             </CardTitle>
-            <Button onClick={onAddSection} className="flex items-center">
+            <Button onClick={onAddSection} className="flex items-center cursor-pointer">
               <Plus className="h-4 w-4 mr-2" />
               Add Section
             </Button>
@@ -97,7 +138,7 @@ const SectionsManager: React.FC<SectionsManagerProps> = ({
                   }`}
                   onClick={() => setActiveSection(index)}
                 >
-                  <CardContent className="p-4">
+                  <CardContent className="p-4 pl-5">
                     <div className="flex items-center justify-between mb-2">
                       <h4 className="font-medium text-sm">{section.name}</h4>
                       {sections.length > 1 && (
@@ -108,14 +149,14 @@ const SectionsManager: React.FC<SectionsManagerProps> = ({
                             e.stopPropagation();
                             onDeleteSection(section.id);
                           }}
-                          className="text-red-600 hover:text-red-800"
+                          className="text-red-600 hover:text-red-800 cursor-pointer"
                         >
                           <Trash2 className="h-3 w-3" />
                         </Button>
                       )}
                     </div>
                     
-                    <div className="space-y-1 text-xs text-gray-600">
+                    <div className="space-y-1 text-xs text-gray-600 pr-4">
                       <div className="flex justify-between">
                         <span>Questions:</span>
                         <span className="font-medium">{stats.totalQuestions}</span>
@@ -123,10 +164,6 @@ const SectionsManager: React.FC<SectionsManagerProps> = ({
                       <div className="flex justify-between">
                         <span>Marks:</span>
                         <span className="font-medium">{stats.totalMarks}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Time:</span>
-                        <span className="font-medium">{formatTime(stats.timeLimit)}</span>
                       </div>
                     </div>
                   </CardContent>
@@ -141,10 +178,8 @@ const SectionsManager: React.FC<SectionsManagerProps> = ({
       {currentSection && (
         <Tabs defaultValue="details" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="details">Section Details</TabsTrigger>
-            <TabsTrigger value="questions">
-              Questions ({currentSection.questions?.length || 0})
-            </TabsTrigger>
+            <TabsTrigger value="details" className='cursor-pointer'>Section Details</TabsTrigger>
+            <TabsTrigger value="questions" className='cursor-pointer'>Questions ({currentSection.questions?.length || 0})</TabsTrigger>
           </TabsList>
           
           <TabsContent value="details" className="space-y-4">
@@ -156,32 +191,17 @@ const SectionsManager: React.FC<SectionsManagerProps> = ({
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="section-name">Section Name *</Label>
-                    <Input
-                      id="section-name"
-                      value={currentSection.name}
-                      onChange={(e) => handleSectionUpdate('name', e.target.value)}
-                      placeholder="Enter section name..."
-                      className="mt-1"
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="section-time">Time Limit (minutes)</Label>
-                    <Input
-                      id="section-time"
-                      type="number"
-                      value={currentSection.timeLimit || 0}
-                      onChange={(e) => handleSectionUpdate('timeLimit', parseInt(e.target.value) || 0)}
-                      placeholder="60"
-                      className="mt-1"
-                      min="0"
-                    />
-                  </div>
+                <div>
+                  <Label htmlFor="section-name">Section Name *</Label>
+                  <Input
+                    id="section-name"
+                    value={currentSection.name}
+                    onChange={(e) => handleSectionUpdate('name', e.target.value)}
+                    placeholder="Enter section name..."
+                    className="mt-1"
+                  />
                 </div>
-                
+
                 <div>
                   <Label htmlFor="section-description">Description</Label>
                   <Textarea
@@ -192,38 +212,6 @@ const SectionsManager: React.FC<SectionsManagerProps> = ({
                     className="mt-1"
                     rows={3}
                   />
-                </div>
-
-                {/* Section Statistics */}
-                <div className="border-t pt-4">
-                  <h4 className="font-medium mb-3">Section Statistics</h4>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="text-center">
-                      <div className="text-lg font-bold text-blue-600">
-                        {currentSection.questions?.length || 0}
-                      </div>
-                      <div className="text-xs text-gray-600">Questions</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-lg font-bold text-green-600">
-                        {currentSection.marks || 0}
-                      </div>
-                      <div className="text-xs text-gray-600">Marks</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-lg font-bold text-purple-600">
-                        {formatTime(currentSection.timeLimit || 0)}
-                      </div>
-                      <div className="text-xs text-gray-600">Time Limit</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-lg font-bold text-orange-600">
-                        {currentSection.questions?.length ? 
-                          Math.round((currentSection.timeLimit || 0) / currentSection.questions.length) : 0}
-                      </div>
-                      <div className="text-xs text-gray-600">Min/Question</div>
-                    </div>
-                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -237,23 +225,21 @@ const SectionsManager: React.FC<SectionsManagerProps> = ({
                     <Target className="h-4 w-4 mr-2" />
                     Section Questions
                   </CardTitle>
-                  <Button onClick={onAddQuestions} className="flex items-center">
+                  <Button onClick={onAddQuestions} className="flex items-center cursor-pointer">
                     <Plus className="h-4 w-4 mr-2" />
                     Add Questions
                   </Button>
                 </div>
               </CardHeader>
+
+              {/* Display section questions */}
               <CardContent>
                 {!currentSection.questions || currentSection.questions.length === 0 ? (
                   <div className="text-center py-8">
                     <Users className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">
-                      No questions added yet
-                    </h3>
-                    <p className="text-gray-600 mb-4">
-                      Add questions to this section to build your exam.
-                    </p>
-                    <Button onClick={onAddQuestions} className="flex items-center">
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No questions added yet</h3>
+                    <p className="text-gray-600 mb-4">Add questions to this section to build your exam.</p>
+                    <Button onClick={onAddQuestions} className="flex items-center cursor-pointer">
                       <Plus className="h-4 w-4 mr-2" />
                       Add Your First Question
                     </Button>
@@ -267,32 +253,44 @@ const SectionsManager: React.FC<SectionsManagerProps> = ({
                             <div className="flex-1">
                               <div className="flex items-center space-x-2 mb-2">
                                 <span className="font-medium text-sm">Q{index + 1}.</span>
-                                <Badge variant="outline" className="text-xs">
-                                  {question.subject}
-                                </Badge>
-                                <Badge 
-                                  variant="outline" 
-                                  className={`text-xs ${getDifficultyColor(question.difficulty)}`}
-                                >
+                                <Badge variant="outline" className="text-xs">{question.subject}</Badge>
+                                <Badge variant="outline" className={`text-xs ${getDifficultyColor(question.difficulty)}`}>
                                   {question.difficulty}
                                 </Badge>
-                                <div className="flex items-center text-xs text-gray-500">
-                                  <Clock className="h-3 w-3 mr-1" />
-                                  {(question as Question & { marks?: number }).marks || 1} marks
-                                </div>
                               </div>
-                              <p className="text-sm text-gray-700 line-clamp-2">
-                                {question.content}
-                              </p>
+
+                              {/* Replace single content with 3-layer rendering */}
+                              <div>
+                                {renderLayer(question.layer1Type, question.layer1Text, question.layer1Image, `${question.id}-1`)}
+                                {renderLayer(question.layer2Type, question.layer2Text, question.layer2Image, `${question.id}-2`)}
+                                {renderLayer(question.layer3Type, question.layer3Text, question.layer3Image, `${question.id}-3`)}
+                              </div>
                             </div>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => onRemoveQuestion(currentSection.id, question.id)}
-                              className="text-red-600 hover:text-red-800 ml-2"
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
+
+                            <div className="flex items-center space-x-2 mt-[-4px]">
+                              <div className='flex items-center space-x-1 cursor-text'>
+                                <Badge className='bg-green-100 text-green-800 border-green-200'>+ {question.positiveMarks}</Badge>
+                                <Badge className="bg-red-100 text-red-800 border-red-200">- {question.negativeMarks}</Badge>
+                              </div>
+
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setPreviewQuestion(question)}
+                                className="cursor-pointer"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => onRemoveQuestion(currentSection.id, question.id)}
+                                className="text-red-600 hover:text-red-800 cursor-pointer"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
                         </CardContent>
                       </Card>
@@ -304,6 +302,13 @@ const SectionsManager: React.FC<SectionsManagerProps> = ({
           </TabsContent>
         </Tabs>
       )}
+
+      {/* Question Preview Dialog */}
+      <QuestionPreviewDialog
+        previewQuestion={previewQuestion}
+        setPreviewQuestion={setPreviewQuestion}
+        getDifficultyColor={getDifficultyColor}
+      />
     </div>
   );
 };

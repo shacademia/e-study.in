@@ -4,9 +4,11 @@ import { BookOpen, Trophy } from "lucide-react";
 import { UserProfileMenu } from "@/components/UserProfileMenu";
 import { useAuth } from "@/hooks/useApiAuth";
 import { DashboardHeaderProps } from "../types";
+import { toast } from "@/hooks/use-toast";
 
 const DashboardHeader: React.FC<DashboardHeaderProps> = ({ onRankingsClick }) => {
   const { user } = useAuth();
+  console.log('This is the data From dashboard', user)
 
   return (
     <header className="bg-white shadow-sm border-b">
@@ -26,6 +28,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ onRankingsClick }) =>
               <Trophy className="h-4 w-4 mr-2" />
               Rankings
             </Button>
+
             {user && <UserProfileMenu user={user} />}
           </div>
         </div>

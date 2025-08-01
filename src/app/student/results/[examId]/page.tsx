@@ -1,13 +1,23 @@
 "use client";
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import ExamResults from './ExamResults';
+import { useResult } from '@/context/ResultContext';
 
 const ExamResultsPage = () => {
   const params = useParams();
-  const examId = params?.examId as string;
+  const submissionId = params?.examId as string;
+  const { fetchResultData } = useResult();
 
-  return <ExamResults examId={examId} />;
+  useEffect(() => {
+    if (submissionId) {
+      fetchResultData(submissionId);
+    }
+  }, []);
+
+  // console.log("ExamResultsPage - ResultData:", ResultData);
+
+  return <ExamResults/>;
 };
 
 export default ExamResultsPage;

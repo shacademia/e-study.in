@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { BookOpen, Trophy } from 'lucide-react';
 import { useAuth } from '@/hooks/useApiAuth';
 import { UserProfileMenu } from '@/components/UserProfileMenu';
+import { toast } from '@/hooks/use-toast';
 
 interface DashboardHeaderProps {
   onQuestionBankClick: () => void;
@@ -16,6 +17,8 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   onRankingsClick 
 }) => {
   const { user } = useAuth();
+
+  console.log('This is the data From dashboard', user)
 
   return (
     <header className="bg-white shadow-sm border-b">

@@ -9,8 +9,8 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import ImageUploadComponent from '@/components/ui/image-upload';
-import MathInput from './components/math-input'; // Import the MathInput component
-import MathDisplay from './components/math-display'; // Import the MathDisplay component
+import MathInput from '../../../components/math-input'; // Import the MathInput component
+import MathDisplay from '../../../components/math-display'; // Import the MathDisplay component
 import {
   AlertDialog,
   AlertDialogAction,
@@ -88,10 +88,6 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
 
   // Updated new question form state with all new fields
   const [newQuestion, setNewQuestion] = useState<CreateQuestionRequest>({
-    // Legacy fields
-    content: '',
-    questionImage: '',
-
     // 3-Layer system defaults
     layer1Type: 'none',
     layer1Text: '',
@@ -228,8 +224,6 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
 
     // Reset form
     setNewQuestion({
-      content: '',
-      questionImage: '',
       layer1Type: 'none',
       layer1Text: '',
       layer1Image: '',
@@ -461,8 +455,6 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
       }
 
       const duplicateData: CreateQuestionRequest = {
-        content: `Copy of ${originalQuestion.content}`,
-        questionImage: originalQuestion.questionImage,
         layer1Type: originalQuestion.layer1Type,
         layer1Text: originalQuestion.layer1Text,
         layer1Image: originalQuestion.layer1Image,

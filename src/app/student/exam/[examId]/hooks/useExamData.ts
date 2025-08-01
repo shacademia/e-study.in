@@ -3,6 +3,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useApiAuth";
 import { useExams, useSubmissions } from "@/hooks/useApiServices";
 import { toast } from "@/hooks/use-toast";
+import { useResult } from "@/context/ResultContext";
 import { Exam, Question, ExamSection } from "@/constants/types";
 import { 
   ExamTimerState, 
@@ -27,6 +28,55 @@ interface ExamSectionResponse extends Omit<ExamSection, 'questions'> {
   questions: ExamQuestionResponse[];
 }
 
+interface QuestionStatus {
+  timeSpent: number;
+  isAnswered: boolean;
+  isMarked: boolean;
+  isVisited: boolean;
+}
+
+interface ExamStatistics {
+  totalAttempted: number;
+  totalCorrect: number;
+  totalIncorrect: number;
+  accuracy: number;
+}
+
+interface ExamSubmissionData {
+  id: string;
+  userId: string;
+  examId: string;
+  submissionId: string;
+  score: number;
+  timeSpent: number;
+  totalQuestions: number;
+  answers: Record<string, string>;
+  questionStatuses: Record<string, QuestionStatus>;
+  isSubmitted: boolean;
+  completedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  exam: Exam;
+  statistics: ExamStatistics;
+  questionAnalysis: Record<string, boolean>;
+  subjectAnalysis: Record<string, ExamStatistics>;
+  performance: {
+    percentile: number;
+    rank: number;
+  };
+}
+
+interface ExamSubmissionResponse {
+  success: boolean;
+  message: string;
+  data: ExamSubmissionData;
+}
+
 interface ExamApiResponse extends Omit<Exam, 'sections' | 'questions'> {
   sections?: ExamSectionResponse[];
   questions?: ExamQuestionResponse[];
@@ -37,6 +87,7 @@ export const useExamData = (examId: string) => {
   const { user } = useAuth();
   const { getExamById } = useExams();
   const { submitExam } = useSubmissions();
+  const { setResultData } = useResult();
 
   // Timer state
   const [timerState, setTimerState] = useState<ExamTimerState>({
@@ -214,7 +265,7 @@ export const useExamData = (examId: string) => {
         ? Math.floor((new Date().getTime() - timerState.startTime.getTime()) / 1000)
         : 0;
 
-      await submitExam(exam.id, {
+      const results = await submitExam(exam.id, {
         examId: exam.id,
         answers: navigationState.answers,
         questionStatuses: navigationState.questionStatuses,
@@ -222,10 +273,27 @@ export const useExamData = (examId: string) => {
         totalQuestions: getTotalQuestions(exam),
         timeSpent: totalTimeSpent,
         isSubmitted: true,
-      });
+      }) as ExamSubmissionResponse;
 
-      toast({ title: "Success", description: "Exam submitted successfully" });
-      router.push(`/student/results/${exam.id}`);
+      if (!results.success || !results.data?.submissionId) {
+        toast({
+          title: "Submission Failed",
+          description: results.message || "Failed to submit exam. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const submissionId = results.data.submissionId;
+
+
+      toast({ 
+        title: "Exam Submitted", 
+        description: `Your exam has been submitted successfully. Score: ${score}/${getTotalQuestions(exam)}`,
+        variant: "default"
+      });
+      
+      router.push(`/student/results/${submissionId}`);
     } catch (error) {
       console.error("Error submitting exam:", error);
       toast({

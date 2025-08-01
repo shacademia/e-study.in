@@ -30,6 +30,10 @@ model User {
   lastLogin DateTime? @default(now())
   lastActive DateTime? @default(now())
   isEmailVerified Boolean @default(false)
+  emailVerificationCode String?
+  emailVerificationExpiry DateTime?
+  forgotPasswordToken String?
+  forgotPasswordExpiry DateTime?
   createdExams Exam[]
   submissions Submission[]
   rankings Ranking[]
@@ -77,7 +81,7 @@ enum ExplanationType {
 
 model Question {
   id              String   @id @default(uuid())
-  content         String
+  content         String?
   questionImage   String?               // Optional image for the question
 
   // Options

@@ -32,7 +32,7 @@ export const QuestionForm: React.FC<QuestionFormProps> = ({
   return (
     <div className="space-y-6">
       {/* Legacy Question Content (for backward compatibility) */}
-      <div>
+      {/* <div>
         <Label>Question Content (Legacy)</Label>
         <MathInput
           label=""
@@ -40,7 +40,7 @@ export const QuestionForm: React.FC<QuestionFormProps> = ({
           onChange={(value) => updateQuestion({ content: value })}
           placeholder="Enter the question text. You can paste math from MathType!"
         />
-      </div>
+      </div> */}
 
       {/* NEW: 3-Layer Question System */}
       <div className="space-y-4 p-4 border-2 border-dashed border-blue-200 rounded-lg bg-blue-50/30">

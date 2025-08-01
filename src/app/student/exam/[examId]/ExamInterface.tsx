@@ -72,16 +72,38 @@ const ExamInterface: React.FC<ExamInterfaceProps> = ({ examId }) => {
   // Check if it's first/last question for navigation
   const isFirstQuestion = navigationState.currentSectionIndex === 0 && navigationState.currentQuestionIndex === 0;
   
-  let isLastQuestion = false;
-  if (examData.hasMultipleSections && examData.exam.sections) {
-    const isLastSection = navigationState.currentSectionIndex === examData.exam.sections.length - 1;
-    const currentSectionQuestions = currentSection?.questions?.length || 0;
-    const isLastQuestionInSection = navigationState.currentQuestionIndex === currentSectionQuestions - 1;
-    isLastQuestion = isLastSection && isLastQuestionInSection;
-  } else {
-    const totalDirectQuestions = examData.exam.questions?.length || 0;
-    isLastQuestion = navigationState.currentQuestionIndex === totalDirectQuestions - 1;
-  }
+  // Calculate if this is the last question across the entire exam
+  const isLastQuestion = (() => {
+    if (!examData.exam) return false;
+
+    // Calculate global position across all questions
+    let currentGlobalIndex = 0;
+
+    // If exam has sections, calculate position across all sections
+    if (examData.exam.sections && examData.exam.sections.length > 0) {
+      for (let sectionIdx = 0; sectionIdx < examData.exam.sections.length; sectionIdx++) {
+        const section = examData.exam.sections[sectionIdx];
+        const sectionQuestionsLength = section.questions?.length || 0;
+        
+        if (sectionIdx < navigationState.currentSectionIndex) {
+          // Add all questions from previous sections
+          currentGlobalIndex += sectionQuestionsLength;
+        } else if (sectionIdx === navigationState.currentSectionIndex) {
+          // Add current question index within current section
+          currentGlobalIndex += navigationState.currentQuestionIndex;
+          break;
+        }
+      }
+      
+      // Total questions across all sections
+      const totalQuestions = examData.totalQuestions;
+      return currentGlobalIndex === totalQuestions - 1;
+    }
+
+    // If no sections, check direct questions
+    const questionsLength = examData.exam.questions?.length || 0;
+    return questionsLength > 0 && navigationState.currentQuestionIndex === questionsLength - 1;
+  })();
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -140,30 +162,51 @@ const ExamInterface: React.FC<ExamInterfaceProps> = ({ examId }) => {
             {/* Question Content */}
             <div className="lg:col-span-3">
               <div className="space-y-6">
-                {/* Question Card */}
-                <QuestionCard
-                  question={currentQuestion}
-                  currentSection={currentSection}
-                  currentQuestionIndex={navigationState.currentQuestionIndex}
-                  hasMultipleSections={examData.hasMultipleSections}
-                  answer={navigationState.answers[currentQuestion?.id || '']}
-                  questionStatus={navigationState.questionStatuses[currentQuestion?.id || '']}
-                  onAnswerChange={examActions.handleAnswerChange}
-                />
+                {/* Question Card - Added null check and proper type transformation */}
+                {currentQuestion ? (
+                  <QuestionCard
+                    question={currentQuestion}
+                    currentSection={currentSection ? {
+                      id: currentSection.id,
+                      name: currentSection.name
+                    } : undefined}
+                    currentQuestionIndex={navigationState.currentQuestionIndex}
+                    hasMultipleSections={examData.hasMultipleSections}
+                    answer={navigationState.answers[currentQuestion.id]}
+                    questionStatus={navigationState.questionStatuses[currentQuestion.id]}
+                    onAnswerChange={examActions.handleAnswerChange}
+                    exam={examData.exam.sections ? {
+                      sections: examData.exam.sections.map(section => ({
+                        id: section.id,
+                        name: section.name,
+                        questions: section.questions || []
+                      }))
+                    } : undefined}
+                  />
+                ) : (
+                  <div className="flex items-center justify-center h-64 bg-white rounded-lg shadow-sm border">
+                    <div className="text-center text-gray-500">
+                      <p className="text-lg font-medium">No question available</p>
+                      <p className="text-sm mt-2">Please check your exam configuration.</p>
+                    </div>
+                  </div>
+                )}
 
-                {/* Navigation Controls */}
-                <NavigationControls
-                  currentSectionIndex={navigationState.currentSectionIndex}
-                  currentQuestionIndex={navigationState.currentQuestionIndex}
-                  isFirstQuestion={isFirstQuestion}
-                  isLastQuestion={isLastQuestion}
-                  onPrevQuestion={examActions.handlePrevQuestion}
-                  onNextQuestion={examActions.handleNextQuestion}
-                  onMarkForReview={examActions.handleMarkForReview}
-                  onSubmitExam={() => setUiState(prev => ({ ...prev, showSubmitDialog: true }))}
-                  currentQuestion={currentQuestion}
-                  questionStatuses={navigationState.questionStatuses}
-                />
+                {/* Navigation Controls - Added null check for currentQuestion */}
+                {currentQuestion && (
+                  <NavigationControls
+                    currentSectionIndex={navigationState.currentSectionIndex}
+                    currentQuestionIndex={navigationState.currentQuestionIndex}
+                    isFirstQuestion={isFirstQuestion}
+                    isLastQuestion={isLastQuestion}
+                    onPrevQuestion={examActions.handlePrevQuestion}
+                    onNextQuestion={examActions.handleNextQuestion}
+                    onMarkForReview={examActions.handleMarkForReview}
+                    onSubmitExam={() => setUiState(prev => ({ ...prev, showSubmitDialog: true }))}
+                    currentQuestion={currentQuestion}
+                    questionStatuses={navigationState.questionStatuses}
+                  />
+                )}
               </div>
             </div>
 

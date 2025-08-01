@@ -19,7 +19,7 @@ const NavigationControls: React.FC<NavigationControlsProps> = ({
     : false;
 
   return (
-    <div className="flex justify-between items-center">
+    <div className="flex justify-between items-center pt-2 px-2 bg-white rounded-lg">
       <div className="flex space-x-2">
         <Button
           variant="outline"
@@ -32,7 +32,7 @@ const NavigationControls: React.FC<NavigationControlsProps> = ({
         </Button>
         <Button
           variant="outline"
-          className='cursor-pointer'
+          className={`cursor-pointer ${isMarkedForReview ? 'bg-yellow-50 border-yellow-300 text-yellow-700' : ''}`}
           onClick={() =>
             currentQuestion && onMarkForReview(currentQuestion.id)
           }
@@ -45,7 +45,7 @@ const NavigationControls: React.FC<NavigationControlsProps> = ({
       <div className="flex space-x-2">
         {isLastQuestion ? (
           <Button
-            className='cursor-pointer'
+            className='cursor-pointer bg-green-600 hover:bg-green-700 text-white'
             onClick={onSubmitExam}
           >
             <Flag className="h-4 w-4 mr-2" />

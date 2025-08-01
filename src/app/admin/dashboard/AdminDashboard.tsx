@@ -149,15 +149,7 @@ const AdminDashboard: React.FC = () => {
     <div className="min-h-screen bg-gray-50">
       <DashboardHeader 
         onQuestionBankClick={() => router.push('/admin/questionbank')}
-        onRankingsClick={() => {
-          import('@/hooks/use-toast').then(({ toast }) => {
-            toast({
-              title: 'Rankings',
-              description: 'Rankings feature coming soon!',
-              variant: 'destructive'
-            });
-          });
-        }}
+        onRankingsClick={() => router.push('/rankings')}
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

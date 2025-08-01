@@ -1,8 +1,14 @@
-"use client"
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { authService } from '@/services';
-import { User, LoginRequest, SignupRequest, ApiError } from '@/constants/types';
-import { useToast } from '@/hooks/use-toast';
+"use client";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+} from "react";
+import { authService } from "@/services";
+import { User, LoginRequest, SignupRequest, ApiError } from "@/constants/types";
+import { useToast } from "@/hooks/use-toast";
 
 interface AuthContextType {
   user: User | null;
@@ -24,31 +30,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const checkAuthStatus = useCallback(async () => {
     try {
       setLoading(true);
-      
+
       // First check if we have a token
       if (!authService.isAuthenticated()) {
         setUser(null);
         return;
       }
 
-      // Try to get stored user data first (faster)
-      const storedUser = authService.getUser();
-      if (storedUser) {
-        setUser(storedUser);
-        
-        // Optionally refresh user data in background
-        try {
-          const currentUser = await authService.getCurrentUser();
-          setUser(currentUser);
-        } catch {
-          // If refresh fails, keep the stored user data
-          // Only clear if the token is completely invalid
-        }
-      } else {
-        // No stored user, try to fetch from API
-        const currentUser = await authService.getCurrentUser();
-        setUser(currentUser);
-      }
+      // // Try to get stored user data first (faster)
+      // const storedUser = authService.getUser();
+      // if (storedUser) {
+      //   setUser(storedUser);
+
+      //   // Optionally refresh user data in background
+      //   try {
+      //     const currentUser = await authService.getCurrentUser();
+      //     setUser(currentUser);
+      //   } catch {
+      //     // If refresh fails, keep the stored user data
+      //     // Only clear if the token is completely invalid
+      //   }
+      // } else {
+      //   // No stored user, try to fetch from API
+      //   const currentUser = await authService.getCurrentUser();
+      //   setUser(currentUser);
+      // }
+      const currentUser = await authService.getCurrentUser();
+      setUser(currentUser);
     } catch {
       // User is not authenticated or token is invalid
       setUser(null);
@@ -64,69 +72,76 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     checkAuthStatus();
   }, [checkAuthStatus]); // Include checkAuthStatus in dependency array
 
-  const login = useCallback(async (data: LoginRequest) => {
-    try {
-      setLoading(true);
-      const authResponse = await authService.login(data);
-      setUser(authResponse.user);
-      
-      toast({
-        title: 'Success',
-        description: 'Logged in successfully!',
-      });
-    } catch (error) {
-      const apiError = error as ApiError;
-      toast({
-        title: 'Error',
-        description: apiError.error || 'Failed to login',
-        variant: 'destructive',
-      });
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  }, [toast]);
+  const login = useCallback(
+    async (data: LoginRequest) => {
+      try {
+        setLoading(true);
+        const authResponse = await authService.login(data);
+        console.log('Login response: 😒😒😒', authResponse);
+        setUser(authResponse.user);
 
-  const signup = useCallback(async (data: SignupRequest) => {
-    try {
-      setLoading(true);
-      await authService.signup(data);
-      // Note: Signup doesn't automatically log in, user needs to login separately
-      
-      toast({
-        title: 'Success',
-        description: 'Account created successfully! Please log in.',
-      });
-    } catch (error) {
-      const apiError = error as ApiError;
-      toast({
-        title: 'Error',
-        description: apiError.error || 'Failed to create account',
-        variant: 'destructive',
-      });
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  }, [toast]);
+        toast({
+          title: "Success",
+          description: "Logged in successfully!",
+        });
+      } catch (error) {
+        const apiError = error as ApiError;
+        toast({
+          title: "Error",
+          description: apiError.error || "Failed to login",
+          variant: "destructive",
+        });
+        throw error;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [toast]
+  );
+
+  const signup = useCallback(
+    async (data: SignupRequest) => {
+      try {
+        setLoading(true);
+        await authService.signup(data);
+        // Note: Signup doesn't automatically log in, user needs to login separately
+
+        toast({
+          title: "Success",
+          description: "Account created successfully! Please log in.",
+        });
+      } catch (error) {
+        const apiError = error as ApiError;
+        toast({
+          title: "Error",
+          description: apiError.error || "Failed to create account",
+          variant: "destructive",
+        });
+        throw error;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [toast]
+  );
 
   const logout = useCallback(async () => {
     try {
       setLoading(true);
       await authService.logout();
       setUser(null);
-      
+
       toast({
-        title: 'Success',
-        description: 'Logged out successfully!',
+        title: "Success",
+        description: "Logged out successfully!",
       });
     } catch {
       // Even if logout API fails, clear local state
       setUser(null);
-      
+
       toast({
-        title: 'Info',
-        description: 'Logged out locally',
+        title: "Info",
+        description: "Logged out locally",
       });
     } finally {
       setLoading(false);
@@ -155,17 +170,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     refreshUser,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 }
