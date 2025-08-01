@@ -161,6 +161,7 @@ export async function POST(
       
       let isCorrect = false;
       let questionScore = 0;
+      let negativeScore = 0;
 
       if (userAnswer !== undefined && userAnswer === question.correctOption) {
         isCorrect = true;
@@ -168,6 +169,10 @@ export async function POST(
         score += questionScore;
         correctAnswers++;
       } else if (userAnswer !== undefined) {
+        // Apply negative marking for wrong answers
+        negativeScore = question.negativeMarks || 0;
+        score -= negativeScore;
+        questionScore = -negativeScore;
         wrongAnswers++;
       }
 
@@ -177,6 +182,8 @@ export async function POST(
         correctAnswer: question.correctOption,
         isCorrect,
         score: questionScore,
+        positiveMarks: examQuestion.marks,
+        negativeMarks: question.negativeMarks || 0,
         timeSpent: questionStatus?.timeSpent || 0,
         status: questionStatus?.status || "NOT_ANSWERED",
         subject: question.subject,
