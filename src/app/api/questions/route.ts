@@ -5,7 +5,6 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import jwt from 'jsonwebtoken';
 import { z } from 'zod';
-import { Difficulty } from '@prisma/client';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'default_secret_key';
 
@@ -65,6 +64,11 @@ export async function GET(request: Request) {
         subject?: { contains: string; mode: 'insensitive' };
         topic?: { contains: string; mode: 'insensitive' };
         tags?: { hasSome: string[] };
+        layer1Text?: { contains: string; mode: 'insensitive' };
+        layer2Text?: { contains: string; mode: 'insensitive' };
+        layer3Text?: { contains: string; mode: 'insensitive' };
+        options?: { hasSome: string[] };
+        explanationText?: { contains: string; mode: 'insensitive' };
       }>;
       tags?: { hasSome: string[] };
     } = {};
@@ -83,10 +87,24 @@ export async function GET(request: Request) {
 
     if (search) {
       where.OR = [
+        // Basic fields
         { content: { contains: search, mode: 'insensitive' } },
         { subject: { contains: search, mode: 'insensitive' } },
         { topic: { contains: search, mode: 'insensitive' } },
         { tags: { hasSome: [search] } },
+        
+        // Layer 1
+        { layer1Text: { contains: search, mode: 'insensitive' } },
+        
+        // Layer 2
+        { layer2Text: { contains: search, mode: 'insensitive' } },
+        
+        // Layer 3
+        { layer3Text: { contains: search, mode: 'insensitive' } },
+        
+        // Options and Explanation
+        { options: { hasSome: [search] } },
+        { explanationText: { contains: search, mode: 'insensitive' } },
       ];
     }
 
