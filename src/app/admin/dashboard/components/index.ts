@@ -5,3 +5,5 @@ export { ExamManagementHeader } from './ExamManagementHeader';
 export { ExamCard } from './ExamCard';
 export { ExamList } from './ExamList';
 export { LoadingSpinner } from './LoadingSpinner';
+export { ExamSearchAndFilter } from './ExamSearchAndFilter';
+export { ExamPagination } from './ExamPagination';

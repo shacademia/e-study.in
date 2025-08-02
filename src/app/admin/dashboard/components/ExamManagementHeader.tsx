@@ -33,7 +33,7 @@ export const ExamManagementHeader: React.FC<ExamManagementHeaderProps> = ({
     <div className="flex justify-between items-center">
       <div className="flex items-center space-x-4">
         <h2 className="text-2xl font-bold">Exam Management</h2>
-        <div className="flex space-x-2">
+        {/* <div className="flex space-x-2">
           <Button
             variant={examFilter === 'all' ? 'default' : 'outline'}
             size="sm"
@@ -80,7 +80,7 @@ export const ExamManagementHeader: React.FC<ExamManagementHeaderProps> = ({
           >
             <RefreshCw className={`h-3 w-3 ${refreshingData ? 'animate-spin' : ''}`} />
           </Button>
-        </div>
+        </div> */}
       </div>
       <div className="flex space-x-2">
         <Button

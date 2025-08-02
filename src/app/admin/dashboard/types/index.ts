@@ -18,6 +18,15 @@ export interface DashboardStats extends AdminStats {
 
 export type ExamFilter = 'all' | 'published' | 'draft';
 
+export interface ExamSearchFilters {
+  search: string;
+  published: 'all' | 'true' | 'false';
+  sortBy: 'createdAt' | 'updatedAt' | 'name';
+  sortOrder: 'asc' | 'desc';
+  page: number;
+  limit: number;
+}
+
 export interface AdminDashboardState {
   exams: Exam[];
   questions: Question[];
