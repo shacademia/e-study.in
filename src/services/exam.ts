@@ -297,6 +297,33 @@ class ExamService {
   }
 
   /**
+   * Get all question IDs used in an exam (across all sections)
+   */
+  async getExamUsedQuestionIds(examId: string): Promise<Set<string>> {
+    try {
+      const examData = await this.getExamForEdit(examId);
+      const usedQuestionIds = new Set<string>();
+      
+      // Collect question IDs from all sections
+      examData.sections.forEach(section => {
+        section.questions.forEach(esq => {
+          usedQuestionIds.add(esq.questionId);
+        });
+      });
+      
+      // Also collect from direct exam questions (if any)
+      examData.questions?.forEach(eq => {
+        usedQuestionIds.add(eq.questionId);
+      });
+      
+      return usedQuestionIds;
+    } catch (error) {
+      console.error('Failed to get exam used question IDs:', error);
+      return new Set<string>();
+    }
+  }
+
+  /**
    * Remove question from section
    */
   async removeQuestionFromSection(examId: string, sectionId: string, questionId: string): Promise<{ message: string }> {

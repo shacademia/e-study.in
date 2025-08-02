@@ -35,12 +35,20 @@ export const useQuestionFilters = (questions: Question[]) => {
     setFilters(defaultFilters);
   }, []);
 
-  const filterOptions = useMemo(() => ({
-    subjects: [...new Set(questions.map(q => q.subject))].filter(Boolean),
-    topics: [...new Set(questions.map(q => q.topic))].filter(Boolean),
-    allTags: [...new Set(questions.flatMap(q => q.tags))].filter(Boolean),
-    difficulties: ['EASY', 'MEDIUM', 'HARD']
-  }), [questions]);
+  const filterOptions = useMemo(() => {
+    // For backend-optimized filtering, we need to be more comprehensive
+    // since the current questions array might be filtered and not contain all options
+    const currentOptions = {
+      subjects: [...new Set(questions.map(q => q.subject))].filter(Boolean),
+      topics: [...new Set(questions.map(q => q.topic))].filter(Boolean),
+      allTags: [...new Set(questions.flatMap(q => q.tags))].filter(Boolean),
+      difficulties: ['EASY', 'MEDIUM', 'HARD'] as const
+    };
+
+    // Note: In a production app, you might want to fetch these from a separate API
+    // to get all available options regardless of current filters
+    return currentOptions;
+  }, [questions]);
 
   return {
     filters,
