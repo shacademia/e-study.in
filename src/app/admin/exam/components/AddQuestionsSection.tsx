@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -36,6 +36,7 @@ import { useQuestionFilters } from '../create/hooks/useQuestionFilters';
 import { useDebounce } from '../create/hooks/useDebounce';
 import { useUserPermissions } from '../create/hooks/useUserPermissions';
 import QuestionPreviewDialog from './QuestionPreviewDialog';
+import { QuestionsPagination } from './QuestionsPagination';
 
 interface AddQuestionsSectionProps {
   examId?: string;
@@ -68,72 +69,156 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
   mode = 'dialog'
 }) => {
   // Custom hooks
-  const { questions, loading, error, loadQuestions, refreshQuestions, hasMore } = useQuestions();
+  const {
+    questions,
+    FilterMetadata,
+    loading,
+    error,
+    loadQuestions,
+    refreshQuestions,
+    hasMore,
+    currentPage,
+    totalQuestions,
+    totalPages,
+    itemsPerPage
+  } = useQuestions();
   const { selectedQuestions, toggleSelection, clearSelection, selectedCount } = useQuestionSelection();
   const { filters, updateFilter, toggleTag, clearFilters, filterOptions } = useQuestionFilters(questions);
   const userPermissions = useUserPermissions();
 
-  // State for question IDs already added to this section to filter them out
+  // State for question IDs already added to this ENTIRE EXAM (across all sections)
   const [usedQuestionIds, setUsedQuestionIds] = useState<Set<string>>(new Set());
 
   // Local UI state
-  const [searchTerm, setSearchTerm] = useState('');
+  // const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [addingQuestions, setAddingQuestions] = useState(false);
   const [previewQuestion, setPreviewQuestion] = useState<Question | null>(null);
-  const [loadingMore, setLoadingMore] = useState(false);
 
-  // Debounced search term for loading questions
-  const debouncedSearchTerm = useDebounce(searchTerm, 300);
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Load questions already added to this section by examId and sectionId
+
+  const [isSearching, setIsSearching] = useState(false);
+
+  // Memoized callbacks to prevent unnecessary re-renders
+  // const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  //   setSearchTerm(e.target.value);
+  // }, []);
+
+
+  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+
+    // Clear previous timeout
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+
+    // Set new timeout - only update state after user stops typing
+    timeoutRef.current = setTimeout(() => {
+      setDebouncedSearchTerm(value); // ✅ Only updates state after 300ms
+    }, 300);
+  }, []);
+
+  // Clean up on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
+
+
+  const handleViewModeChange = useCallback((mode: ViewMode) => {
+    setViewMode(mode);
+  }, []);
+
+  const handlePreviewQuestion = useCallback((question: Question) => {
+    setPreviewQuestion(question);
+  }, []);
+
+  // Memoized filter handlers
+  const handleSubjectChange = useCallback((value: string) => {
+    updateFilter('subject', value);
+  }, [updateFilter]);
+
+  const handleDifficultyChange = useCallback((value: string) => {
+    updateFilter('difficulty', value);
+  }, [updateFilter]);
+
+  const handleTopicChange = useCallback((value: string) => {
+    updateFilter('topic', value);
+  }, [updateFilter]);
+  // const debouncedSearchTerm = useDebounce(searchTerm, 300);
+  // Pagination handlers
+  const handlePageChange = useCallback((page: number) => {
+    const params = {
+      page,
+      limit: itemsPerPage,
+      subject: filters.subject !== 'all' ? filters.subject : undefined,
+      difficulty: filters.difficulty !== 'all' ? filters.difficulty as 'EASY' | 'MEDIUM' | 'HARD' : undefined,
+      topic: filters.topic !== 'all' ? filters.topic : undefined,
+      tags: filters.tags.length > 0 ? filters.tags.join(',') : undefined,
+      search: debouncedSearchTerm || undefined,
+    };
+
+    console.log(`📄 Loading page ${page} with filters:`, params);
+    loadQuestions(params);
+  }, [itemsPerPage, filters.subject, filters.difficulty, filters.topic, filters.tags, debouncedSearchTerm, loadQuestions]);
+
+  const handleItemsPerPageChange = useCallback((newItemsPerPage: number) => {
+    const params = {
+      page: 1, // Reset to first page when changing items per page
+      limit: newItemsPerPage,
+      subject: filters.subject !== 'all' ? filters.subject : undefined,
+      difficulty: filters.difficulty !== 'all' ? filters.difficulty as 'EASY' | 'MEDIUM' | 'HARD' : undefined,
+      topic: filters.topic !== 'all' ? filters.topic : undefined,
+      tags: filters.tags.length > 0 ? filters.tags.join(',') : undefined,
+      search: debouncedSearchTerm || undefined,
+    };
+
+    console.log(`📊 Changing items per page to ${newItemsPerPage}`);
+    loadQuestions(params);
+  }, [filters.subject, filters.difficulty, filters.topic, filters.tags, debouncedSearchTerm, loadQuestions]);
+
+
+
+  // Debounced search term for loading questions - optimized delay
+
+  // Track search state for better UX
+  // useEffect(() => {
+  //   if (searchTerm !== debouncedSearchTerm) {
+  //     setIsSearching(true);
+  //   } else {
+  //     setIsSearching(false);
+  //   }
+  // }, [searchTerm, debouncedSearchTerm]);
+
+  // Load questions already added to this ENTIRE EXAM (across all sections)
   useEffect(() => {
     const loadUsedQuestions = async () => {
-      if (!examId || !sectionId) return;
+      if (!examId) return;
       try {
-        const response = await examService.getSectionQuestions(examId, sectionId);
+        // Get all question IDs used in the entire exam (across all sections)
+        const usedIds = await examService.getExamUsedQuestionIds(examId);
+        setUsedQuestionIds(usedIds);
 
-        // Handle the API response format: { section, questions, statistics }
-        let questionsArray = [];
-        if (Array.isArray(response)) {
-          // Direct array response (fallback)
-          questionsArray = response;
-        } else if (response && typeof response === 'object' && Array.isArray(response.questions)) {
-          // Expected format: { section, questions, statistics }
-          questionsArray = response.questions;
-        } else if (response && typeof response === 'object' && response.data && Array.isArray(response.data.questions)) {
-          // Nested data format: { data: { section, questions, statistics } }
-          questionsArray = response.data.questions;
-        } else {
-          console.error('Invalid response format for section questions:', response);
-          setUsedQuestionIds(new Set());
-          toast({
-            title: 'Warning',
-            description: 'Could not load existing questions - unexpected response format',
-            variant: 'destructive'
-          });
-          return;
-        }
-
-        // Extract question IDs from the questions array
-        const ids = questionsArray.map(q => {
-          // Handle both direct question objects and nested question objects
-          return q.questionId || q.question?.id || q.id;
-        }).filter(Boolean);
-
-        setUsedQuestionIds(new Set(ids));
+        console.log(`🔒 Loaded ${usedIds.size} used question IDs for exam ${examId}:`, Array.from(usedIds));
       } catch (err) {
-        console.error('Failed to load used questions for section:', err);
+        console.error('Failed to load used questions for exam:', err);
         setUsedQuestionIds(new Set());
         toast({
           title: 'Error',
-          description: 'Failed to load section questions',
+          description: 'Failed to load exam questions',
           variant: 'destructive'
         });
       }
     };
     loadUsedQuestions();
-  }, [examId, sectionId]);
+  }, [examId]);
 
   // Load questions when filters or search changes
   React.useEffect(() => {
@@ -143,13 +228,23 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
       if (isCancelled) return;
 
       const params = {
+        page: 1, // Always start from page 1 when filters change
+        limit: itemsPerPage,
         subject: filters.subject !== 'all' ? filters.subject : undefined,
         difficulty: filters.difficulty !== 'all' ? filters.difficulty as 'EASY' | 'MEDIUM' | 'HARD' : undefined,
+        topic: filters.topic !== 'all' ? filters.topic : undefined,
+        tags: filters.tags.length > 0 ? filters.tags.join(',') : undefined,
         search: debouncedSearchTerm || undefined,
       };
 
+      const startTime = performance.now();
+      console.log('🔍 Backend API call with filters:', params);
+
       // Reset and load first batch
       await loadQuestions(params, { reset: true });
+
+      const endTime = performance.now();
+      console.log(`⚡ Search completed in ${(endTime - startTime).toFixed(2)}ms`);
     };
 
     loadData();
@@ -157,35 +252,38 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
     return () => {
       isCancelled = true;
     };
-  }, [loadQuestions, filters.subject, filters.difficulty, debouncedSearchTerm]);
+  }, [filters.subject, filters.difficulty, filters.topic, filters.tags, debouncedSearchTerm, itemsPerPage]);
 
-  // Filter out used questions and apply client-side filters for topic & tags
-  const filteredQuestions = useMemo(() => {
-    return questions.filter(question => {
-      // Exclude questions that are already used
-      if (usedQuestionIds.has(question.id)) return false;
+  // All filtering is now done at backend level - no client-side filtering needed!
+  // Just use the questions directly from the API response
+  const filteredQuestions = questions;
 
-      const matchesTopic = filters.topic === 'all' || question.topic === filters.topic;
-      const matchesTags = filters.tags.length === 0 || filters.tags.some(tag => question.tags.includes(tag));
+  // Separate available and used questions for better UX - optimized with early returns
+  const { availableQuestions, usedQuestions } = useMemo(() => {
+    if (filteredQuestions.length === 0) {
+      return { availableQuestions: [], usedQuestions: [] };
+    }
 
-      return matchesTopic && matchesTags;
-    });
-  }, [questions, filters.topic, filters.tags, usedQuestionIds]);
+    if (usedQuestionIds.size === 0) {
+      return { availableQuestions: filteredQuestions, usedQuestions: [] };
+    }
 
-  // Handle loading more questions
-  const handleLoadMore = async () => {
-    setLoadingMore(true);
+    const available: Question[] = [];
+    const used: Question[] = [];
 
-    const params = {
-      subject: filters.subject !== 'all' ? filters.subject : undefined,
-      difficulty: filters.difficulty !== 'all' ? filters.difficulty as 'EASY' | 'MEDIUM' | 'HARD' : undefined,
-      search: debouncedSearchTerm || undefined,
-    };
+    // Single loop instead of two filter operations
+    for (const question of filteredQuestions) {
+      if (usedQuestionIds.has(question.id)) {
+        used.push(question);
+      } else {
+        available.push(question);
+      }
+    }
 
-    // Append next batch
-    await loadQuestions(params, { loadMore: true });
-    setLoadingMore(false);
-  };
+    return { availableQuestions: available, usedQuestions: used };
+  }, [filteredQuestions, usedQuestionIds]);
+
+
 
   // Handle adding questions selected by admin to the section using saveExamWithSections
   const handleAddQuestions = async () => {
@@ -307,14 +405,14 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
       };
 
       // Check payload size and processing requirements
-      const totalQuestions = updatedSections.reduce((sum, section) => 
+      const totalQuestions = updatedSections.reduce((sum, section) =>
         sum + section.questions.length, 0
       );
-      
+
       const payloadSize = JSON.stringify(savePayload).length;
       const isLargePayload = payloadSize > 1024 * 1024; // 1MB
       const isManyQuestions = totalQuestions > 50;
-      
+
       console.log(`📊 Save operation:`, {
         sections: updatedSections.length,
         totalQuestions,
@@ -344,25 +442,11 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
       clearSelection();
       onQuestionsAdded?.(addedQuestions, selectedCount);
 
-      // Refresh used question IDs after successful add
+      // Refresh used question IDs after successful add (get all exam questions)
       try {
-        const response = await examService.getSectionQuestions(examId, sectionId);
-
-        // Handle the API response format consistently
-        let questionsArray = [];
-        if (Array.isArray(response)) {
-          questionsArray = response;
-        } else if (response && typeof response === 'object' && Array.isArray(response.questions)) {
-          questionsArray = response.questions;
-        } else if (response && typeof response === 'object' && response.data && Array.isArray(response.data.questions)) {
-          questionsArray = response.data.questions;
-        }
-
-        const ids = questionsArray.map(q => {
-          return q.questionId || q.question?.id || q.id;
-        }).filter(Boolean);
-
-        setUsedQuestionIds(new Set(ids));
+        const usedIds = await examService.getExamUsedQuestionIds(examId);
+        setUsedQuestionIds(usedIds);
+        console.log(`🔄 Refreshed ${usedIds.size} used question IDs for exam ${examId}`);
       } catch (refreshError) {
         console.warn('Failed to refresh used questions:', refreshError);
         // Non-critical error, don't show to user
@@ -395,7 +479,7 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
   // Clear all filters and search
   const handleClearAll = () => {
     clearFilters();
-    setSearchTerm('');
+    // setSearchTerm('');
   };
 
   // Question difficulty color helper
@@ -409,7 +493,15 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
   };
 
   // Question card component with React.memo for performance
-  const QuestionCard = React.memo(({ question, isSelected }: { question: Question; isSelected: boolean }) => {
+  const QuestionCard = React.memo(({
+    question,
+    isSelected,
+    isUsed = false
+  }: {
+    question: Question;
+    isSelected: boolean;
+    isUsed?: boolean;
+  }) => {
     // Helper to render a single layer
     const renderLayer = (
       type: 'text' | 'image' | 'none',
@@ -441,15 +533,26 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
     };
 
     return (
-      <Card className={`transition-all hover:shadow-md cursor-pointer ${isSelected ? 'ring-2 ring-blue-500 bg-blue-50' : ''}`}>
+      <Card className={`transition-all ${isUsed
+        ? 'opacity-60 bg-gray-50 border-gray-300 cursor-not-allowed'
+        : isSelected
+          ? 'ring-2 ring-blue-500 bg-blue-50 hover:shadow-md cursor-pointer'
+          : 'hover:shadow-md cursor-pointer'
+        }`}>
         <CardHeader className="pb-3">
           <div className="flex justify-between items-start">
             <div className="flex items-center space-x-2">
               <Checkbox
                 checked={isSelected}
-                onCheckedChange={() => toggleSelection(question.id)}
+                disabled={isUsed}
+                onCheckedChange={() => !isUsed && toggleSelection(question.id)}
                 onClick={(e) => e.stopPropagation()}
               />
+              {isUsed && (
+                <Badge variant="secondary" className="bg-orange-100 text-orange-800 border-orange-200 text-xs">
+                  Already Used
+                </Badge>
+              )}
               <div className="flex flex-wrap gap-1 cursor-text">
                 <Badge variant="outline">{question.subject}</Badge>
                 <Badge variant="secondary">{question.topic}</Badge>
@@ -469,7 +572,7 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
                 className='cursor-pointer'
                 onClick={(e) => {
                   e.stopPropagation();
-                  setPreviewQuestion(question);
+                  handlePreviewQuestion(question);
                 }}
               >
                 <Eye className="h-4 w-4" />
@@ -477,7 +580,7 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
             </div>
           </div>
         </CardHeader>
-        <CardContent onClick={() => toggleSelection(question.id)}>
+        <CardContent onClick={() => !isUsed && toggleSelection(question.id)}>
           {/* Render 3 layers with proper conditional content */}
           {renderLayer(question.layer1Type, question.layer1Text, question.layer1Image)}
           {renderLayer(question.layer2Type, question.layer2Text, question.layer2Image)}
@@ -497,6 +600,13 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
           )}
         </CardContent>
       </Card>
+    );
+  }, (prevProps, nextProps) => {
+    // Custom comparison function for better memoization
+    return (
+      prevProps.question.id === nextProps.question.id &&
+      prevProps.isSelected === nextProps.isSelected &&
+      prevProps.isUsed === nextProps.isUsed
     );
   });
   QuestionCard.displayName = 'QuestionCard';
@@ -549,16 +659,33 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
         </div>
         <div className="flex items-center space-x-2">
           <Badge variant="secondary">{selectedCount} selected</Badge>
-          <Badge variant="outline">{filteredQuestions.length} available</Badge>
+          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+            {availableQuestions.length} available
+          </Badge>
+          {usedQuestions.length > 0 && (
+            <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
+              {usedQuestions.length} already used
+            </Badge>
+          )}
+          {totalQuestions > 0 && (
+            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+              {totalQuestions.toLocaleString()} total
+            </Badge>
+          )}
         </div>
       </div>
 
       {/* Search and Filters */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center text-lg">
-            <Filter className="h-5 w-5 mr-2" />
-            Search & Filters
+          <CardTitle className="flex items-center justify-between text-lg">
+            <div className="flex items-center">
+              <Filter className="h-5 w-5 mr-2" />
+              Search & Filters
+            </div>
+            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs">
+              ⚡ Backend Optimized
+            </Badge>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -567,55 +694,90 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search questions, subjects, topics..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              // value={searchTerm}
+              ref={searchInputRef}
+              onChange={handleSearchChange}
               className="pl-10"
+              autoComplete="off"
+              spellCheck="false"
             />
+            {/* Search loading indicator */}
+            {(loading || isSearching) && debouncedSearchTerm && (
+              <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+              </div>
+            )}
           </div>
 
           {/* Filter Controls */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
               <Label>Subject</Label>
-              <Select value={filters.subject} onValueChange={(value) => updateFilter('subject', value)}>
+              <Select
+                value={filters.subject}
+                onValueChange={handleSubjectChange}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Subjects</SelectItem>
-                  {filterOptions.subjects.map(subject => (
-                    <SelectItem key={subject} value={subject}>{subject}</SelectItem>
-                  ))}
+                  {FilterMetadata && FilterMetadata.subjects?.length > 0 ? (
+                    FilterMetadata.subjects.map(subject => (
+                      <SelectItem key={subject} value={subject}>
+                        {subject}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem key="no-data" value="no-data">
+                      Data not available
+                    </SelectItem>
+                  )}
+
                 </SelectContent>
               </Select>
             </div>
             <div>
               <Label>Difficulty</Label>
-              <Select value={filters.difficulty} onValueChange={(value) => updateFilter('difficulty', value)}>
+              <Select value={filters.difficulty} onValueChange={handleDifficultyChange}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Difficulties</SelectItem>
-                  {filterOptions.difficulties.map(difficulty => (
-                    <SelectItem key={difficulty} value={difficulty}>
-                      {difficulty.charAt(0) + difficulty.slice(1).toLowerCase()}
+                  {FilterMetadata && FilterMetadata.difficulties?.length > 0 ? (
+                    FilterMetadata.difficulties.map(difficulties => (
+                      <SelectItem key={difficulties} value={difficulties}>
+                        {difficulties}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem key="no-data" value="no-data">
+                      Data not available
                     </SelectItem>
-                  ))}
+                  )}
                 </SelectContent>
               </Select>
             </div>
             <div>
               <Label>Topic</Label>
-              <Select value={filters.topic} onValueChange={(value) => updateFilter('topic', value)}>
+              <Select value={filters.topic} onValueChange={handleTopicChange}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Topics</SelectItem>
-                  {filterOptions.topics.map(topic => (
-                    <SelectItem key={topic} value={topic}>{topic}</SelectItem>
-                  ))}
+                  {FilterMetadata && FilterMetadata.topics?.length > 0 ? (
+                    FilterMetadata.topics.map(topic => (
+                      <SelectItem key={topic} value={topic}>
+                        {topic}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem key="no-data" value="no-data">
+                      Data not available
+                    </SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -627,11 +789,11 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
           </div>
 
           {/* Tags Filter */}
-          {filterOptions.allTags.length > 0 && (
+          {FilterMetadata && FilterMetadata?.tags.length > 0 && (
             <div>
               <Label>Tags</Label>
               <div className="flex flex-wrap gap-2 mt-2">
-                {filterOptions.allTags.slice(0, 15).map(tag => (
+                {FilterMetadata?.tags.slice(0, 15).map(tag => (
                   <Badge
                     key={tag}
                     variant={filters.tags.includes(tag) ? "default" : "outline"}
@@ -642,9 +804,9 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
                     {tag}
                   </Badge>
                 ))}
-                {filterOptions.allTags.length > 15 && (
+                {FilterMetadata && FilterMetadata?.tags.length > 15 && (
                   <Badge variant="outline" className="cursor-default">
-                    +{filterOptions.allTags.length - 15} more
+                    +{FilterMetadata?.tags.length - 15} more
                   </Badge>
                 )}
               </div>
@@ -660,7 +822,7 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
             className='cursor-pointer'
             variant={viewMode === 'list' ? 'default' : 'outline'}
             size="sm"
-            onClick={() => setViewMode('list')}
+            onClick={() => handleViewModeChange('list')}
           >
             <List className="h-4 w-4" />
           </Button>
@@ -668,14 +830,24 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
             className='cursor-pointer'
             variant={viewMode === 'grid' ? 'default' : 'outline'}
             size="sm"
-            onClick={() => setViewMode('grid')}
+            onClick={() => handleViewModeChange('grid')}
           >
             <Grid className="h-4 w-4" />
           </Button>
         </div>
 
-        <div className="text-sm text-muted-foreground">
-          Showing {filteredQuestions.length} questions
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-muted-foreground">
+            {availableQuestions.length} available, {usedQuestions.length} already used
+            {totalQuestions > 0 && (
+              <span className="ml-2 text-blue-600">
+                (Page {currentPage} of {totalPages})
+              </span>
+            )}
+          </div>
+          <div className="text-xs text-green-600 flex items-center">
+            ⚡ Database-level filtering & pagination
+          </div>
         </div>
       </div>
 
@@ -687,7 +859,7 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
             <p className="text-muted-foreground">Loading questions...</p>
           </div>
         </div>
-      ) : filteredQuestions.length === 0 ? (
+      ) : (availableQuestions.length + usedQuestions.length) === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <BookOpen className="h-12 w-12 text-muted-foreground mb-4" />
@@ -708,43 +880,65 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
         </Card>
       ) : (
         <>
-          <div className={
-            viewMode === 'grid'
-              ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'
-              : 'space-y-4'
-          }>
-            {filteredQuestions.map(question => (
-              <QuestionCard
-                key={question.id}
-                question={question}
-                isSelected={selectedQuestions.has(question.id)}
-              />
-            ))}
+          <div className="space-y-6">
+            {/* Available Questions */}
+            {availableQuestions.length > 0 && (
+              <div>
+                <h3 className="text-lg font-semibold mb-3 text-green-700">
+                  Available Questions ({availableQuestions.length})
+                </h3>
+                <div className={
+                  viewMode === 'grid'
+                    ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'
+                    : 'space-y-4'
+                }>
+                  {availableQuestions.map(question => (
+                    <QuestionCard
+                      key={question.id}
+                      question={question}
+                      isSelected={selectedQuestions.has(question.id)}
+                      isUsed={false}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Used Questions */}
+            {usedQuestions.length > 0 && (
+              <div>
+                <h3 className="text-lg font-semibold mb-3 text-orange-700">
+                  Already Used in This Exam ({usedQuestions.length})
+                </h3>
+                <div className={
+                  viewMode === 'grid'
+                    ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'
+                    : 'space-y-4'
+                }>
+                  {usedQuestions.map(question => (
+                    <QuestionCard
+                      key={question.id}
+                      question={question}
+                      isSelected={false}
+                      isUsed={true}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Load More Button */}
-          {hasMore && (
-            <div className="flex justify-center pt-6">
-              <Button
-                variant="outline"
-                onClick={handleLoadMore}
-                disabled={loadingMore}
-                className="cursor-pointer"
-              >
-                {loadingMore ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    Loading more questions...
-                  </>
-                ) : (
-                  <>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Load More Questions
-                  </>
-                )}
-              </Button>
-            </div>
-          )}
+          {/* Pagination */}
+          <QuestionsPagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalQuestions={totalQuestions}
+            itemsPerPage={itemsPerPage}
+            onPageChange={handlePageChange}
+            onItemsPerPageChange={handleItemsPerPageChange}
+            isLoading={loading}
+            className="mt-6"
+          />
         </>
       )}
 
