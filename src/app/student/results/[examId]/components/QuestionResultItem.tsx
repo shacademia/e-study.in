@@ -446,9 +446,9 @@ const QuestionResultItem: React.FC<QuestionResultItemProps> = ({
 
         {/* No Answer Indicator */}
         {userAnswer === undefined && (
-          <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800 flex items-center gap-2">
-            <AlertCircle className="h-4 w-4" />
-            No answer provided - This question was left unanswered
+          <div className="mb-4 p-3 bg-amber-100 border-2 border-amber-200 rounded-lg text-sm text-amber-700 flex items-center gap-2 font-medium">
+            <AlertCircle className="h-5 w-5" />
+              No answer provided - This question was left unanswered
           </div>
         )}
 
