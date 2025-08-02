@@ -5,7 +5,7 @@ import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useApiAuth';
 import { useExams, useQuestions, useUsers, useAdmin } from '@/hooks/useApiServices';
 import { Exam, Question, User } from '@/constants/types';
-import { AdminStats, ExamFilter } from '../types';
+import { AdminStats, ExamFilter, ExamSearchFilters } from '../types';
 
 export const useDashboardData = () => {
   const { user } = useAuth();
@@ -27,6 +27,25 @@ export const useDashboardData = () => {
   const [loading, setLoading] = useState(true);
   const [examFilter, setExamFilter] = useState<ExamFilter>('all');
   const [refreshingData, setRefreshingData] = useState(false);
+  const [totalExamsCount, setTotalExamsCount] = useState(0);
+  const [paginationInfo, setPaginationInfo] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    totalItems: 0,
+    itemsPerPage: 20,
+    hasNextPage: false,
+    hasPrevPage: false,
+  });
+  
+  // Enhanced search filters
+  const [searchFilters, setSearchFilters] = useState<ExamSearchFilters>({
+    search: '',
+    published: 'all',
+    sortBy: 'createdAt',
+    sortOrder: 'desc',
+    page: 1,
+    limit: 20,
+  });
 
   // Function to fetch exam data based on filter
   const fetchExamsByFilter = async (filter: ExamFilter) => {
@@ -73,6 +92,91 @@ export const useDashboardData = () => {
     }
   };
 
+  // Enhanced function to fetch exams with search and filters
+  const fetchExamsWithFilters = async (filters: ExamSearchFilters) => {
+    if (!user?.id) return;
+    
+    try {
+      setRefreshingData(true);
+      console.log('🔄 Fetching exams with filters:', filters);
+      
+      const apiParams: unknown = {
+        page: filters.page,
+        limit: filters.limit,
+        sortBy: filters.sortBy,
+        sortOrder: filters.sortOrder,
+      };
+
+      // Add search parameter if provided
+      if (filters.search.trim()) {
+        apiParams.search = filters.search.trim();
+      }
+
+      // Add published filter if not 'all'
+      if (filters.published !== 'all') {
+        apiParams.published = filters.published === 'true';
+      }
+
+      const examResult = await examsApi.getAllExams(apiParams);
+      
+      if (examResult) {
+        console.log('✅ Enhanced Exams API Response:', examResult);
+        const examData = examResult as { 
+          data: { 
+            exams: Exam[];
+            pagination: {
+              totalItems: number;
+              currentPage: number;
+              totalPages: number;
+              itemsPerPage: number;
+              hasNextPage: boolean;
+              hasPrevPage: boolean;
+            };
+          } 
+        };
+        
+        const examsArray = examData.data?.exams || [];
+        const pagination = examData.data?.pagination;
+        
+        setExams(examsArray);
+        setTotalExamsCount(pagination?.totalItems || 0);
+        
+        // Update pagination info
+        if (pagination) {
+          setPaginationInfo({
+            currentPage: pagination.currentPage,
+            totalPages: pagination.totalPages,
+            totalItems: pagination.totalItems,
+            itemsPerPage: pagination.itemsPerPage,
+            hasNextPage: pagination.hasNextPage,
+            hasPrevPage: pagination.hasPrevPage,
+          });
+        }
+        
+        console.log(`✅ Fetched ${examsArray.length} exams with filters`);
+      }
+    } catch (error) {
+      console.error('❌ Failed to fetch exams with filters:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch exams",
+        variant: "destructive",
+      });
+    } finally {
+      setRefreshingData(false);
+    }
+  };
+
+  // Effect to fetch exams when search filters change
+  useEffect(() => {
+    if (!user?.id || loading) return;
+    
+    // Only fetch if we have initial data loaded
+    if (dataLoadedRef.current) {
+      fetchExamsWithFilters(searchFilters);
+    }
+  }, [searchFilters, user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Load initial data
   useEffect(() => {
     if (!user?.id || dataLoadedRef.current) return;
@@ -85,7 +189,12 @@ export const useDashboardData = () => {
         console.log('🔄 Loading admin dashboard data...');
         
         const [examResult, questionResult, usersResult, statsResult] = await Promise.allSettled([
-          examsApi.getAllExams({ page: 1, limit: 100 }),
+          examsApi.getAllExams({ 
+            page: searchFilters.page, 
+            limit: searchFilters.limit,
+            sortBy: searchFilters.sortBy,
+            sortOrder: searchFilters.sortOrder
+          }),
           questionsApi.getAllQuestions({ page: 1, limit: 100 }),
           usersApi.getAllUsers({ page: 1, limit: 50 }),
           adminApi.getDashboardStats()
@@ -94,15 +203,58 @@ export const useDashboardData = () => {
         // Handle exams result
         if (examResult.status === 'fulfilled') {
           console.log('✅ Admin Exams API Response:', examResult.value);
-          const examData = examResult.value as { data: { exams: Exam[] } };
+          const examData = examResult.value as { 
+            data: { 
+              exams: Exam[];
+              pagination?: {
+                totalItems: number;
+                currentPage: number;
+                totalPages: number;
+                itemsPerPage: number;
+                hasNextPage: boolean;
+                hasPrevPage: boolean;
+              };
+            } 
+          };
           const examsArray = examData.data?.exams || [];
-          const sortedExams = Array.isArray(examsArray) ? 
-            examsArray.sort((a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime()) : 
-            [];
-          setExams(sortedExams);
+          const pagination = examData.data?.pagination;
+          
+          setExams(examsArray);
+          setTotalExamsCount(pagination?.totalItems || examsArray.length);
+          
+          // Update pagination info for initial load
+          if (pagination) {
+            setPaginationInfo({
+              currentPage: pagination.currentPage,
+              totalPages: pagination.totalPages,
+              totalItems: pagination.totalItems,
+              itemsPerPage: pagination.itemsPerPage,
+              hasNextPage: pagination.hasNextPage,
+              hasPrevPage: pagination.hasPrevPage,
+            });
+          } else {
+            // Fallback pagination info when API doesn't return pagination
+            setPaginationInfo({
+              currentPage: 1,
+              totalPages: Math.ceil(examsArray.length / searchFilters.limit),
+              totalItems: examsArray.length,
+              itemsPerPage: searchFilters.limit,
+              hasNextPage: false,
+              hasPrevPage: false,
+            });
+          }
         } else {
           console.error('❌ Failed to load exams:', examResult.reason);
           setExams([]);
+          setTotalExamsCount(0);
+          setPaginationInfo({
+            currentPage: 1,
+            totalPages: 1,
+            totalItems: 0,
+            itemsPerPage: searchFilters.limit,
+            hasNextPage: false,
+            hasPrevPage: false,
+          });
         }
 
         // Handle questions result
@@ -194,6 +346,11 @@ export const useDashboardData = () => {
     setExamFilter,
     refreshingData,
     fetchExamsByFilter,
+    searchFilters,
+    setSearchFilters,
+    fetchExamsWithFilters,
+    totalExamsCount,
+    paginationInfo,
     examsApi,
   };
 };

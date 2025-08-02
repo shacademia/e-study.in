@@ -52,27 +52,7 @@ export async function GET(
           include: {
             questions: {
               include: {
-                question: {
-                  select: {
-                    id: true,
-                    content: true,
-                    options: true,
-                    correctOption: true,
-                    difficulty: true,
-                    subject: true,
-                    topic: true,
-                    tags: true,
-                    createdAt: true,
-                    updatedAt: true,
-                    author: {
-                      select: {
-                        id: true,
-                        name: true,
-                        email: true,
-                      },
-                    },
-                  },
-                },
+                question: true, // Get all question fields
               },
               orderBy: { order: 'asc' },
             },
@@ -81,27 +61,7 @@ export async function GET(
         },
         questions: {
           include: {
-            question: {
-              select: {
-                id: true,
-                content: true,
-                options: true,
-                correctOption: true,
-                difficulty: true,
-                subject: true,
-                topic: true,
-                tags: true,
-                createdAt: true,
-                updatedAt: true,
-                author: {
-                  select: {
-                    id: true,
-                    name: true,
-                    email: true,
-                  },
-                },
-              },
-            },
+            question: true, // Get all question fields
           },
           orderBy: { order: 'asc' },
         },

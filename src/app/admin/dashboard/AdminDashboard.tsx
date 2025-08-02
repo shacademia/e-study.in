@@ -7,6 +7,7 @@ import { Undo2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useApiAuth';
 import { useExams } from '@/hooks/useApiServices';
 import { Exam } from '@/constants/types';
+import { ExamSearchFilters } from './types';
 
 // Import modular components
 import {
@@ -15,7 +16,9 @@ import {
   StatisticsCards,
   ExamManagementHeader,
   ExamList,
-  LoadingSpinner
+  LoadingSpinner,
+  ExamSearchAndFilter,
+  ExamPagination
 } from './components';
 
 // Import custom hooks
@@ -63,7 +66,12 @@ const AdminDashboard: React.FC = () => {
     setExams,
     setAdminStats,
     setExamFilter,
-    fetchExamsByFilter
+    fetchExamsByFilter,
+    searchFilters,
+    setSearchFilters,
+    fetchExamsWithFilters,
+    totalExamsCount,
+    paginationInfo
   } = useDashboardData();
 
   const {
@@ -174,6 +182,17 @@ const AdminDashboard: React.FC = () => {
               onCreateExam={handleCreateExam}
             />
 
+            <ExamSearchAndFilter
+              filters={searchFilters}
+              onFiltersChange={(newFilters) => {
+                setSearchFilters(newFilters);
+                fetchExamsWithFilters(newFilters);
+              }}
+              onRefresh={() => fetchExamsWithFilters(searchFilters)}
+              isLoading={refreshingData}
+              totalResults={totalExamsCount}
+            />
+
             <ExamList
               exams={exams}
               examFilter={examFilter}
@@ -183,6 +202,17 @@ const AdminDashboard: React.FC = () => {
               onEdit={handleEditExam}
               onDelete={handleDeleteExam}
               onDuplicate={handleDuplicateExam}
+            />
+
+            <ExamPagination
+              pagination={paginationInfo}
+              onPageChange={(page) => {
+                const newFilters = { ...searchFilters, page };
+                setSearchFilters(newFilters);
+                fetchExamsWithFilters(newFilters);
+              }}
+              isLoading={refreshingData}
+              className="mt-6"
             />
 
             {recentlyDeletedExam && (
