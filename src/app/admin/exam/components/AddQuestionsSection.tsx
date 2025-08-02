@@ -71,6 +71,7 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
   // Custom hooks
   const {
     questions,
+    FilterMetadata,
     loading,
     error,
     loadQuestions,
@@ -109,18 +110,18 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
 
   const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    
+
     // Clear previous timeout
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
-    
+
     // Set new timeout - only update state after user stops typing
     timeoutRef.current = setTimeout(() => {
       setDebouncedSearchTerm(value); // ✅ Only updates state after 300ms
     }, 300);
   }, []);
-  
+
   // Clean up on unmount
   useEffect(() => {
     return () => {
@@ -721,9 +722,18 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Subjects</SelectItem>
-                  {filterOptions.subjects.map(subject => (
-                    <SelectItem key={subject} value={subject}>{subject}</SelectItem>
-                  ))}
+                  {FilterMetadata && FilterMetadata.subjects?.length > 0 ? (
+                    FilterMetadata.subjects.map(subject => (
+                      <SelectItem key={subject} value={subject}>
+                        {subject}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem key="no-data" value="no-data">
+                      Data not available
+                    </SelectItem>
+                  )}
+
                 </SelectContent>
               </Select>
             </div>
@@ -735,11 +745,17 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Difficulties</SelectItem>
-                  {filterOptions.difficulties.map(difficulty => (
-                    <SelectItem key={difficulty} value={difficulty}>
-                      {difficulty.charAt(0) + difficulty.slice(1).toLowerCase()}
+                  {FilterMetadata && FilterMetadata.difficulties?.length > 0 ? (
+                    FilterMetadata.difficulties.map(difficulties => (
+                      <SelectItem key={difficulties} value={difficulties}>
+                        {difficulties}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem key="no-data" value="no-data">
+                      Data not available
                     </SelectItem>
-                  ))}
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -751,9 +767,17 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Topics</SelectItem>
-                  {filterOptions.topics.map(topic => (
-                    <SelectItem key={topic} value={topic}>{topic}</SelectItem>
-                  ))}
+                  {FilterMetadata && FilterMetadata.topics?.length > 0 ? (
+                    FilterMetadata.topics.map(topic => (
+                      <SelectItem key={topic} value={topic}>
+                        {topic}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem key="no-data" value="no-data">
+                      Data not available
+                    </SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -765,11 +789,11 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
           </div>
 
           {/* Tags Filter */}
-          {filterOptions.allTags.length > 0 && (
+          {FilterMetadata && FilterMetadata?.tags.length > 0 && (
             <div>
               <Label>Tags</Label>
               <div className="flex flex-wrap gap-2 mt-2">
-                {filterOptions.allTags.slice(0, 15).map(tag => (
+                {FilterMetadata?.tags.slice(0, 15).map(tag => (
                   <Badge
                     key={tag}
                     variant={filters.tags.includes(tag) ? "default" : "outline"}
@@ -780,9 +804,9 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
                     {tag}
                   </Badge>
                 ))}
-                {filterOptions.allTags.length > 15 && (
+                {FilterMetadata && FilterMetadata?.tags.length > 15 && (
                   <Badge variant="outline" className="cursor-default">
-                    +{filterOptions.allTags.length - 15} more
+                    +{FilterMetadata?.tags.length - 15} more
                   </Badge>
                 )}
               </div>

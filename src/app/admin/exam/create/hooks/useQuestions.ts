@@ -18,6 +18,14 @@ interface UseQuestionsOptions {
   loadMore?: boolean;
 }
 
+export type Metadata = {
+  subjects: string[];
+  topics: string[];
+  difficulties: Array<'EASY' | 'MEDIUM' | 'HARD'>;
+  tags: string[];
+};
+
+
 export const useQuestions = () => {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(false);
@@ -27,6 +35,7 @@ export const useQuestions = () => {
   const [totalQuestions, setTotalQuestions] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(20);
+  const [ FilterMetadata, setFilterMetadata ] = useState<Metadata | null>(null)
 
   const loadQuestions = useCallback(async (
     params: UseQuestionsParams = {}, 
@@ -35,7 +44,6 @@ export const useQuestions = () => {
     try {
       setLoading(true);
       setError(null);
-      
       // Determine which page to fetch
       let pageToFetch = params.page || 1;
       if (options.loadMore) {
@@ -63,7 +71,8 @@ export const useQuestions = () => {
         tags: params.tags,
         search: params.search
       });
-
+      console.log('🙌🙌🙌🙌This REsponse I needed🙌🙌🙌🙌', response)
+      setFilterMetadata(response?.data.filterMetadata)
       let questionsData: Question[] = [];
       let paginationData = null;
 
@@ -124,6 +133,7 @@ export const useQuestions = () => {
 
   return {
     questions,
+    FilterMetadata,
     loading,
     error,
     hasMore,
