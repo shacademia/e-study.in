@@ -1,7 +1,6 @@
 import React, { JSX, useState } from 'react';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { 
   CheckCircle, 
@@ -72,7 +71,7 @@ const EnhancedResultImage: React.FC<{
           onError={() => setImageError(true)}
         />
         
-        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-200 flex items-center justify-center">
+        <div className="absolute inset-0 bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-200 flex items-center justify-center">
           <div className="bg-white bg-opacity-90 rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
             <ZoomIn className="h-4 w-4 text-gray-700" />
           </div>
@@ -447,9 +446,9 @@ const QuestionResultItem: React.FC<QuestionResultItemProps> = ({
 
         {/* No Answer Indicator */}
         {userAnswer === undefined && (
-          <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800 flex items-center gap-2">
-            <AlertCircle className="h-4 w-4" />
-            No answer provided - This question was left unanswered
+          <div className="mb-4 p-3 bg-amber-100 border-2 border-amber-200 rounded-lg text-sm text-amber-700 flex items-center gap-2 font-medium">
+            <AlertCircle className="h-5 w-5" />
+              No answer provided - This question was left unanswered
           </div>
         )}
 
@@ -459,27 +458,19 @@ const QuestionResultItem: React.FC<QuestionResultItemProps> = ({
 
       {/* Image Preview Dialog */}
       <Dialog open={!!selectedImagePreview} onOpenChange={() => setSelectedImagePreview(null)}>
-        <DialogContent className="max-w-4xl max-h-[90vh] p-2 bg-black/90 border-0">
-          <DialogTitle className="sr-only">Image Preview</DialogTitle>
+        <DialogContent className="border-0 shadow-none bg-transparent  [&>button:last-child]:hidden">
+          <DialogTitle></DialogTitle>
           <div className="relative flex items-center justify-center h-full">
-            <div className="relative max-w-full max-h-[85vh] overflow-hidden">
+            <div className="relative overflow-hidden scale-[1.7]">
               {selectedImagePreview && (
                 <EnhancedResultImage
                   src={selectedImagePreview}
                   alt="Full size preview"
                   onClick={() => {}}
-                  className="max-w-full max-h-[85vh] object-contain"
+                  className="object-contain"
                 />
               )}
             </div>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => setSelectedImagePreview(null)} 
-              className="absolute top-4 right-4 bg-white/90 hover:bg-white text-gray-900 rounded-full w-8 h-8 p-0"
-            >
-              <XCircle className="h-4 w-4" />
-            </Button>
           </div>
         </DialogContent>
       </Dialog>

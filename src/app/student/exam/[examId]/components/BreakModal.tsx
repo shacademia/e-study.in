@@ -13,7 +13,7 @@ const BreakModal: React.FC<BreakModalProps> = ({
 }) => {
   return (
     <Dialog open={isOpen}>
-      <DialogContent>
+      <DialogContent className="[&>button:last-child]:hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center">
             <Coffee className="h-5 w-5 mr-2" />

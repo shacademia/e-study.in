@@ -246,7 +246,7 @@ const SectionsManager: React.FC<SectionsManagerProps> = ({
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {currentSection.questions.map((question: Question, index: number) => (
+                    {currentSection.questions.map((question: any, index: number) => (
                       <Card key={question.id} className="hover:shadow-sm transition-shadow">
                         <CardContent className="p-4">
                           <div className="flex items-start justify-between">
@@ -258,7 +258,7 @@ const SectionsManager: React.FC<SectionsManagerProps> = ({
                                   {question.difficulty}
                                 </Badge>
                               </div>
-
+                
                               {/* Replace single content with 3-layer rendering */}
                               <div>
                                 {renderLayer(question.layer1Type, question.layer1Text, question.layer1Image, `${question.id}-1`)}

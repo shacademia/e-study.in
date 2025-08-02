@@ -50,17 +50,21 @@ const QuestionResultsList: React.FC<QuestionResultsListProps> = ({
       <CardContent>
         <div className="space-y-4">
           {(submission.questionAnalysis || []).map((question: QuestionAnalysis, index: number) => {
-            // Safety check for submission answers
-            const userAnswer = question.userAnswer;
+            // Handle unanswered questions based on your data representation
+            const userAnswer = question.status === "NOT_ANSWERED" || question.userAnswer === -1
+              ? undefined
+              : question.userAnswer;
+
             const isCorrect = userAnswer !== undefined && userAnswer === question.correctOption;
 
             return (
               <QuestionResultItem
-                key={index}
+                key={question.questionId || index} // Use questionId if available
                 question={question}
                 index={index}
                 userAnswer={userAnswer}
                 isCorrect={isCorrect}
+                showExplanation={true}
               />
             );
           })}
