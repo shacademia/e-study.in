@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -44,7 +43,7 @@ export const QuestionForm: React.FC<QuestionFormProps> = ({
 
       {/* NEW: 3-Layer Question System */}
       <div className="space-y-4 p-4 border-2 border-dashed border-blue-200 rounded-lg bg-blue-50/30">
-        <h3 className="text-sm font-medium text-blue-900">📝 Enhanced Question Structure</h3>
+        <h3 className="text-sm font-medium text-blue-900">📝 Question Structure</h3>
         <p className="text-xs text-blue-700">
           Use the 3-layer system to create complex questions with mixed text and images. Each layer can be either text (with math support) or an image.
         </p>
