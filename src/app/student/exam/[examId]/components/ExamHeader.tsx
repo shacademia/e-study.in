@@ -45,7 +45,7 @@ const ExamHeader: React.FC<ExamHeaderProps> = ({
               variant="ghost"
               size="sm"
               onClick={handleBackToDashboard}
-              className="text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+              className="text-gray-600 hover:text-gray-900 hover:bg-gray-100 cursor-pointer"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Dashboard

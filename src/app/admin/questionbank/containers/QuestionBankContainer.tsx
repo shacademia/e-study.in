@@ -33,7 +33,6 @@ import { EditQuestionDialog } from './EditQuestionDialog';
 import { useQuestions } from '@/hooks/useApiServices'
 import { useRouter } from 'next/navigation';
 import { useQuestionsContextData } from '@/context/QuestionContext';
-import type { QuestionsListApiResponse } from '@/app/admin/questionbank/types/QuestionTypes.d.ts';
 // Enhanced BulkUploadForm with better error handling
 const BulkUploadForm = ({ onUpload }: { onUpload: (file: File) => void }) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);

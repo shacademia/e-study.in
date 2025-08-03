@@ -8,32 +8,17 @@ import {
   Clock
 } from "lucide-react";
 
-// ==============================================
-// TYPE DEFINITIONS & UTILITY FUNCTIONS SECTION
-// ==============================================
+// Import all necessary types from your centralized type definitions
+import type {
+  ExamCardProps,
+  StatMetricProps,
+  ScoreVisualizationProps,
+  StatusBadgeProps
+} from "../types";
 
-// Define the missing props interface
-export interface ExamCardProps {
-  exam: {
-    id: string;
-    name: string;
-    description?: string;
-    timeLimit: number;
-    totalMarks: number;
-    questionsCount?: number;
-    questions?: any[];
-    sections?: any[];
-    isPasswordProtected: boolean;
-  };
-  submission?: {
-    id: string;
-    score: number;
-    completedAt: string | Date;
-  };
-  isCompleted: boolean;
-  onStartExam: (id: string) => void;
-  onViewResults: (id: string) => void;
-}
+// ==============================================
+// UTILITY FUNCTIONS SECTION
+// ==============================================
 
 // Utility function to calculate percentage score
 export const calculateScorePercentage = (score: number, totalMarks: number): number => {
@@ -55,10 +40,7 @@ export const formatDate = (date: string | Date): string => {
 // ==============================================
 const StatMetric = memo(({
   icon, value, label, variant = "default"
-}: {
-  icon: React.ReactNode; value: string | number; label: string;
-  variant?: "default" | "primary" | "success" | "warning";
-}) => {
+}: StatMetricProps) => {
   // Enhanced soothing gradient color schemes
   const variantClasses = {
     default: "bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 border-slate-200/60 shadow-sm hover:shadow-md",
@@ -103,9 +85,7 @@ StatMetric.displayName = "StatMetric";
 // ==============================================
 // SUB-COMPONENT 2: SCORE VISUALIZATION
 // ==============================================
-const ScoreVisualization = memo(({ percentage, score, totalMarks }: { 
-  percentage: number; score: number; totalMarks: number; 
-}) => {
+const ScoreVisualization = memo(({ percentage, score, totalMarks }: ScoreVisualizationProps) => {
   const normalizedPercentage = Math.max(0, Math.min(100, percentage));
   
   // Calculate grade and styling with soothing gradients
@@ -201,9 +181,7 @@ ScoreVisualization.displayName = "ScoreVisualization";
 // ==============================================
 // SUB-COMPONENT 3: STATUS BADGE
 // ==============================================
-const StatusBadge = memo(({ isCompleted, isPasswordProtected }: { 
-  isCompleted: boolean; isPasswordProtected: boolean; 
-}) => {
+const StatusBadge = memo(({ isCompleted, isPasswordProtected }: StatusBadgeProps) => {
   if (isCompleted) {
     return (
       <Badge className="px-4 py-2 bg-gradient-to-r from-emerald-500 via-green-500 to-teal-500 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105">
@@ -231,7 +209,7 @@ const ExamCard: React.FC<ExamCardProps> = memo(({
 }) => {
   // COMPUTED VALUES
   const scorePercentage = useMemo(() => 
-    submission ? calculateScorePercentage(submission.score, exam.totalMarks) : 0,
+    submission ? calculateScorePercentage(submission.earnedMarks, exam.totalMarks) : 0,
     [submission, exam.totalMarks]
   );
   
@@ -311,7 +289,7 @@ const ExamCard: React.FC<ExamCardProps> = memo(({
         <div className="space-y-4 mb-6">
           <ScoreVisualization 
             percentage={scorePercentage}
-            score={submission.score}
+            score={submission.earnedMarks}
             totalMarks={exam.totalMarks}
           />
           
@@ -334,7 +312,7 @@ const ExamCard: React.FC<ExamCardProps> = memo(({
       {isCompleted ? (
         <Button 
           variant="outline" 
-          className="w-full bg-gradient-to-r from-blue-50 via-sky-50 to-indigo-50 border-blue-200/60 text-blue-700 hover:bg-gradient-to-r hover:from-blue-100 hover:to-indigo-100 hover:border-blue-300 transition-all duration-300 hover:shadow-lg py-6 rounded-xl font-semibold"
+          className="w-full cursor-pointer bg-gradient-to-r from-blue-50 via-sky-50 to-indigo-50 border-blue-200/60 text-blue-700 hover:bg-gradient-to-r hover:from-blue-100 hover:to-indigo-100 hover:border-blue-300 transition-all duration-300 hover:shadow-lg py-6 rounded-xl font-semibold"
           onClick={handleViewResults}
         >
           <BarChart3 className="h-4 w-4 mr-2" />
@@ -343,7 +321,7 @@ const ExamCard: React.FC<ExamCardProps> = memo(({
         </Button>
       ) : (
         <Button
-          className="w-full bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 text-white font-semibold py-6 rounded-xl transition-all duration-300 hover:shadow-xl hover:scale-[1.02] shadow-lg"
+          className="w-full cursor-pointer bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 text-white font-semibold py-6 rounded-xl transition-all duration-300 hover:shadow-xl hover:scale-[1.02] shadow-lg"
           onClick={handleStartExam}
         >
           <Play className="h-4 w-4 mr-2" />

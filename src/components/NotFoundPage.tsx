@@ -51,7 +51,7 @@ export function NotFoundPage() {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.6 }}
         >
-          <Button asChild variant="default" size="lg">
+          <Button asChild variant="default" size="lg" className="cursor-pointer">
             <Link href="/">Back to Home</Link>
           </Button>
         </motion.div>
