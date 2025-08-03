@@ -88,7 +88,7 @@ const QuestionNavigator: React.FC<QuestionNavigatorProps> = ({
               variant="outline"
               size="sm"
               className={cn(
-                "h-10 w-10 p-0 relative transition-all duration-200",
+                "h-10 w-10 p-0 relative transition-all duration-200 cursor-pointer",
                 bgColor,
                 textColor,
                 isCurrentQuestion && "ring-2 ring-blue-500 ring-offset-2",

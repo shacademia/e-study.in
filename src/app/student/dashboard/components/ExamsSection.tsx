@@ -30,7 +30,7 @@ const ExamsSection: React.FC<ExamsSectionProps> = ({
           <button
             onClick={() => setActiveTab('available')}
             className={`
-              py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200
+              py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 cursor-pointer
               ${activeTab === 'available'
                 ? 'border-blue-500 text-blue-600' 
                 : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
@@ -47,7 +47,7 @@ const ExamsSection: React.FC<ExamsSectionProps> = ({
           <button
             onClick={() => setActiveTab('completed')}
             className={`
-              py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200
+              py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 cursor-pointer
               ${activeTab === 'completed'
                 ? 'border-emerald-500 text-emerald-600' 
                 : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
