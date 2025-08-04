@@ -28,6 +28,7 @@ import {
 import { toast } from '@/hooks/use-toast';
 import { Question, ExamSection } from '@/constants/types';
 import { examService } from '@/services/exam';
+import { useUsedQuestions } from '@/contexts/UsedQuestionsContext';
 
 // Custom hooks
 import { useQuestions } from '../create/hooks/useQuestions';
@@ -85,12 +86,9 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
   const { selectedQuestions, toggleSelection, clearSelection, selectedCount } = useQuestionSelection();
   const { filters, updateFilter, toggleTag, clearFilters, filterOptions } = useQuestionFilters(questions);
   const userPermissions = useUserPermissions();
-
-  // State for question IDs already added to this ENTIRE EXAM (across all sections)
-  const [usedQuestionIds, setUsedQuestionIds] = useState<Set<string>>(new Set());
+  const { usedQuestionIds, addUsedQuestions, isQuestionUsed } = useUsedQuestions();
 
   // Local UI state
-  // const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [addingQuestions, setAddingQuestions] = useState(false);
   const [previewQuestion, setPreviewQuestion] = useState<Question | null>(null);
@@ -197,29 +195,6 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
   //   }
   // }, [searchTerm, debouncedSearchTerm]);
 
-  // Load questions already added to this ENTIRE EXAM (across all sections)
-  useEffect(() => {
-    const loadUsedQuestions = async () => {
-      if (!examId) return;
-      try {
-        // Get all question IDs used in the entire exam (across all sections)
-        const usedIds = await examService.getExamUsedQuestionIds(examId);
-        setUsedQuestionIds(usedIds);
-
-        console.log(`🔒 Loaded ${usedIds.size} used question IDs for exam ${examId}:`, Array.from(usedIds));
-      } catch (err) {
-        console.error('Failed to load used questions for exam:', err);
-        setUsedQuestionIds(new Set());
-        toast({
-          title: 'Error',
-          description: 'Failed to load exam questions',
-          variant: 'destructive'
-        });
-      }
-    };
-    loadUsedQuestions();
-  }, [examId]);
-
   // Load questions when filters or search changes
   React.useEffect(() => {
     let isCancelled = false;
@@ -273,15 +248,24 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
 
     // Single loop instead of two filter operations
     for (const question of filteredQuestions) {
-      if (usedQuestionIds.has(question.id)) {
+      if (isQuestionUsed(question.id)) {
         used.push(question);
       } else {
         available.push(question);
       }
     }
 
+    // Debug logging
+    console.log('🔍 Question separation:', {
+      totalFiltered: filteredQuestions.length,
+      usedQuestionIdsCount: usedQuestionIds.size,
+      availableCount: available.length,
+      usedCount: used.length,
+      usedQuestionIds: Array.from(usedQuestionIds)
+    });
+
     return { availableQuestions: available, usedQuestions: used };
-  }, [filteredQuestions, usedQuestionIds]);
+  }, [filteredQuestions, usedQuestionIds, isQuestionUsed]);
 
 
 
@@ -312,6 +296,11 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
     // Demo mode fallback
     if (!examId || !sectionId) {
       const addedQuestions = filteredQuestions.filter(q => selectedQuestions.has(q.id));
+
+      // Add questions to global used questions context (even in demo mode)
+      const newlyAddedQuestionIds = Array.from(selectedQuestions);
+      addUsedQuestions(newlyAddedQuestionIds);
+      console.log(`🎯 Demo mode: Added ${newlyAddedQuestionIds.length} questions to global used questions context`);
 
       toast({
         title: 'Questions Added (Demo)',
@@ -434,6 +423,11 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
 
       const addedQuestions = filteredQuestions.filter(q => selectedQuestions.has(q.id));
 
+      // Add questions to global used questions context
+      const newlyAddedQuestionIds = Array.from(selectedQuestions);
+      addUsedQuestions(newlyAddedQuestionIds);
+      console.log(`🎯 Added ${newlyAddedQuestionIds.length} questions to global used questions context`);
+
       toast({
         title: 'Questions Added Successfully',
         description: `Successfully added ${selectedCount} questions to ${section?.name || 'the section'}`,
@@ -441,16 +435,6 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
 
       clearSelection();
       onQuestionsAdded?.(addedQuestions, selectedCount);
-
-      // Refresh used question IDs after successful add (get all exam questions)
-      try {
-        const usedIds = await examService.getExamUsedQuestionIds(examId);
-        setUsedQuestionIds(usedIds);
-        console.log(`🔄 Refreshed ${usedIds.size} used question IDs for exam ${examId}`);
-      } catch (refreshError) {
-        console.warn('Failed to refresh used questions:', refreshError);
-        // Non-critical error, don't show to user
-      }
 
       if (mode === 'dialog' && onClose) {
         onClose();
@@ -502,6 +486,25 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
     isSelected: boolean;
     isUsed?: boolean;
   }) => {
+    // Handle card click
+    const handleCardClick = useCallback((e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!isUsed) {
+        console.log(`🖱️ Card clicked for question: ${question.id}`);
+        toggleSelection(question.id);
+      }
+    }, [question.id, isUsed, toggleSelection]);
+
+    // Handle checkbox click
+    const handleCheckboxClick = useCallback((e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!isUsed) {
+        console.log(`☑️ Checkbox clicked for question: ${question.id}`);
+        toggleSelection(question.id);
+      }
+    }, [question.id, isUsed, toggleSelection]);
     // Helper to render a single layer
     const renderLayer = (
       type: 'text' | 'image' | 'none',
@@ -545,8 +548,12 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
               <Checkbox
                 checked={isSelected}
                 disabled={isUsed}
-                onCheckedChange={() => !isUsed && toggleSelection(question.id)}
-                onClick={(e) => e.stopPropagation()}
+                onCheckedChange={() => {
+                  if (!isUsed) {
+                    toggleSelection(question.id);
+                  }
+                }}
+                onClick={handleCheckboxClick}
               />
               {isUsed && (
                 <Badge variant="secondary" className="bg-orange-100 text-orange-800 border-orange-200 text-xs">
@@ -580,7 +587,7 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
             </div>
           </div>
         </CardHeader>
-        <CardContent onClick={() => !isUsed && toggleSelection(question.id)}>
+        <CardContent onClick={handleCardClick}>
           {/* Render 3 layers with proper conditional content */}
           {renderLayer(question.layer1Type, question.layer1Text, question.layer1Image)}
           {renderLayer(question.layer2Type, question.layer2Text, question.layer2Image)}
@@ -672,6 +679,10 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
               {totalQuestions.toLocaleString()} total
             </Badge>
           )}
+          {/* Debug info */}
+          <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+            Global: {usedQuestionIds.size}
+          </Badge>
         </div>
       </div>
 

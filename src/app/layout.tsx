@@ -5,6 +5,7 @@ import { ReactQueryProvider } from '@/components/ReactQueryProvider';
 import "./globals.css";
 import { ResultContextProvider } from '@/context/ResultContext';
 import { QuestionContextProvider } from "@/context/QuestionContext";
+import { UsedQuestionsProvider } from '@/contexts/UsedQuestionsContext';
 export const metadata: Metadata = {
   title: "SH Academia",
   description: "SH Academia is a comprehensive platform for managing educational content, including question banks, exams, and student results.",
@@ -22,8 +23,10 @@ export default function RootLayout({
           <ClientAuthProvider>
             <ResultContextProvider>
               <QuestionContextProvider>
-                {children}
-                <SpeedInsights />
+                <UsedQuestionsProvider>
+                  {children}
+                  <SpeedInsights />
+                </UsedQuestionsProvider>
               </QuestionContextProvider>
             </ResultContextProvider>
           </ClientAuthProvider>

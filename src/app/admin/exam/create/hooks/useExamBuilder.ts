@@ -23,6 +23,12 @@ interface ExamDetails {
 interface UseExamBuilderProps {
   editingExam?: Partial<Exam>;
   availableQuestions?: Question[];
+  initializeFromExamData?: (examData: {
+    sections?: Array<{
+      questions?: Array<{ questionId: string }>;
+    }>;
+    questions?: Array<{ questionId: string }>;
+  }) => void;
 }
 
 interface UseExamBuilderReturn {
@@ -82,7 +88,8 @@ const createDefaultSection = (index: number = 1): ExamSection => ({
 
 export const useExamBuilder = ({ 
   editingExam, 
-  availableQuestions 
+  availableQuestions,
+  initializeFromExamData
 }: UseExamBuilderProps): UseExamBuilderReturn => {
   // Initialize stores
   useStoreInitialization();
@@ -202,6 +209,14 @@ export const useExamBuilder = ({
         isPasswordRequired: examForEdit.exam.isPasswordProtected || false
       });
       
+      // Initialize used questions from exam data
+      if (initializeFromExamData) {
+        initializeFromExamData({
+          sections: examForEdit.sections,
+          questions: examForEdit.questions
+        });
+      }
+      
       // Handle sections with complete question data
       if (examForEdit.sections && examForEdit.sections.length > 0) {
         const transformedSections: ExamSection[] = examForEdit.sections.map((section) => {
@@ -245,6 +260,13 @@ export const useExamBuilder = ({
     }
   }, [examForEdit, editingExam]);
 
+  // Adjust active section when sections change
+  useEffect(() => {
+    if (activeSection >= sections.length && sections.length > 0) {
+      setActiveSection(Math.max(0, sections.length - 1));
+    }
+  }, [sections.length, activeSection, setActiveSection]);
+
   // Section management
   const handleAddSection = useCallback(() => {
     const newSection = createDefaultSection(sections.length + 1);
@@ -257,15 +279,7 @@ export const useExamBuilder = ({
       // Ensure we always have at least one section
       return filtered.length > 0 ? filtered : [createDefaultSection(1)];
     });
-    
-    // Adjust active section if necessary
-    setSections(current => {
-      if (activeSection >= current.length) {
-        setActiveSection(Math.max(0, current.length - 1));
-      }
-      return current;
-    });
-  }, [activeSection, setActiveSection]);
+  }, []);
 
   const handleUpdateSection = useCallback((sectionId: string, updates: Partial<ExamSection>) => {
     setSections(prev => prev.map((s) =>
