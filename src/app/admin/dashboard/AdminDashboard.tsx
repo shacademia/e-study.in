@@ -158,6 +158,7 @@ const AdminDashboard: React.FC = () => {
       <DashboardHeader 
         onQuestionBankClick={() => router.push('/admin/questionbank')}
         onRankingsClick={() => router.push('/rankings')}
+        onUsersClick={() => router.push('/admin/users')}
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
