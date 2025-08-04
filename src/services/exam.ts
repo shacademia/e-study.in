@@ -1,7 +1,7 @@
 import axios from 'axios';
-import { 
-  Exam, 
-  CreateExamRequest, 
+import {
+  Exam,
+  CreateExamRequest,
   UpdateExamRequest,
   ExamFilters,
   ExamSection,
@@ -29,7 +29,7 @@ class ExamService {
         data,
         authService.getAuthConfig()
       );
-      
+
       return response.data.data;
     } catch (error) {
       throw this.handleError(error);
@@ -42,7 +42,7 @@ class ExamService {
   async getAllExams(filters?: ExamFilters): Promise<ApiResponse<{ exams: Exam[]; pagination: Pagination }>> {
     try {
       const params = new URLSearchParams();
-      
+
       if (filters) {
         Object.entries(filters).forEach(([key, value]) => {
           if (value !== undefined && value !== null) {
@@ -55,7 +55,7 @@ class ExamService {
         `${EXAM_ROUTES.ALL_EXAMS}?${params.toString()}`,
         authService.getAuthConfig()
       );
-      
+
       return response.data;
     } catch (error) {
       throw this.handleError(error);
@@ -71,7 +71,7 @@ class ExamService {
         EXAM_ROUTES.EXAM_BY_ID(id),
         authService.getAuthConfig()
       );
-      
+
       return response.data.data;
     } catch (error) {
       throw this.handleError(error);
@@ -88,7 +88,7 @@ class ExamService {
         data,
         authService.getAuthConfig()
       );
-      
+
       return response.data.data;
     } catch (error) {
       throw this.handleError(error);
@@ -104,7 +104,7 @@ class ExamService {
         EXAM_ROUTES.DELETE_EXAM(id),
         authService.getAuthConfig()
       );
-      
+
       return response.data;
     } catch (error) {
       throw this.handleError(error);
@@ -121,7 +121,7 @@ class ExamService {
         data,
         authService.getAuthConfig()
       );
-      
+
       return response.data.data;
     } catch (error) {
       throw this.handleError(error);
@@ -138,7 +138,7 @@ class ExamService {
         data,
         authService.getAuthConfig()
       );
-      
+
       return response.data.data;
     } catch (error) {
       throw this.handleError(error);
@@ -157,7 +157,7 @@ class ExamService {
         data,
         authService.getAuthConfig()
       );
-      
+
       return response.data.data;
     } catch (error) {
       throw this.handleError(error);
@@ -173,7 +173,7 @@ class ExamService {
         EXAM_ROUTES.EXAM_SECTIONS(examId),
         authService.getAuthConfig()
       );
-      
+
       return response.data.data;
     } catch (error) {
       throw this.handleError(error);
@@ -189,7 +189,7 @@ class ExamService {
         EXAM_ROUTES.EXAM_SECTION_BY_ID(examId, sectionId),
         authService.getAuthConfig()
       );
-      
+
       return response.data.data;
     } catch (error) {
       throw this.handleError(error);
@@ -206,7 +206,7 @@ class ExamService {
         data,
         authService.getAuthConfig()
       );
-      
+
       return response.data.data;
     } catch (error) {
       throw this.handleError(error);
@@ -222,7 +222,7 @@ class ExamService {
         EXAM_ROUTES.EXAM_SECTION_BY_ID(examId, sectionId),
         authService.getAuthConfig()
       );
-      
+
       return response.data;
     } catch (error) {
       throw this.handleError(error);
@@ -239,7 +239,7 @@ class ExamService {
         data,
         authService.getAuthConfig()
       );
-      
+
       return response.data;
     } catch (error) {
       throw this.handleError(error);
@@ -277,7 +277,7 @@ class ExamService {
         EXAM_ROUTES.EXAM_SECTION_QUESTIONS(examId, sectionId),
         authService.getAuthConfig()
       );
-      
+
       return response.data.data;
     } catch (error) {
       throw this.handleError(error);
@@ -303,19 +303,19 @@ class ExamService {
     try {
       const examData = await this.getExamForEdit(examId);
       const usedQuestionIds = new Set<string>();
-      
+
       // Collect question IDs from all sections
       examData.sections.forEach(section => {
         section.questions.forEach(esq => {
           usedQuestionIds.add(esq.questionId);
         });
       });
-      
+
       // Also collect from direct exam questions (if any)
       examData.questions?.forEach(eq => {
         usedQuestionIds.add(eq.questionId);
       });
-      
+
       return usedQuestionIds;
     } catch (error) {
       console.error('Failed to get exam used question IDs:', error);
@@ -332,7 +332,7 @@ class ExamService {
         EXAM_ROUTES.REMOVE_QUESTION_FROM_SECTION(examId, sectionId, questionId),
         authService.getAuthConfig()
       );
-      
+
       return response.data;
     } catch (error) {
       throw this.handleError(error);
@@ -348,7 +348,7 @@ class ExamService {
     try {
       const params = new URLSearchParams();
       params.append('search', searchQuery);
-      
+
       if (filters) {
         Object.entries(filters).forEach(([key, value]) => {
           if (value !== undefined && value !== null) {
@@ -361,7 +361,7 @@ class ExamService {
         `${EXAM_ROUTES.ALL_EXAMS}?${params.toString()}`,
         authService.getAuthConfig()
       );
-      
+
       return response.data;
     } catch (error) {
       throw this.handleError(error);
@@ -375,7 +375,7 @@ class ExamService {
     try {
       const params = new URLSearchParams();
       params.append('published', 'true');
-      
+
       if (filters) {
         Object.entries(filters).forEach(([key, value]) => {
           if (value !== undefined && value !== null) {
@@ -388,7 +388,7 @@ class ExamService {
         `${EXAM_ROUTES.ALL_EXAMS}?${params.toString()}`,
         authService.getAuthConfig()
       );
-      
+
       return response.data;
     } catch (error) {
       throw this.handleError(error);
@@ -402,7 +402,7 @@ class ExamService {
     try {
       const params = new URLSearchParams();
       params.append('published', 'false');
-      
+
       if (filters) {
         Object.entries(filters).forEach(([key, value]) => {
           if (value !== undefined && value !== null) {
@@ -415,7 +415,7 @@ class ExamService {
         `${EXAM_ROUTES.ALL_EXAMS}?${params.toString()}`,
         authService.getAuthConfig()
       );
-      
+
       return response.data;
     } catch (error) {
       throw this.handleError(error);
@@ -435,14 +435,14 @@ class ExamService {
     try {
       // This would need a dedicated API endpoint, for now we'll simulate
       const allExams = await this.getAllExams({ limit: 1000 });
-      
+
       const exams = allExams.data.exams;
       const totalExams = exams.length;
       const publishedExams = exams.filter(exam => exam.isPublished).length;
       const draftExams = exams.filter(exam => exam.isDraft).length;
       const totalSections = exams.reduce((sum, exam) => sum + (exam.sectionsCount || 0), 0);
       const averageTimeLimit = exams.reduce((sum, exam) => sum + exam.timeLimit, 0) / totalExams;
-      
+
       return {
         totalExams,
         publishedExams,
@@ -461,7 +461,7 @@ class ExamService {
   private handleError(error: unknown): ApiError {
     if (axios.isAxiosError(error)) {
       const responseData = error.response?.data;
-      
+
       return {
         success: false,
         error: responseData?.error || responseData?.message || 'An error occurred',
@@ -469,7 +469,7 @@ class ExamService {
         statusCode: error.response?.status,
       };
     }
-    
+
     return {
       success: false,
       error: 'Network error occurred',
@@ -490,16 +490,16 @@ class ExamService {
   canEditExam(exam: Exam): boolean {
     const currentUser = authService.getUser();
     if (!currentUser) return false;
-    
+
     // Admin can edit any exam
     if (currentUser.role === 'ADMIN') return true;
-    
+
     // Moderator can edit any exam
     if (currentUser.role === 'MODERATOR') return true;
-    
+
     // Creator can edit their own exam
     if (exam.createdBy.id === currentUser.id) return true;
-    
+
     return false;
   }
 
@@ -509,13 +509,13 @@ class ExamService {
   canDeleteExam(exam: Exam): boolean {
     const currentUser = authService.getUser();
     if (!currentUser) return false;
-    
+
     // Admin can delete any exam
     if (currentUser.role === 'ADMIN') return true;
-    
+
     // Creator can delete their own exam if it's not published
     if (exam.createdBy.id === currentUser.id && !exam.isPublished) return true;
-    
+
     return false;
   }
 
@@ -525,16 +525,16 @@ class ExamService {
   canPublishExam(exam: Exam): boolean {
     const currentUser = authService.getUser();
     if (!currentUser) return false;
-    
+
     // Admin can publish any exam
     if (currentUser.role === 'ADMIN') return true;
-    
+
     // Moderator can publish any exam
     if (currentUser.role === 'MODERATOR') return true;
-    
+
     // Creator can publish their own exam
     if (exam.createdBy.id === currentUser.id) return true;
-    
+
     return false;
   }
 
@@ -570,7 +570,7 @@ class ExamService {
         data,
         authService.getAuthConfig()
       );
-      
+
       return response.data.data;
     } catch (error) {
       throw this.handleError(error);
@@ -612,7 +612,7 @@ class ExamService {
         `/api/exams/${examId}/edit`,
         authService.getAuthConfig()
       );
-      
+
       return response.data.data;
     } catch (error) {
       throw this.handleError(error);
@@ -633,7 +633,7 @@ class ExamService {
         { questions },
         authService.getAuthConfig()
       );
-      
+
       return response.data.data;
     } catch (error) {
       throw this.handleError(error);
@@ -659,7 +659,7 @@ class ExamService {
         `/api/exams/${examId}/questions`,
         authService.getAuthConfig()
       );
-      
+
       return response.data.data;
     } catch (error) {
       throw this.handleError(error);
