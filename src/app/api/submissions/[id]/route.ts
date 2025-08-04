@@ -31,7 +31,32 @@ export async function GET(
       );
     }
 
-    const { id } = params;
+
+    const currentUser = await prisma.user.findUnique({
+      where: {id: decodedToken.id},
+      select: {
+        id: true,
+        role: true
+      }
+    }) as {role: string, id: string}
+
+
+    if(!currentUser){
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'user not found'
+        },
+        {
+          status: 403,
+          statusText: 'Unauthorized Access'
+        }
+      )
+    }
+
+
+    const submissionId = params;
+    const { id } = await submissionId;
 
     if (!id) {
       return NextResponse.json(
@@ -42,6 +67,8 @@ export async function GET(
         { status: 400 }
       );
     }
+
+    // const user
 
     // Find submission by ID with all related data
     const submission = await prisma.submission.findUnique({
@@ -113,8 +140,12 @@ export async function GET(
       );
     }
 
+
     // Check authorization - users can only see their own submissions unless they're admin
-    if (submission.userId !== decodedToken.id) {
+
+
+
+    if (currentUser.role !== 'ADMIN' && currentUser.role !== 'MODERATOR' && submission.userId !== currentUser.id) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized access' },
         { status: 403 }
@@ -361,6 +392,7 @@ export async function PUT(
 
     // Check authorization - users can only update their own submissions unless they're admin
     if (decodedToken.role !== 'ADMIN' && decodedToken.role !== 'MODERATOR' && existingSubmission.userId !== decodedToken.userId) {
+      console.log('Is this here I am geeing?')
       return NextResponse.json(
         { success: false, error: 'Unauthorized access' },
         { status: 403 }

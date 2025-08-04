@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { BookOpen, Trophy } from 'lucide-react';
+import { BookOpen, Trophy, Users } from 'lucide-react';
 import { useAuth } from '@/hooks/useApiAuth';
 import { UserProfileMenu } from '@/components/UserProfileMenu';
 import { toast } from '@/hooks/use-toast';
@@ -10,11 +10,13 @@ import { toast } from '@/hooks/use-toast';
 interface DashboardHeaderProps {
   onQuestionBankClick: () => void;
   onRankingsClick: () => void;
+  onUsersClick: () => void;
 }
 
 export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ 
   onQuestionBankClick, 
-  onRankingsClick 
+  onRankingsClick,
+  onUsersClick 
 }) => {
   const { user } = useAuth();
 
@@ -46,6 +48,15 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
             >
               <Trophy className="h-4 w-4 mr-1" />
               Rankings
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="cursor-pointer"
+              onClick={onUsersClick}
+            >
+              <Users className="h-4 w-4 mr-1" />
+              Users
             </Button>
             {user && <UserProfileMenu user={user} />}
           </div>

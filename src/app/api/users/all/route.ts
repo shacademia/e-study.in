@@ -16,15 +16,21 @@ export async function GET(req: Request) {
     try {
         // Verify JWT token
         const decoded = jwt.verify(token, JWT_SECRET) as { id: string; email: string }
-        const userId = decoded.id;
-        const userEmail = decoded.email;
-        
-        console.log('Authenticated user:', { userId, userEmail });
+        const userId = decoded.id;        
     
         const users = await prisma.user.findMany({
+            where: {
+                NOT: {
+                    id: userId
+                },
+            },
             select: {
                 id: true,
                 email: true,
+                name: true,
+                profileImage: true,
+                isEmailVerified: true,
+                phoneNumber: true,
                 createdAt: true,
                 updatedAt: true,
             }
