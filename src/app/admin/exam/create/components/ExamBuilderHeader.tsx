@@ -3,13 +3,14 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, Save, Eye, BookOpen } from 'lucide-react';
 import { generateExamSummary } from '../utils/examUtils';
 import { ExamSection } from '@/constants/types';
+import { useRouter } from 'next/navigation';
 
 interface ExamBuilderHeaderProps {
   examTitle: string;
   sections: ExamSection[];
   onBack: () => void;
   onSaveDraft: () => void;
-  onPublish: () => void;
+  onPublish: () => void | Promise<void>;
   onPreview: () => void;
   loading: boolean;
   isEditing: boolean;
@@ -36,7 +37,17 @@ const ExamBuilderHeader: React.FC<ExamBuilderHeaderProps> = ({
   isEditing,
   duration,
 }) => {
+  const router = useRouter();
   const examSummary = generateExamSummary(sections);
+
+  const handlePublish = async () => {
+    try {
+      await Promise.resolve(onPublish()); // This works for both sync and async
+      router.replace('/admin/dashboard');
+    } catch (error) {
+      console.error('Publish failed:', error);
+    }
+  };
 
   return (
     <div className="sticky top-0 z-50 bg-white border-b">
@@ -66,7 +77,7 @@ const ExamBuilderHeader: React.FC<ExamBuilderHeaderProps> = ({
               className="flex items-center cursor-pointer"
             >
               <Eye className="h-4 w-4 mr-2" />
-              Preview
+              Preview (extra)
             </Button>
             <Button
               variant="outline"
@@ -78,7 +89,7 @@ const ExamBuilderHeader: React.FC<ExamBuilderHeaderProps> = ({
               {loading ? 'Saving...' : 'Save as Draft'}
             </Button>
             <Button
-              onClick={onPublish}
+              onClick={handlePublish}
               disabled={loading || examSummary.totalQuestions === 0}
               className="flex items-center cursor-pointer"
             >
