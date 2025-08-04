@@ -293,9 +293,10 @@ class UserService {
   /**
    * Send email verification code
    */
-  async sendEmailVerification(): Promise<{ success: boolean; message: string }> {
+  async sendEmailVerification({ userEmail }: { userEmail?: string }): Promise<{ success: boolean; message: string }> {
     const response = await apiClient.post<{ success: boolean; message: string }>(
-      '/api/users/send-verification'
+      '/api/users/send-verification',
+      { userEmail }
     );
     return response.data;
   }

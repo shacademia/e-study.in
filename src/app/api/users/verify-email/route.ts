@@ -36,8 +36,6 @@ export async function POST(request: NextRequest) {
 
     const userId = decodedToken.id;
 
-    console.log('😒IS THIS THIS THE DATA😒', userId)
-
     // Parse and validate request body
     const body = await request.json();
     const validation = verifyEmailSchema.safeParse(body);
