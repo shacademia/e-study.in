@@ -21,10 +21,10 @@ import type {
 // ==============================================
 
 // Utility function to calculate percentage score
-export const calculateScorePercentage = (score: number, totalMarks: number): number => {
-  if (totalMarks === 0) return 0;
-  return (score / totalMarks) * 100;
-};
+// export const calculateScorePercentage = (score: number, totalMarks: number): number => {
+//   if (totalMarks === 0) return 0;
+//   return (score / totalMarks) * 100;
+// };
 
 // Utility function to format date for display
 export const formatDate = (date: string | Date): string => {
@@ -207,11 +207,11 @@ StatusBadge.displayName = "StatusBadge";
 const ExamCard: React.FC<ExamCardProps> = memo(({
   exam, submission, isCompleted, onStartExam, onViewResults
 }) => {
+
+
+  console.log("🙌😍❤️😁😍", submission)
   // COMPUTED VALUES
-  const scorePercentage = useMemo(() => 
-    submission ? calculateScorePercentage(submission.earnedMarks, exam.totalMarks) : 0,
-    [submission, exam.totalMarks]
-  );
+  const scorePercentage = useMemo(() => submission?.percentage,[submission]);
   
   const sectionCount = exam.sections?.length || 1;
   const questionCount = exam.questions?.length || exam.questionsCount || 0;
