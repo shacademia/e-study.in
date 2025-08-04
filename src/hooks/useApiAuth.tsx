@@ -5,10 +5,13 @@ import React, {
   useState,
   useEffect,
   useCallback,
+  useMemo,
 } from "react";
 import { authService } from "@/services";
 import { User, LoginRequest, SignupRequest, ApiError } from "@/constants/types";
 import { useToast } from "@/hooks/use-toast";
+import { EmailVerificationModal } from "@/components/modal/verificationModel";
+import { useRouter } from "next/navigation";
 
 interface AuthContextType {
   user: User | null;
@@ -25,65 +28,111 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+    // const [showVerifyModal, setShowVerifyModal] = useState(false);
+  
   const { toast } = useToast();
+  const router = useRouter();
+
+  const [showEmailVerificationModal, setShowEmailVerificationModal] =
+    useState(false);
+  const [emailForVerification, setEmailForVerification] = useState<
+    string | null
+  >(null);
+
+  const logout = useCallback(async () => {
+    try {
+      setLoading(true);
+      await authService.logout();
+      setUser(null);
+      toast({
+        title: "Success",
+        description: "Logged out successfully!",
+      });
+    } catch {
+      setUser(null);
+      toast({
+        title: "Info",
+        description: "Logged out locally",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [toast]);
+
+  const refreshUser = useCallback(async () => {
+    try {
+      const currentUser = await authService.getCurrentUser();
+      setUser(currentUser);
+      // If email was previously unverified and now verified, close modal
+      if (currentUser.isEmailVerified) {
+        setShowEmailVerificationModal(false);
+        setEmailForVerification(null);
+      }
+    } catch {
+      await logout();
+      toast({
+        title: "Info",
+        description: "Session expired, please log in again.",
+      });
+      setUser(null);
+    }
+  }, [logout, toast]);
 
   const checkAuthStatus = useCallback(async () => {
     try {
       setLoading(true);
 
-      // First check if we have a token
       if (!authService.isAuthenticated()) {
         setUser(null);
         return;
       }
 
-      // // Try to get stored user data first (faster)
-      // const storedUser = authService.getUser();
-      // if (storedUser) {
-      //   setUser(storedUser);
-
-      //   // Optionally refresh user data in background
-      //   try {
-      //     const currentUser = await authService.getCurrentUser();
-      //     setUser(currentUser);
-      //   } catch {
-      //     // If refresh fails, keep the stored user data
-      //     // Only clear if the token is completely invalid
-      //   }
-      // } else {
-      //   // No stored user, try to fetch from API
-      //   const currentUser = await authService.getCurrentUser();
-      //   setUser(currentUser);
-      // }
       const currentUser = await authService.getCurrentUser();
+
+      if (currentUser.isEmailVerified === false) {
+        setUser(currentUser); // optional: keep user in context but treat as not fully authenticated
+        toast({
+          title: "Info",
+          description: "Please verify your email address.",
+        });
+        setEmailForVerification(currentUser.email);
+        setShowEmailVerificationModal(true);
+        return;
+      }
+
       setUser(currentUser);
     } catch {
-      // User is not authenticated or token is invalid
       setUser(null);
-      // Clear auth data when token is invalid
       authService.clearAuthData();
     } finally {
       setLoading(false);
     }
-  }, []); // Empty dependency array since this function doesn't depend on external state
+  }, [refreshUser, toast]);
 
-  // Check if user is authenticated on mount
   useEffect(() => {
     checkAuthStatus();
-  }, [checkAuthStatus]); // Include checkAuthStatus in dependency array
+  }, [checkAuthStatus]);
 
   const login = useCallback(
     async (data: LoginRequest) => {
       try {
         setLoading(true);
         const authResponse = await authService.login(data);
-        console.log('Login response: 😒😒😒', authResponse);
         setUser(authResponse.user);
 
-        toast({
-          title: "Success",
-          description: "Logged in successfully!",
-        });
+        if (authResponse.user.isEmailVerified === false) {
+          toast({
+            title: "Info",
+            description: "Please verify your email address.",
+          });
+          setEmailForVerification(authResponse.user.email);
+          setShowEmailVerificationModal(true);
+        } else {
+          toast({
+            title: "Success",
+            description: "Logged in successfully!",
+          });
+        }
       } catch (error) {
         const apiError = error as ApiError;
         toast({
@@ -104,8 +153,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         setLoading(true);
         await authService.signup(data);
-        // Note: Signup doesn't automatically log in, user needs to login separately
-
         toast({
           title: "Success",
           description: "Account created successfully! Please log in.",
@@ -125,42 +172,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [toast]
   );
 
-  const logout = useCallback(async () => {
-    try {
-      setLoading(true);
-      await authService.logout();
-      setUser(null);
+  const isAuthenticated = useMemo(
+    () => !!user && user.isEmailVerified && authService.isAuthenticated(),
+    [user]
+  );
 
-      toast({
-        title: "Success",
-        description: "Logged out successfully!",
-      });
-    } catch {
-      // Even if logout API fails, clear local state
-      setUser(null);
+  const handleVerificationSuccess = useCallback(() => {
+    // refreshUser will close modal if verified
+    refreshUser();
+  }, [refreshUser]);
 
-      toast({
-        title: "Info",
-        description: "Logged out locally",
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [toast]);
-
-  const refreshUser = useCallback(async () => {
-    try {
-      const currentUser = await authService.getCurrentUser();
-      setUser(currentUser);
-    } catch {
-      // If refresh fails, user might be logged out
-      setUser(null);
-    }
-  }, []);
-
-  const isAuthenticated = !!user && authService.isAuthenticated();
-
-  const value = {
+  const value: AuthContextType = {
     user,
     loading,
     isAuthenticated,
@@ -170,7 +192,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     refreshUser,
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+      {showEmailVerificationModal && emailForVerification && (
+        <EmailVerificationModal
+          isOpen={true}
+          userEmail={emailForVerification}
+          onVerificationSuccess={handleVerificationSuccess}
+          onClose={async () => {
+            setShowEmailVerificationModal(false);
+            setEmailForVerification(null);
+            // If user is not verified, log them out
+            await logout();
+            router.push('/login');
+          }}
+        />
+      )}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {
