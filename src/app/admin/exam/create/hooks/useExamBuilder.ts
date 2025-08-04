@@ -313,7 +313,7 @@ export const useExamBuilder = ({
           }));
 
         const updatedQuestions = [...(section.questions || []), ...newQuestions];
-        const updatedMarks = updatedQuestions.reduce((total, q) => total + ((q as any).marks || 1), 0);
+        const updatedMarks = updatedQuestions.reduce((total, q) => total + ((q as unknown).marks || 1), 0);
 
         return {
           ...section,
@@ -398,7 +398,7 @@ export const useExamBuilder = ({
         questions: (section.questions || []).map((question, index) => ({
           questionId: question.id,
           order: (question as { order?: number }).order ?? index,
-          marks: Number((question as { marks?: number }).marks) || 1
+          marks: Number((question as { marks?: number }).marks) || question.positiveMarks || 1
         }))
       }));
 

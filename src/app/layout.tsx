@@ -1,3 +1,4 @@
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import type { Metadata } from "next";
 import { ClientAuthProvider } from '@/components/ClientAuthProvider';
 import { ReactQueryProvider } from '@/components/ReactQueryProvider';
@@ -22,6 +23,7 @@ export default function RootLayout({
             <ResultContextProvider>
               <QuestionContextProvider>
                 {children}
+                <SpeedInsights />
               </QuestionContextProvider>
             </ResultContextProvider>
           </ClientAuthProvider>

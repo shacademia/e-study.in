@@ -60,10 +60,10 @@ const LoadingFallback: React.FC = () => (
   </div>
 );
 
-const EnhancedExamBuilderContent: React.FC<EnhancedExamBuilderProps> = ({ 
-  onBack, 
-  editingExam, 
-  availableQuestions 
+const EnhancedExamBuilderContent: React.FC<EnhancedExamBuilderProps> = ({
+  onBack,
+  editingExam,
+  availableQuestions
 }) => {
   const {
     examDetails,
@@ -105,7 +105,7 @@ const EnhancedExamBuilderContent: React.FC<EnhancedExamBuilderProps> = ({
     try {
       await handleSaveExam('published');
       toast({
-        title: "Success", 
+        title: "Success",
         description: "Exam published successfully",
       });
     } catch (error) {
@@ -139,8 +139,11 @@ const EnhancedExamBuilderContent: React.FC<EnhancedExamBuilderProps> = ({
       }
 
       const updatedQuestions = [...(currentSection.questions || []), ...addedQuestions];
-      const updatedMarks = updatedQuestions.length * 1; // 1 mark per question
-      
+      // Calculate total marks by summing up positiveMarks from all questions
+      const updatedMarks = updatedQuestions.reduce((total, question) => {
+        return total + (question.positiveMarks || question.marks || 1);
+      }, 0);
+
       handleUpdateSection(currentSection.id, {
         questions: updatedQuestions,
         marks: updatedMarks,
@@ -190,7 +193,7 @@ const EnhancedExamBuilderContent: React.FC<EnhancedExamBuilderProps> = ({
             <TabsTrigger value="details" className='cursor-pointer'>Exam Details</TabsTrigger>
             <TabsTrigger value="sections" className='cursor-pointer'>Sections & Questions</TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="details" className="space-y-6">
             <ExamDetailsForm
               examDetails={examDetails}
@@ -198,7 +201,7 @@ const EnhancedExamBuilderContent: React.FC<EnhancedExamBuilderProps> = ({
               totalMarks={getTotalMarks()}
             />
           </TabsContent>
-          
+
           <TabsContent value="sections" className="space-y-6">
             <SectionsManager
               sections={sections}
