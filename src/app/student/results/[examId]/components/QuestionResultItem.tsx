@@ -16,7 +16,7 @@ import {
   Award
 } from 'lucide-react';
 import { Question } from '@/constants/types';
-import MathDisplay from '@/components/math-display';
+import SafeMathDisplay from '@/components/SafeMathDisplay';
 import { QuestionAnalysis } from '../types';
 
 interface QuestionResultItemProps {
@@ -150,7 +150,7 @@ const QuestionResultItem: React.FC<QuestionResultItemProps> = ({
     if (question.layer1Type === 'text' && question.layer1Text?.trim()) {
       layers.push(
         <div key="l1t" className="mb-3">
-          <MathDisplay className="text-gray-800 leading-relaxed">{question.layer1Text}</MathDisplay>
+          <SafeMathDisplay className="text-gray-800 leading-relaxed">{question.layer1Text}</SafeMathDisplay>
         </div>
       );
     } else if (question.layer1Type === 'image' && question.layer1Image?.trim()) {
@@ -170,7 +170,7 @@ const QuestionResultItem: React.FC<QuestionResultItemProps> = ({
     if (question.layer2Type === 'text' && question.layer2Text?.trim()) {
       layers.push(
         <div key="l2t" className="mb-3">
-          <MathDisplay className="text-gray-800 leading-relaxed">{question.layer2Text}</MathDisplay>
+          <SafeMathDisplay className="text-gray-800 leading-relaxed">{question.layer2Text}</SafeMathDisplay>
         </div>
       );
     } else if (question.layer2Type === 'image' && question.layer2Image?.trim()) {
@@ -190,7 +190,7 @@ const QuestionResultItem: React.FC<QuestionResultItemProps> = ({
     if (question.layer3Type === 'text' && question.layer3Text?.trim()) {
       layers.push(
         <div key="l3t" className="mb-3">
-          <MathDisplay className="text-gray-800 leading-relaxed">{question.layer3Text}</MathDisplay>
+          <SafeMathDisplay className="text-gray-800 leading-relaxed">{question.layer3Text}</SafeMathDisplay>
         </div>
       );
     } else if (question.layer3Type === 'image' && question.layer3Image?.trim()) {
@@ -266,11 +266,11 @@ const QuestionResultItem: React.FC<QuestionResultItemProps> = ({
           Explanation
         </h4>
         <div className="text-green-800 leading-relaxed">
-          {/* ✅ TEXT EXPLANATION with MathDisplay */}
+          {/* ✅ TEXT EXPLANATION with SafeMathDisplay */}
           {question.explanationType === 'text' && question.explanationText?.trim() && (
-            <MathDisplay className="text-green-800 text-sm leading-relaxed">
+            <SafeMathDisplay className="text-green-800 text-sm leading-relaxed">
               {question.explanationText}
-            </MathDisplay>
+            </SafeMathDisplay>
           )}
 
           {/* ✅ IMAGE EXPLANATION with proper display and click hint */}
@@ -308,14 +308,22 @@ const QuestionResultItem: React.FC<QuestionResultItemProps> = ({
               <span className="text-sm font-medium text-gray-600 mr-2">
                 Question {index + 1}
               </span>
-              <Badge variant={isCorrect ? 'default' : 'destructive'} className="flex items-center gap-1">
-                {isCorrect ? (
+              {userAnswer === undefined ? (
+                <Badge className="bg-amber-100 text-amber-800 border-amber-200 flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  Unanswered
+                </Badge>
+              ) : isCorrect ? (
+                <Badge variant="default" className="flex items-center gap-1">
                   <CheckCircle className="h-3 w-3" />
-                ) : (
+                  Correct
+                </Badge>
+              ) : (
+                <Badge variant="destructive" className="flex items-center gap-1">
                   <XCircle className="h-3 w-3" />
-                )}
-                {isCorrect ? 'Correct' : 'Incorrect'}
-              </Badge>
+                  Incorrect
+                </Badge>
+              )}
             </div>
           </div>
           
@@ -396,7 +404,7 @@ const QuestionResultItem: React.FC<QuestionResultItemProps> = ({
                     <div className="flex-1">
                       {/* Text Content */}
                       {optionType === 'text' && option?.trim() && (
-                        <MathDisplay className="text-sm">{option}</MathDisplay>
+                        <SafeMathDisplay className="text-sm">{option}</SafeMathDisplay>
                       )}
                       
                       {/* Image Content */}

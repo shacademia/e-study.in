@@ -17,7 +17,7 @@ import {
   ImageIcon,
 } from "lucide-react";
 import { Question } from "@/constants/types";
-import MathDisplay from "@/components/math-display";
+import SafeMathDisplay from "@/components/SafeMathDisplay";
 
 // QuestionCardProps interface
 interface QuestionCardProps {
@@ -79,7 +79,7 @@ const StaticImage: React.FC<{
           variant="outline" 
           size="sm" 
           onClick={() => window.open(src, '_blank')}
-          className="mt-2 text-xs"
+          className="mt-2 text-xs cursor-pointer"
         >
           Open in new tab
         </Button>
@@ -233,7 +233,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
     if (question.layer1Type === 'text' && question.layer1Text?.trim()) {
       layers.push(
         <div key="l1t" className="mb-4">
-          <MathDisplay className="text-gray-800">{question.layer1Text}</MathDisplay>
+          <SafeMathDisplay className="text-gray-800">{question.layer1Text}</SafeMathDisplay>
         </div>
       );
     } else if (question.layer1Type === 'image' && question.layer1Image?.trim()) {
@@ -251,7 +251,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
     if (question.layer2Type === 'text' && question.layer2Text?.trim()) {
       layers.push(
         <div key="l2t" className="mt-4 mb-4">
-          <MathDisplay className="text-gray-800">{question.layer2Text}</MathDisplay>
+          <SafeMathDisplay className="text-gray-800">{question.layer2Text}</SafeMathDisplay>
         </div>
       );
     } else if (question.layer2Type === 'image' && question.layer2Image?.trim()) {
@@ -269,7 +269,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
     if (question.layer3Type === 'text' && question.layer3Text?.trim()) {
       layers.push(
         <div key="l3t" className="mt-4">
-          <MathDisplay className="text-gray-800">{question.layer3Text}</MathDisplay>
+          <SafeMathDisplay className="text-gray-800">{question.layer3Text}</SafeMathDisplay>
         </div>
       );
     } else if (question.layer3Type === 'image' && question.layer3Image?.trim()) {
@@ -287,7 +287,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
     if (layers.length === 0 && question.content?.trim()) {
       layers.push(
         <div key="legacy-content" className="mb-4">
-          <MathDisplay className="text-gray-800">{question.content}</MathDisplay>
+          <SafeMathDisplay className="text-gray-800">{question.content}</SafeMathDisplay>
         </div>
       );
     }
@@ -496,7 +496,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
                         <div className="flex-1 flex flex-col justify-center">
                           {optionType === 'text' && hasTextContent && (
                             <div className="text-gray-800 leading-relaxed">
-                              <MathDisplay className="text-gray-800">{option}</MathDisplay>
+                              <SafeMathDisplay className="text-gray-800">{option}</SafeMathDisplay>
                             </div>
                           )}
                           
@@ -548,7 +548,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
               variant="outline" 
               size="sm" 
               onClick={handleClearAnswer} 
-              className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 transition-colors"
+              className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 transition-colors cursor-pointer"
             >
               <X className="h-4 w-4 mr-1" />
               Clear

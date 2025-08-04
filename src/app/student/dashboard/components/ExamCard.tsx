@@ -1,40 +1,24 @@
 import React, { memo, useMemo, useCallback } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { 
-  Play, Lock, HelpCircle, Star, BarChart3, Trophy, CheckCircle2, 
-  Calendar, Sparkles, Timer, BookOpen, Target, TrendingUp, Award, ChevronRight
+  Play, Lock, HelpCircle, Star, BarChart3, CheckCircle2, 
+  Calendar, Sparkles, BookOpen, Target, ChevronRight,
+  Clock
 } from "lucide-react";
 
+// Import all necessary types from your centralized type definitions
+import type {
+  ExamCardProps,
+  StatMetricProps,
+  ScoreVisualizationProps,
+  StatusBadgeProps
+} from "../types";
 
 // ==============================================
-// TYPE DEFINITIONS & UTILITY FUNCTIONS SECTION
+// UTILITY FUNCTIONS SECTION
 // ==============================================
-
-// Define the missing props interface
-export interface ExamCardProps {
-  exam: {
-    id: string;
-    name: string;
-    description?: string;
-    timeLimit: number;
-    totalMarks: number;
-    questionsCount?: number;
-    questions?: any[];
-    sections?: any[];
-    isPasswordProtected: boolean;
-  };
-  submission?: {
-    id: string;
-    score: number;
-    completedAt: string | Date;
-  };
-  isCompleted: boolean;
-  onStartExam: (id: string) => void;
-  onViewResults: (id: string) => void;
-}
 
 // Utility function to calculate percentage score
 export const calculateScorePercentage = (score: number, totalMarks: number): number => {
@@ -51,175 +35,141 @@ export const formatDate = (date: string | Date): string => {
   });
 };
 
-
 // ==============================================
 // SUB-COMPONENT 1: STAT METRIC CARDS
 // ==============================================
-// This creates the small metric cards (Time, Questions, Marks, Sections)
 const StatMetric = memo(({
-  icon, value, label, trend, variant = "default"
-}: {
-  icon: React.ReactNode; value: string | number; label: string;
-  trend?: "up" | "down" | "neutral"; variant?: "default" | "primary" | "success" | "warning";
-}) => {
-  // Color schemes for different metric types
+  icon, value, label, variant = "default"
+}: StatMetricProps) => {
+  // Enhanced soothing gradient color schemes
   const variantClasses = {
-    default: "bg-slate-50 border-slate-200 text-slate-700",      // Gray theme
-    primary: "bg-blue-50 border-blue-200 text-blue-700",        // Blue theme  
-    success: "bg-emerald-50 border-emerald-200 text-emerald-700", // Green theme
-    warning: "bg-amber-50 border-amber-200 text-amber-700"       // Orange theme
+    default: "bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 border-slate-200/60 shadow-sm hover:shadow-md",
+    primary: "bg-gradient-to-br from-blue-50 via-sky-50 to-indigo-100 border-blue-200/60 shadow-sm hover:shadow-md",        
+    success: "bg-gradient-to-br from-emerald-50 via-teal-50 to-green-100 border-emerald-200/60 shadow-sm hover:shadow-md",
+    warning: "bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-100 border-amber-200/60 shadow-sm hover:shadow-md"
+  };
+
+  const iconColors = {
+    default: "text-slate-600",
+    primary: "text-blue-600",
+    success: "text-emerald-600", 
+    warning: "text-amber-600"
+  };
+
+  const valueColors = {
+    default: "text-slate-700",
+    primary: "text-blue-700",
+    success: "text-emerald-700",
+    warning: "text-amber-700"
   };
 
   return (
-    // STAT METRIC CONTAINER - Individual metric card wrapper
-    <div 
-      className={`flex items-center gap-3 p-4 rounded-xl border transition-colors duration-200 ${variantClasses[variant]}`}
-      role="img"
-      aria-label={`${label}: ${value}`}
-    >
-      {/* STAT ICON CONTAINER - White background circle for icon */}
-      <div className="flex-shrink-0 p-2 rounded-lg bg-white">
-        {icon}
-      </div>
-      
-      {/* STAT TEXT CONTENT - Value and label */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          {/* Large number/value display */}
-          <span className="font-bold text-lg tabular-nums leading-none">{value}</span>
-          
-          {/* Optional trend indicator (up/down arrow) */}
-          {trend && (
-            <TrendingUp 
-              className={`h-3 w-3 ${trend === 'up' ? 'text-emerald-500' : trend === 'down' ? 'text-red-500' : 'text-slate-400'}`}
-              aria-hidden="true"
-            />
-          )}
+    <div className={`p-4 rounded-xl border transition-all duration-300 hover:scale-[1.02] ${variantClasses[variant]}`}>
+      <div className="flex items-center gap-2 mb-2">
+        <div className={`h-4 w-4 ${iconColors[variant]}`}>
+          {icon}
         </div>
-        {/* Small descriptive label below the value */}
-        <p className="text-xs font-medium text-slate-600 truncate mt-1">{label}</p>
+        <span className="text-xs font-medium text-slate-500">{label}</span>
+      </div>
+      <div className={`text-lg font-bold ${valueColors[variant]}`}>{value}</div>
+      <div className="text-xs text-slate-400">
+        {label === "Minutes" ? "Duration" : 
+         label === "Questions" ? "Total" :
+         label === "Total Marks" ? "Points" : "Parts"}
       </div>
     </div>
   );
 });
 StatMetric.displayName = "StatMetric";
 
-
 // ==============================================
 // SUB-COMPONENT 2: SCORE VISUALIZATION
 // ==============================================
-
-// This creates the score display with circular progress and grade info (only shown for completed exams)
-const ScoreVisualization = memo(({ percentage, score, totalMarks }: { 
-  percentage: number; score: number; totalMarks: number; 
-}) => {
+const ScoreVisualization = memo(({ percentage, score, totalMarks }: ScoreVisualizationProps) => {
   const normalizedPercentage = Math.max(0, Math.min(100, percentage));
   
-  // Calculate grade based on percentage with matching background colors
-  const { grade, gradeColor, gradeDescription, backgroundColor, borderColor, progressClass } = useMemo(() => {
+  // Calculate grade and styling with soothing gradients
+  const { grade, gradeColor, gradeDescription, gradientBg, circleGradient } = useMemo(() => {
     if (normalizedPercentage >= 90) return { 
       grade: "A+", 
-      gradeColor: "#059669", 
-      gradeDescription: "Excellent",
-      backgroundColor: "bg-emerald-50",
-      borderColor: "border-emerald-200",
-      progressClass: "[&>div]:bg-gradient-to-r [&>div]:from-emerald-400 [&>div]:to-emerald-600"
+      gradeColor: "text-emerald-700", 
+      gradeDescription: "Excellent", 
+      isSuccess: true,
+      gradientBg: "bg-gradient-to-br from-emerald-50 via-teal-50 to-green-100",
+      circleGradient: "linear-gradient(135deg, #10b981, #059669)"
     };
     if (normalizedPercentage >= 80) return { 
       grade: "A", 
-      gradeColor: "#10b981", 
-      gradeDescription: "Very Good",
-      backgroundColor: "bg-emerald-50",
-      borderColor: "border-emerald-200",
-      progressClass: "[&>div]:bg-gradient-to-r [&>div]:from-emerald-400 [&>div]:to-emerald-500"
+      gradeColor: "text-emerald-600", 
+      gradeDescription: "Very Good", 
+      isSuccess: true,
+      gradientBg: "bg-gradient-to-br from-emerald-50 via-green-50 to-teal-100",
+      circleGradient: "linear-gradient(135deg, #34d399, #10b981)"
     };
     if (normalizedPercentage >= 70) return { 
       grade: "B+", 
-      gradeColor: "#3b82f6", 
-      gradeDescription: "Good",
-      backgroundColor: "bg-blue-50",
-      borderColor: "border-blue-200",
-      progressClass: "[&>div]:bg-gradient-to-r [&>div]:from-blue-400 [&>div]:to-blue-600"
+      gradeColor: "text-blue-600", 
+      gradeDescription: "Good", 
+      isSuccess: true,
+      gradientBg: "bg-gradient-to-br from-blue-50 via-sky-50 to-indigo-100",
+      circleGradient: "linear-gradient(135deg, #3b82f6, #2563eb)"
     };
     if (normalizedPercentage >= 60) return { 
       grade: "B", 
-      gradeColor: "#f59e0b", 
-      gradeDescription: "Fair",
-      backgroundColor: "bg-amber-50",
-      borderColor: "border-amber-200",
-      progressClass: "[&>div]:bg-gradient-to-r [&>div]:from-amber-400 [&>div]:to-orange-500"
+      gradeColor: "text-purple-600", 
+      gradeDescription: "Fair", 
+      isSuccess: true,
+      gradientBg: "bg-gradient-to-br from-purple-50 via-violet-50 to-indigo-100",
+      circleGradient: "linear-gradient(135deg, #8b5cf6, #7c3aed)"
     };
     if (normalizedPercentage >= 50) return { 
       grade: "C", 
-      gradeColor: "#ef4444", 
-      gradeDescription: "Needs Improvement",
-      backgroundColor: "bg-red-50",
-      borderColor: "border-red-200",
-      progressClass: "[&>div]:bg-gradient-to-r [&>div]:from-red-400 [&>div]:to-red-600"
+      gradeColor: "text-orange-600", 
+      gradeDescription: "Needs Improvement", 
+      isSuccess: false,
+      gradientBg: "bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-100",
+      circleGradient: "linear-gradient(135deg, #f97316, #ea580c)"
     };
     return { 
       grade: "F", 
-      gradeColor: "#dc2626", 
-      gradeDescription: "Failed",
-      backgroundColor: "bg-red-50",
-      borderColor: "border-red-200",
-      progressClass: "[&>div]:bg-gradient-to-r [&>div]:from-red-500 [&>div]:to-red-700"
+      gradeColor: "text-red-600", 
+      gradeDescription: "Failed", 
+      isSuccess: false,
+      gradientBg: "bg-gradient-to-br from-red-50 via-rose-50 to-pink-100",
+      circleGradient: "linear-gradient(135deg, #ef4444, #dc2626)"
     };
   }, [normalizedPercentage]);
 
   return (
-    // SCORE VISUALIZATION CONTAINER - Main wrapper with dynamic grade-matching background
-    <div 
-      className={`flex items-center gap-4 p-5 ${backgroundColor} rounded-2xl border ${borderColor} transition-all duration-300`}
-      role="img"
-      aria-label={`Score: ${score} out of ${totalMarks} marks, ${normalizedPercentage}% - Grade ${grade} (${gradeDescription})`}
-    >
-      {/* CIRCULAR PROGRESS SECTION - Left side with percentage circle */}
-      <div className="relative">
-        {/* Circular progress background */}
-        <div className="w-20 h-20 rounded-full bg-white shadow-inner p-1">
-          <Progress 
-            value={normalizedPercentage} 
-            className={`w-full h-full [&>div]:rounded-full ${progressClass}`}
-          />
-        </div>
-        
-        {/* Percentage and grade text overlay on circle */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-lg font-bold leading-none" style={{ color: gradeColor }}>
-            {Math.round(normalizedPercentage)}%
-          </span>
-          <span className="text-xs font-semibold" style={{ color: gradeColor }}>
-            {grade}
-          </span>
-        </div>
-      </div>
-      
-      {/* SCORE DETAILS SECTION - Right side with score info */}
-      <div className="flex-1">
-        {/* Score fraction with trophy icon */}
-        <div className="flex items-center gap-2 mb-1">
-          <Award className="h-5 w-5" style={{ color: gradeColor }} />
-          <span className="text-xl font-bold" style={{ color: gradeColor }}>
-            {score}/{totalMarks}
-          </span>
-        </div>
-        
-        {/* Grade description text */}
-        <p className="text-sm font-medium" style={{ color: gradeColor }}>
-          {gradeDescription}
-        </p>
-        
-        {/* Small progress bar at bottom - Using inline styles for guaranteed visibility */}
-        <div className="mt-2">
-          <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-            <div 
-              className="h-full rounded-full transition-all duration-500 ease-out"
-              style={{
-                width: `${normalizedPercentage}%`,
-                background: `linear-gradient(to right, ${gradeColor}aa, ${gradeColor})`
-              }}
-            />
+    <div className={`p-6 rounded-2xl border border-slate-200/60 shadow-sm hover:shadow-lg transition-all duration-300 ${gradientBg}`}>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-6">
+          {/* Enhanced Circular Progress */}
+          <div className="relative">
+            <div className="w-20 h-20 rounded-full border-4 border-white/80 bg-white/90 flex items-center justify-center relative overflow-hidden shadow-lg">
+              <div 
+                className="absolute inset-0 rounded-full"
+                style={{
+                  background: `conic-gradient(${circleGradient} ${normalizedPercentage * 3.6}deg, #e2e8f0 0deg)`
+                }}
+              />
+              <div className="w-14 h-14 rounded-full bg-white/95 flex items-center justify-center z-10 shadow-inner">
+                <div className="text-center">
+                  <div className={`text-sm font-bold ${gradeColor}`}>{Math.round(normalizedPercentage)}%</div>
+                  <div className={`text-xs font-medium ${gradeColor}`}>{grade}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Score Details */}
+          <div>
+            <div className={`text-xl font-bold ${gradeColor}`}>
+              {score}/{totalMarks}
+            </div>
+            <div className={`text-sm font-medium ${gradeColor}`}>
+              {gradeDescription}
+            </div>
           </div>
         </div>
       </div>
@@ -231,39 +181,25 @@ ScoreVisualization.displayName = "ScoreVisualization";
 // ==============================================
 // SUB-COMPONENT 3: STATUS BADGE
 // ==============================================
-
-// This creates the "Completed" or "Available" badge in the top-right corner
-const StatusBadge = memo(({ isCompleted, isPasswordProtected }: { 
-  isCompleted: boolean; isPasswordProtected: boolean; 
-}) => {
-  // COMPLETED STATE BADGE - Green gradient with checkmark
+const StatusBadge = memo(({ isCompleted, isPasswordProtected }: StatusBadgeProps) => {
   if (isCompleted) {
     return (
-      <Badge 
-        className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-green-500 text-white border-0 shadow-lg"
-        role="status"
-      >
-        <CheckCircle2 className="h-4 w-4" />
-        <span className="ml-2 font-semibold">Completed</span>
+      <Badge className="px-4 py-2 bg-gradient-to-r from-emerald-500 via-green-500 to-teal-500 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105">
+        <CheckCircle2 className="h-4 w-4 mr-1" />
+        Completed
       </Badge>
     );
   }
 
-  // AVAILABLE STATE BADGE - Blue gradient with sparkles (and optional lock icon)
   return (
-    <Badge 
-      className="px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-500 text-white border-0 shadow-lg"
-      role="status"
-    >
-      <Sparkles className="h-4 w-4" />
-      <span className="ml-2 font-semibold">Available</span>
-      {/* Show lock icon if password protected */}
+    <Badge className="px-4 py-2 bg-gradient-to-r from-blue-500 via-sky-500 to-indigo-500 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105">
+      <Sparkles className="h-4 w-4 mr-1" />
+      Available
       {isPasswordProtected && <Lock className="h-3 w-3 ml-1" />}
     </Badge>
   );
 });
 StatusBadge.displayName = "StatusBadge";
-
 
 // ==============================================
 // MAIN COMPONENT: EXAM CARD
@@ -271,179 +207,128 @@ StatusBadge.displayName = "StatusBadge";
 const ExamCard: React.FC<ExamCardProps> = memo(({
   exam, submission, isCompleted, onStartExam, onViewResults
 }) => {
-  // COMPUTED VALUES - Calculate derived data
+  // COMPUTED VALUES
   const scorePercentage = useMemo(() => 
-    submission ? calculateScorePercentage(submission.score, exam.totalMarks) : 0,
+    submission ? calculateScorePercentage(submission.earnedMarks, exam.totalMarks) : 0,
     [submission, exam.totalMarks]
   );
   
   const sectionCount = exam.sections?.length || 1;
   const questionCount = exam.questions?.length || exam.questionsCount || 0;
 
-  // EVENT HANDLERS - Memoized click handlers
+  // EVENT HANDLERS
   const handleStartExam = useCallback(() => onStartExam(exam.id), [onStartExam, exam.id]);
   const handleViewResults = useCallback(() => (submission ? onViewResults(submission.id) : null), [onViewResults, submission]);
 
-  // CARD STYLING - Determine card appearance based on state
-  const cardVariant = isCompleted ? "completed" : exam.isPasswordProtected ? "secured" : "available";
-
-  // Top accent bar colors for different states
-  const accentColors = {
-    completed: "bg-gradient-to-r from-emerald-500 to-green-500",  // Green for completed
-    secured: "bg-gradient-to-r from-amber-500 to-orange-500",     // Orange for password protected
-    available: "bg-gradient-to-r from-blue-500 to-indigo-500"    // Blue for available
-  };
-
   return (
-    // MAIN CARD CONTAINER - The outermost wrapper
-    <Card 
-      className={`relative overflow-hidden border-2 transition-shadow duration-200 hover:shadow-lg}`}
-      role="article"
-      aria-labelledby={`exam-title-${exam.id}`}
-      aria-describedby={`exam-description-${exam.id}`}
-    >
-      {/* L-SHAPED CORNER ACCENT BAR - Horizontal and vertical stripes */}
-      {/* Horizontal bar (x-axis) */}
-      <div className={`absolute top-0 left-0 w-22 h-2 ${accentColors[cardVariant]} shadow-sm rounded-4xl`} />
-
-      {/* Vertical bar (y-axis) */}
-      {/* <div className={`absolute top-0 left-0 w-1 h-full ${accentColors[cardVariant]} shadow-sm`} /> */}
-
-      {/* CARD HEADER SECTION - Title, description, and status badge */}
-      <CardHeader className="pb-3 pt-6 relative z-10">
-        <div className="flex justify-between items-start gap-4">
-          {/* LEFT SIDE - Exam title and description */}
-          <div className="flex-1 min-w-0">
-            {/* EXAM TITLE - Main heading with book icon */}
-            <CardTitle 
-              id={`exam-title-${exam.id}`}
-              className="text-xl font-bold text-slate-800 mb-2 line-clamp-2 transition-colors duration-200"
-            >
-              <BookOpen className="inline-block h-5 w-5 mr-2 text-slate-600" />
-              {exam.name}
-            </CardTitle>
-            
-            {/* EXAM DESCRIPTION - Optional subtitle */}
-            {exam.description && (
-              <CardDescription 
-                id={`exam-description-${exam.id}`}
-                className="text-slate-600 line-clamp-2 leading-relaxed"
-              >
-                {exam.description}
-              </CardDescription>
-            )}
-          </div>
-          
-          {/* RIGHT SIDE - Status badge (Completed/Available) */}
-          <StatusBadge isCompleted={isCompleted} isPasswordProtected={exam.isPasswordProtected} />
+    <Card className="w-full max-w-7xl mx-auto p-6 bg-gradient-to-br from-white via-slate-50/50 to-gray-50/80 border-slate-200/60 shadow-lg hover:shadow-2xl transition-all duration-500 hover:scale-[1.01] relative overflow-hidden">
+      {/* Subtle decorative gradient overlay */}
+      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-blue-100/30 via-transparent to-transparent rounded-full blur-2xl -z-10" />
+      <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-emerald-100/30 via-transparent to-transparent rounded-full blur-2xl -z-10" />
+      
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex-1">
+          <h2 className="text-xl font-bold text-slate-800 mb-1 flex items-center gap-2">
+            <BookOpen className="h-5 w-5 text-slate-500" />
+            {exam.name}
+          </h2>
+          {exam.description && (
+            <p className="text-sm text-slate-600">{exam.description}</p>
+          )}
         </div>
-      </CardHeader>
+        <StatusBadge isCompleted={isCompleted} isPasswordProtected={exam.isPasswordProtected} />
+      </div>
 
-      {/* CARD CONTENT SECTION - Main body with stats, warnings, scores, and buttons */}
-      <CardContent className="space-y-6 relative z-10">
+      {/* Metrics Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <StatMetric 
+          icon={<Clock className="h-4 w-4" />}
+          value={exam.timeLimit}
+          label="Minutes"
+          variant="primary"
+        />
         
-        {/* STATISTICS GRID - 4 metric cards in a responsive grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {/* Time limit metric */}
-          <StatMetric 
-            icon={<Timer className="h-5 w-5 text-blue-600" />}
-            value={exam.timeLimit}
-            label="Minutes"
-            variant="primary"
-          />
-          
-          {/* Questions count metric */}
-          <StatMetric 
-            icon={<HelpCircle className="h-5 w-5 text-purple-600" />}
-            value={questionCount}
-            label={questionCount === 1 ? "Question" : "Questions"}
-            variant="default"
-          />
-          
-          {/* Total marks metric */}
-          <StatMetric 
-            icon={<Target className="h-5 w-5 text-emerald-600" />}
-            value={exam.totalMarks}
-            label="Total Marks"
-            variant="success"
-          />
-          
-          {/* Sections count metric */}
-          <StatMetric 
-            icon={<Star className="h-5 w-5 text-indigo-600" />}
-            value={sectionCount}
-            label={sectionCount > 1 ? "Sections" : "Section"}
-            variant="default"
-          />
-        </div>
+        <StatMetric 
+          icon={<HelpCircle className="h-4 w-4" />}
+          value={questionCount}
+          label="Questions"
+          variant="default"
+        />
+        
+        <StatMetric 
+          icon={<Target className="h-4 w-4" />}
+          value={exam.totalMarks}
+          label="Total Marks"
+          variant="success"
+        />
+        
+        <StatMetric 
+          icon={<Star className="h-4 w-4" />}
+          value={sectionCount}
+          label="Sections"
+          variant="warning"
+        />
+      </div>
 
-        {/* PASSWORD PROTECTION WARNING - Only shown for password-protected, uncompleted exams */}
-        {exam.isPasswordProtected && !isCompleted && (
-          <div 
-            className="flex items-center gap-3 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl px-4 py-3"
-            role="alert"
-          >
-            {/* Warning icon */}
+      {/* Password Protection Warning */}
+      {exam.isPasswordProtected && !isCompleted && (
+        <div className="bg-gradient-to-r from-amber-50 via-yellow-50 to-orange-50 border border-amber-200/60 rounded-xl px-4 py-3 mb-6 shadow-sm">
+          <div className="flex items-center gap-3">
             <Lock className="h-5 w-5 text-amber-600 flex-shrink-0" />
             <div>
-              {/* Warning title */}
-              <p className="text-sm font-semibold text-amber-900">Password Protected</p>
-              {/* Warning description */}
+              <p className="text-sm font-semibold text-amber-800">Password Protected</p>
               <p className="text-xs text-amber-700">You&apos;ll need the exam password to proceed</p>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* COMPLETION SUMMARY - Only shown for completed exams */}
-        {submission && isCompleted && (
-          <div className="space-y-4">
-            {/* SCORE VISUALIZATION - Circular progress with grade */}
-            <ScoreVisualization 
-              percentage={scorePercentage}
-              score={submission.score}
-              totalMarks={exam.totalMarks}
-            />
-            
-            {/* COMPLETION DATE INFO - When the exam was completed */}
-            <div className="flex items-center justify-between p-3 bg-white rounded-xl border border-slate-200">
-              <div className="flex items-center gap-2 text-sm text-slate-600">
+      {/* Completion Summary */}
+      {submission && isCompleted && (
+        <div className="space-y-4 mb-6">
+          <ScoreVisualization 
+            percentage={scorePercentage}
+            score={submission.earnedMarks}
+            totalMarks={exam.totalMarks}
+          />
+          
+          {/* Completion Date */}
+          {submission.completedAt && (
+            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-slate-50 via-gray-50 to-slate-100 rounded-xl border border-slate-200/60 shadow-sm">
+              <div className="flex items-center gap-2 text-slate-600">
                 <Calendar className="h-4 w-4" />
-                <span>Completed on {submission.completedAt ? formatDate(submission.completedAt) : "N/A"}</span>
+                <span className="text-xs font-medium">Completed on</span>
               </div>
-              {/* Trophy icon for achievement */}
-              <Trophy className="h-5 w-5 text-amber-500" />
+              <div className="text-sm font-semibold text-slate-700">
+                {formatDate(submission.completedAt)}
+              </div>
             </div>
-          </div>
-        )}
-
-        {/* ACTION BUTTON SECTION - Different buttons based on completion status */}
-        <div className="pt-2">
-          {isCompleted ? (
-            // VIEW RESULTS BUTTON - For completed exams
-            <Button
-              variant="outline"
-              size="lg"
-              className="w-full border-2 border-blue-200 text-blue-700 hover:bg-blue-50 hover:border-blue-300 font-semibold py-6 rounded-xl transition-colors duration-200"
-              onClick={handleViewResults}
-            >
-              <BarChart3 className="h-5 w-5 mr-3" />
-              View Detailed Results
-              <ChevronRight className="h-4 w-4 ml-2" />
-            </Button>
-          ) : (
-            // START EXAM BUTTON - For available exams
-            <Button
-              size="lg"
-              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-6 rounded-xl transition-colors duration-200"
-              onClick={handleStartExam}
-            >
-              <Play className="h-5 w-5 mr-3" />
-              Start Exam
-              <Sparkles className="h-4 w-4 ml-2" />
-            </Button>
           )}
         </div>
-      </CardContent>
+      )}
+
+      {/* Action Button */}
+      {isCompleted ? (
+        <Button 
+          variant="outline" 
+          className="w-full cursor-pointer bg-gradient-to-r from-blue-50 via-sky-50 to-indigo-50 border-blue-200/60 text-blue-700 hover:bg-gradient-to-r hover:from-blue-100 hover:to-indigo-100 hover:border-blue-300 transition-all duration-300 hover:shadow-lg py-6 rounded-xl font-semibold"
+          onClick={handleViewResults}
+        >
+          <BarChart3 className="h-4 w-4 mr-2" />
+          View Detailed Results
+          <ChevronRight className="h-4 w-4 ml-2" />
+        </Button>
+      ) : (
+        <Button
+          className="w-full cursor-pointer bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 text-white font-semibold py-6 rounded-xl transition-all duration-300 hover:shadow-xl hover:scale-[1.02] shadow-lg"
+          onClick={handleStartExam}
+        >
+          <Play className="h-4 w-4 mr-2" />
+          Start Exam
+          <Sparkles className="h-4 w-4 ml-2" />
+        </Button>
+      )}
     </Card>
   );
 });

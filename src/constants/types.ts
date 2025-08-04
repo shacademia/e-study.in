@@ -302,7 +302,7 @@ export interface Submission {
   examId: string;
   answers: Record<string, number>;
   questionStatuses?: Record<string, QuestionAnswerStatus>;
-  score: number;
+  score: number; // Legacy field (it is now replaced by earnedMarks)
   earnedMarks: number;
   totalQuestions: number;
   timeSpent: number;

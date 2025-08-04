@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import ImageUploadComponent from '@/components/ui/image-upload';
 import MathInput from '../../../components/math-input'; // Import the MathInput component
-import MathDisplay from '../../../components/math-display'; // Import the MathDisplay component
+import SafeMathDisplay from '@/components/SafeMathDisplay'; // Import the MathDisplay component
 import {
   AlertDialog,
   AlertDialogAction,
@@ -518,7 +518,7 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
     if (question.layer1Type === 'text' && question.layer1Text) {
       layers.push(
         <div key="layer1" className="mb-2">
-          <MathDisplay>{question.layer1Text}</MathDisplay>
+          <SafeMathDisplay>{question.layer1Text}</SafeMathDisplay>
         </div>
       );
     } else if (question.layer1Type === 'image' && question.layer1Image) {
@@ -540,7 +540,7 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
     if (question.layer2Type === 'text' && question.layer2Text) {
       layers.push(
         <div key="layer2" className="mb-2">
-          <MathDisplay>{question.layer2Text}</MathDisplay>
+          <SafeMathDisplay>{question.layer2Text}</SafeMathDisplay>
         </div>
       );
     } else if (question.layer2Type === 'image' && question.layer2Image) {
@@ -562,7 +562,7 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
     if (question.layer3Type === 'text' && question.layer3Text) {
       layers.push(
         <div key="layer3" className="mb-2">
-          <MathDisplay>{question.layer3Text}</MathDisplay>
+          <SafeMathDisplay>{question.layer3Text}</SafeMathDisplay>
         </div>
       );
     } else if (question.layer3Type === 'image' && question.layer3Image) {
@@ -584,7 +584,7 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
     if (layers.length === 0 && question.content) {
       layers.push(
         <div key="legacy" className="mb-2">
-          <MathDisplay>{question.content}</MathDisplay>
+          <SafeMathDisplay>{question.content}</SafeMathDisplay>
         </div>
       );
     }
@@ -993,9 +993,9 @@ const EnhancedQuestionBank: React.FC<EnhancedQuestionBankProps> = ({
                           />
                         )
                       ) : (
-                        <MathDisplay className={index === question.correctOption ? 'font-medium text-green-800' : ''}>
+                        <SafeMathDisplay className={index === question.correctOption ? 'font-medium text-green-800' : ''}>
                           {option}
-                        </MathDisplay>
+                        </SafeMathDisplay>
                       )}
                     </div>
                     {index === question.correctOption && (
