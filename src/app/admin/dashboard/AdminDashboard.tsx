@@ -33,6 +33,7 @@ import { useExamStore } from '@/store/slices/examStore';
 import { useUIStore } from '@/store/slices/uiStore';
 import QuestionBankRefactored from '../questionbank/QuestionBankRefactored';
 import { useRouter } from 'next/navigation';
+import { useUsedQuestions } from '@/contexts/UsedQuestionsContext';
 
 // Dynamic imports for heavy components
 const EnhancedExamBuilder = dynamic(() => import('../exam/create/EnhancedExamBuilder'), { ssr: false });
@@ -42,6 +43,7 @@ const AdminDashboard: React.FC = () => {
   const { user } = useAuth();
   const examsApi = useExams();
   const router = useRouter();
+  const { resetUsedQuestionsForNewExam } = useUsedQuestions();
 
   
   // Store hooks for clearing exam data
@@ -106,16 +108,22 @@ const AdminDashboard: React.FC = () => {
     clearExamForEdit();
     clearSelectedQuestions();
     setShowExamBuilder(true);
+    // Reset used questions for new exam creation
+    resetUsedQuestionsForNewExam();
   };
 
   const handleEditExam = (exam: Exam) => {
     setEditingExam(exam);
     setShowExamBuilder(true);
+    // Reset used questions when editing an exam to start fresh
+    resetUsedQuestionsForNewExam();
   };
 
   const handleBackFromExamBuilder = () => {
     setShowExamBuilder(false);
     setEditingExam(null);
+    // Reset used questions when going back to dashboard
+    resetUsedQuestionsForNewExam();
   };
 
   const handleBackFromQuestionBank = () => {
