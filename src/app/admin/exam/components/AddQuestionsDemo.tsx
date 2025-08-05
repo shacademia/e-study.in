@@ -54,7 +54,7 @@ const AddQuestionsDemo: React.FC<AddQuestionsDemoProps> = ({
       {/* Header with back button */}
       {onBack && (
         <div className="flex items-center space-x-4">
-          <Button variant="ghost" onClick={onBack}>
+          <Button variant="ghost" onClick={onBack} className='cursor-pointer'>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Dashboard
           </Button>
@@ -92,7 +92,7 @@ const AddQuestionsDemo: React.FC<AddQuestionsDemoProps> = ({
           <div className="mt-6">
             <Button 
               onClick={() => setShowAddQuestions(true)}
-              className="w-full"
+              className="w-full cursor-pointer"
             >
               <Plus className="h-4 w-4 mr-2" />
               Add Questions to Section

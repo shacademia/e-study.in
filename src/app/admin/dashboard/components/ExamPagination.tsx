@@ -102,7 +102,7 @@ export const ExamPagination: React.FC<ExamPaginationProps> = ({
           size="sm"
           onClick={() => onPageChange(1)}
           disabled={!hasPrevPage || isLoading}
-          className="hidden sm:flex"
+          className="hidden sm:flex cursor-pointer"
           title="First page"
         >
           <ChevronsLeft className="h-4 w-4" />
@@ -115,6 +115,7 @@ export const ExamPagination: React.FC<ExamPaginationProps> = ({
           onClick={() => onPageChange(currentPage - 1)}
           disabled={!hasPrevPage || isLoading}
           title="Previous page"
+          className='cursor-pointer'
         >
           <ChevronLeft className="h-4 w-4" />
         </Button>
@@ -137,7 +138,7 @@ export const ExamPagination: React.FC<ExamPaginationProps> = ({
                 size="sm"
                 onClick={() => onPageChange(page)}
                 disabled={isLoading}
-                className="min-w-[2.5rem]"
+                className="min-w-[2.5rem] cursor-pointer"
               >
                 {page}
               </Button>
@@ -152,6 +153,7 @@ export const ExamPagination: React.FC<ExamPaginationProps> = ({
           onClick={() => onPageChange(currentPage + 1)}
           disabled={!hasNextPage || isLoading}
           title="Next page"
+          className='cursor-pointer'
         >
           <ChevronRight className="h-4 w-4" />
         </Button>
@@ -162,7 +164,7 @@ export const ExamPagination: React.FC<ExamPaginationProps> = ({
           size="sm"
           onClick={() => onPageChange(totalPages)}
           disabled={!hasNextPage || isLoading}
-          className="hidden sm:flex"
+          className="hidden sm:flex cursor-pointer"
           title="Last page"
         >
           <ChevronsRight className="h-4 w-4" />

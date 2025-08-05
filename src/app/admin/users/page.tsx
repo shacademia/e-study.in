@@ -246,7 +246,7 @@ export default function AdminUsersPage() {
                             <p className="text-red-600 mb-4">
                                 {error || 'Failed to load users. Please try again.'}
                             </p>
-                            <Button onClick={fetchUsers} className="bg-red-600 hover:bg-red-700">
+                            <Button onClick={fetchUsers} className="bg-red-600 hover:bg-red-700 cursor-pointer">
                                 Try Again
                             </Button>
                         </div>
@@ -267,7 +267,7 @@ export default function AdminUsersPage() {
                             variant="outline"
                             size="sm"
                             onClick={() => router.push('/admin/dashboard')}
-                            className="flex items-center space-x-2"
+                            className="flex items-center space-x-2 cursor-pointer"
                         >
                             <ArrowLeft className="w-4 h-4" />
                             <span>Back to Dashboard</span>
@@ -283,7 +283,7 @@ export default function AdminUsersPage() {
                             <p className="text-slate-600">Manage and monitor all registered users</p>
                         </div>
                         <div className="flex items-center space-x-4">
-                            <div className="bg-white/80 backdrop-blur-sm rounded-xl px-6 py-3 shadow-lg border border-white/20">
+                            <div className="bg-white/80 px-6 py-3 backdrop-blur-sm rounded-xl shadow-lg border border-white/20">
                                 <div className="flex items-center space-x-3">
                                     <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg">
                                         <Users className="w-5 h-5 text-white" />
@@ -298,7 +298,7 @@ export default function AdminUsersPage() {
                             </div>
                             <Button
                                 onClick={exportUsers}
-                                className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 shadow-lg hover:shadow-xl transition-all duration-300"
+                                className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer"
                             >
                                 <Download className="w-4 h-4 mr-2" />
                                 Export CSV
@@ -364,7 +364,7 @@ export default function AdminUsersPage() {
                     {paginatedUsers.map((user) => (
                         <Card
                             key={user.id}
-                            className="group hover:shadow-2xl hover:-translate-y-3 transition-all duration-500 ease-out cursor-pointer border-0 shadow-lg bg-gradient-to-br from-white via-white to-slate-50/50 backdrop-blur-sm hover:bg-gradient-to-br hover:from-white hover:to-blue-50/30 hover:border-blue-200/50 hover:border relative overflow-hidden"
+                            className="group hover:shadow-2xl hover:-translate-y-3 transition-all duration-500 ease-out border-0 shadow-lg bg-gradient-to-br from-white via-white to-slate-50/50 backdrop-blur-sm hover:bg-gradient-to-br hover:from-white hover:to-blue-50/30 hover:border-blue-200/50 hover:border relative overflow-hidden"
                         >
                             {/* Decorative gradient overlay */}
                             <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
@@ -438,7 +438,7 @@ export default function AdminUsersPage() {
                                             size="sm"
                                             variant="outline"
                                             onClick={() => router.push(`/admin/users/profile/${user.id}`)}
-                                            className="w-full text-xs hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700 transition-all duration-200"
+                                            className="w-full text-xs hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700 transition-all duration-200 cursor-pointer"
                                         >
                                             <Eye className="w-3 h-3 mr-1" />
                                             View Profile
@@ -493,7 +493,7 @@ export default function AdminUsersPage() {
                                         size="sm"
                                         onClick={goToFirstPage}
                                         disabled={currentPage === 1}
-                                        className="p-2"
+                                        className="p-2 cursor-pointer"
                                     >
                                         <ChevronsLeft className="w-4 h-4" />
                                     </Button>
@@ -502,7 +502,7 @@ export default function AdminUsersPage() {
                                         size="sm"
                                         onClick={goToPreviousPage}
                                         disabled={currentPage === 1}
-                                        className="p-2"
+                                        className="p-2 cursor-pointer"
                                     >
                                         <ChevronLeft className="w-4 h-4" />
                                     </Button>
@@ -526,7 +526,7 @@ export default function AdminUsersPage() {
                                                     variant={currentPage === pageNumber ? "default" : "outline"}
                                                     size="sm"
                                                     onClick={() => goToPage(pageNumber)}
-                                                    className={`w-10 h-10 p-0 ${currentPage === pageNumber
+                                                    className={`w-10 h-10 p-0 cursor-pointer ${currentPage === pageNumber
                                                         ? "bg-blue-600 text-white hover:bg-blue-700"
                                                         : "hover:bg-slate-50"
                                                         }`}
@@ -542,7 +542,7 @@ export default function AdminUsersPage() {
                                         size="sm"
                                         onClick={goToNextPage}
                                         disabled={currentPage === totalPages}
-                                        className="p-2"
+                                        className="p-2 cursor-pointer"
                                     >
                                         <ChevronRight className="w-4 h-4" />
                                     </Button>
@@ -551,7 +551,7 @@ export default function AdminUsersPage() {
                                         size="sm"
                                         onClick={goToLastPage}
                                         disabled={currentPage === totalPages}
-                                        className="p-2"
+                                        className="p-2 cursor-pointer"
                                     >
                                         <ChevronsRight className="w-4 h-4" />
                                     </Button>

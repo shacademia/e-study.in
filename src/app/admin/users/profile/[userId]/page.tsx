@@ -22,7 +22,6 @@ import {
   Target,
   Timer,
   TrendingUp,
-  Award,
   BarChart3
 } from 'lucide-react';
 
@@ -230,7 +229,7 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
               <XCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-red-700 mb-2">Error Loading Profile</h3>
               <p className="text-red-600 mb-4">{error}</p>
-              <Button onClick={() => router.back()} variant="outline">
+              <Button onClick={() => router.back()} variant="outline" className='cursor-pointer'>
                 Go Back
               </Button>
             </div>
@@ -253,7 +252,7 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
             variant="outline"
             size="sm"
             onClick={() => router.back()}
-            className="flex items-center space-x-2"
+            className="flex items-center space-x-2 cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Back to Users</span>
@@ -504,10 +503,10 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
 
         {/* Action Buttons */}
         <div className="flex justify-end space-x-3 pt-4">
-          <Button variant="outline" onClick={() => router.back()}>
+          <Button variant="outline" onClick={() => router.back()} className='cursor-pointer'>
             Back to Users
           </Button>
-          <Button variant="outline" className="text-red-600 border-red-200 hover:bg-red-50">
+          <Button variant="outline" className="text-red-600 border-red-200 hover:bg-red-50 cursor-pointer">
             Manage Account
           </Button>
         </div>
