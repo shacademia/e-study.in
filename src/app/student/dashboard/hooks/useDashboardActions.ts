@@ -10,7 +10,8 @@ const useDashboardActions = (): DashboardActions => {
   const router = useRouter();
 
   const handleStartExam = (examId: string) => {
-    router.push(`/student/exam/${examId}`);
+    // router.push(`/student/exam/${examId}`, { target: '_blank' });
+    window.open(`/student/exam/${examId}`, '_blank');
   };
 
   const handleViewResults = (examId: string) => {

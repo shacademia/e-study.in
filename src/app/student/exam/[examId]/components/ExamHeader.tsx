@@ -50,8 +50,10 @@ const ExamHeader: React.FC<UpdatedExamHeaderProps> = ({
       onSubmitExam();
     } else {
       // If exam not started or time is up, direct redirect
+      onSubmitExam();
+
       // 🔒 SECURITY: Use replace() to prevent back navigation to exam
-      router.replace('/student/dashboard');
+      // router.replace('/student/dashboard');
     }
   };
 
