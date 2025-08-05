@@ -94,6 +94,7 @@ export interface ExamHeaderProps {
   totalQuestions: number;
   currentSectionIndex: number;
   onTakeBreak: () => void;
+  onSubmitExam?: () => void;
   getTimeColor: () => string;
   formatTime: (seconds: number) => string;
   markedForReviewCount?: number;
