@@ -227,7 +227,7 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
     return () => {
       isCancelled = true;
     };
-  }, [filters.subject, filters.difficulty, filters.topic, filters.tags, debouncedSearchTerm, itemsPerPage]);
+  }, [filters.subject, filters.difficulty, filters.topic, filters.tags, debouncedSearchTerm, itemsPerPage, loadQuestions]);
 
   // All filtering is now done at backend level - no client-side filtering needed!
   // Just use the questions directly from the API response

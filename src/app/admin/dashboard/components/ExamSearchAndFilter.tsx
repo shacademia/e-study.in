@@ -124,7 +124,7 @@ export const ExamSearchAndFilter: React.FC<ExamSearchAndFilterProps> = ({
                         <Button
                             variant="ghost"
                             size="sm"
-                            className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+                            className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 cursor-pointer"
                             onClick={() => setSearchInput('')}
                         >
                             <X className="h-3 w-3" />
@@ -139,6 +139,7 @@ export const ExamSearchAndFilter: React.FC<ExamSearchAndFilterProps> = ({
                         size="sm"
                         onClick={() => handleFilterChange('published', 'all')}
                         disabled={isLoading}
+                        className='cursor-pointer'
                     >
                         All
                     </Button>
@@ -147,6 +148,7 @@ export const ExamSearchAndFilter: React.FC<ExamSearchAndFilterProps> = ({
                         size="sm"
                         onClick={() => handleFilterChange('published', 'true')}
                         disabled={isLoading}
+                        className='cursor-pointer'
                     >
                         <BookOpen className="h-3 w-3 mr-1" />
                         Published
@@ -156,6 +158,7 @@ export const ExamSearchAndFilter: React.FC<ExamSearchAndFilterProps> = ({
                         size="sm"
                         onClick={() => handleFilterChange('published', 'false')}
                         disabled={isLoading}
+                        className='cursor-pointer'
                     >
                         Draft
                     </Button>
@@ -167,6 +170,7 @@ export const ExamSearchAndFilter: React.FC<ExamSearchAndFilterProps> = ({
                     size="sm"
                     onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
                     disabled={isLoading}
+                    className='cursor-pointer'
                 >
                     <Filter className="h-4 w-4 mr-2" />
                     Filters
@@ -185,6 +189,8 @@ export const ExamSearchAndFilter: React.FC<ExamSearchAndFilterProps> = ({
                     size="sm"
                     onClick={onRefresh}
                     disabled={isLoading}
+                    className='cursor-pointer'
+                    title="Refresh exams"
                 >
                     <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
                 </Button>
@@ -200,7 +206,7 @@ export const ExamSearchAndFilter: React.FC<ExamSearchAndFilterProps> = ({
                                 variant="ghost"
                                 size="sm"
                                 onClick={clearAllFilters}
-                                className="text-xs"
+                                className="text-xs cursor-pointer"
                             >
                                 Clear All
                             </Button>
@@ -304,11 +310,11 @@ export const ExamSearchAndFilter: React.FC<ExamSearchAndFilterProps> = ({
 
                     {filters.search && (
                         <Badge variant="secondary" className="text-xs">
-                            Search: "{filters.search}"
+                            Search: &quot;{filters.search}&quot;
                             <Button
                                 variant="ghost"
                                 size="sm"
-                                className="ml-1 h-3 w-3 p-0"
+                                className="ml-1 h-3 w-3 p-0 cursor-pointer"
                                 onClick={() => {
                                     setSearchInput('');
                                     handleFilterChange('search', '');
@@ -325,7 +331,7 @@ export const ExamSearchAndFilter: React.FC<ExamSearchAndFilterProps> = ({
                             <Button
                                 variant="ghost"
                                 size="sm"
-                                className="ml-1 h-3 w-3 p-0"
+                                className="ml-1 h-3 w-3 p-0 cursor-pointer"
                                 onClick={() => handleFilterChange('published', 'all')}
                             >
                                 <X className="h-2 w-2" />
@@ -339,7 +345,7 @@ export const ExamSearchAndFilter: React.FC<ExamSearchAndFilterProps> = ({
                             <Button
                                 variant="ghost"
                                 size="sm"
-                                className="ml-1 h-3 w-3 p-0"
+                                className="ml-1 h-3 w-3 p-0 cursor-pointer"
                                 onClick={() => {
                                     handleFilterChange('sortBy', 'createdAt');
                                     handleFilterChange('sortOrder', 'desc');

@@ -60,7 +60,7 @@ export const ExamCard: React.FC<ExamCardProps> = ({
           <div className="flex items-center gap-2">
             <Badge variant={exam.isPublished ? "default" : "secondary"}>
               {isPublishing ? (
-                exam.isPublished ? "Unpublishing..." : "Publishing..."
+                exam.isPublished ? "Publishing..." : "Unpublishing..."
               ) : (
                 exam.isPublished ? "Published" : "Draft"
               )}
@@ -76,7 +76,7 @@ export const ExamCard: React.FC<ExamCardProps> = ({
               {isPublishing ? (
                 <>
                   <Clock className="h-4 w-4 mr-1 animate-spin" />
-                  {exam.isPublished ? 'Unpublishing...' : 'Publishing...'}
+                  {exam.isPublished ? 'Publishing...' : 'Unpublishing...'}
                 </>
               ) : refreshingData ? (
                 <>

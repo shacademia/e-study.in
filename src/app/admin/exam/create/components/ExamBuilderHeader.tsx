@@ -66,7 +66,7 @@ const ExamBuilderHeader: React.FC<ExamBuilderHeaderProps> = ({
               className="flex items-center cursor-pointer"
             >
               <Eye className="h-4 w-4 mr-2" />
-              Preview
+              Preview (extra)
             </Button>
             <Button
               variant="outline"

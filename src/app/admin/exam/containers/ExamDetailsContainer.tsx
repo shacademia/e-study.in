@@ -84,7 +84,7 @@ const ExamDetailsContainer: React.FC<ExamDetailsContainerProps> = ({ examId }) =
           <CardContent className="flex flex-col items-center justify-center py-12">
             <p className="text-red-600 mb-4">{error || 'Exam not found'}</p>
             <Button onClick={handleBack}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
+              <ArrowLeft className="h-4 w-4 mr-2 cursor-pointer" />
               Back to Exam List
             </Button>
           </CardContent>
