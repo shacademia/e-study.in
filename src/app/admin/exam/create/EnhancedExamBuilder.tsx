@@ -10,6 +10,7 @@ import ExamBuilderHeader from './components/ExamBuilderHeader';
 import ExamDetailsForm from './components/ExamDetailsForm';
 import SectionsManager from './components/SectionsManager';
 import { useExamBuilder } from './hooks/useExamBuilder';
+import { useUsedQuestions } from '@/contexts/UsedQuestionsContext';
 import { Exam, Question } from '@/constants/types';
 import { toast } from '@/hooks/use-toast';
 
@@ -65,6 +66,8 @@ const EnhancedExamBuilderContent: React.FC<EnhancedExamBuilderProps> = ({
   editingExam,
   availableQuestions
 }) => {
+  const { resetUsedQuestionsForNewExam, initializeFromExamData } = useUsedQuestions();
+
   const {
     examDetails,
     setExamDetails,
@@ -82,7 +85,7 @@ const EnhancedExamBuilderContent: React.FC<EnhancedExamBuilderProps> = ({
     getTotalQuestions,
     getTotalMarks,
     loading
-  } = useExamBuilder({ editingExam, availableQuestions });
+  } = useExamBuilder({ editingExam, availableQuestions, initializeFromExamData });
 
   const handleSaveDraft = async () => {
     try {
@@ -91,6 +94,8 @@ const EnhancedExamBuilderContent: React.FC<EnhancedExamBuilderProps> = ({
         title: "Success",
         description: "Exam saved as draft successfully",
       });
+      // Reset used questions for new exam creation
+      resetUsedQuestionsForNewExam();
     } catch (error) {
       console.error('Failed to save draft:', error);
       toast({
@@ -108,6 +113,8 @@ const EnhancedExamBuilderContent: React.FC<EnhancedExamBuilderProps> = ({
         title: "Success",
         description: "Exam published successfully",
       });
+      // Reset used questions for new exam creation
+      resetUsedQuestionsForNewExam();
     } catch (error) {
       console.error('Failed to publish exam:', error);
       toast({
@@ -122,6 +129,8 @@ const EnhancedExamBuilderContent: React.FC<EnhancedExamBuilderProps> = ({
     // Navigate to preview page if exam is saved
     if (editingExam?.id) {
       window.open(`/admin/exam/${editingExam.id}/preview`, '_blank');
+      // Reset used questions for new exam creation
+      resetUsedQuestionsForNewExam();
     } else {
       toast({
         title: "Info",
@@ -223,7 +232,6 @@ const EnhancedExamBuilderContent: React.FC<EnhancedExamBuilderProps> = ({
           examId={editingExam?.id}
           sectionId={sections[activeSection]?.id}
           section={sections[activeSection]}
-          availableQuestions={questions}
           isOpen={showQuestionSelector}
           mode="dialog"
           onClose={() => setShowQuestionSelector(false)}

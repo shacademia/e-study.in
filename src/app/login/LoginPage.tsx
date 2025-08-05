@@ -27,6 +27,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 
 import { useAuth } from "@/hooks/useApiAuth";
 import { LoginRequest, SignupRequest } from "@/constants/types";
+import { promise } from "zod";
 
 /* -------------------------------------------------------------------------- */
 /*                                    UI                                      */
@@ -93,7 +94,7 @@ const LoginPage: React.FC = () => {
   useEffect(() => {
     if (isAuthenticated && user) {
       router.push(
-        user.role === "ADMIN" ? "/admin/dashboard" : "/student/dashboard"
+        user.role === "ADMIN" || "MODERATOR" ? "/admin/dashboard" : "/student/dashboard"
       );
     }
   }, [isAuthenticated, user, router]);
@@ -166,6 +167,7 @@ const LoginPage: React.FC = () => {
 
     setSubmitting(true);
     try {
+      
       await login(loginData);
     } catch {
       setErrors({ general: "Login failed. Check your credentials." });

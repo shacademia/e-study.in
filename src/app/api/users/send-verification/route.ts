@@ -2,12 +2,32 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import jwt from "jsonwebtoken";
 import { sendVerificationEmail, generateVerificationCode, generateExpiryDate } from "@/lib/email";
+import z from "zod";
+
+const verifyEmailSchema = z.object({
+  userEmail: z.email(),
+});
 
 export async function POST(request: NextRequest) {
   try {
     // Get the token from the x-auth-token header
-    const token = request.headers.get("x-auth-token");
-    
+    const token = request.headers.get("x-auth-token") || request.headers.get("Authorization")?.replace("Bearer ", "");
+    const userEmail = await request.json();
+    if(!userEmail || !userEmail.userEmail) {
+      return NextResponse.json(
+        { success: false, error: "User email is required" },
+        { status: 400 }
+      );
+    }
+    const parsedEmail = verifyEmailSchema.safeParse(userEmail);
+
+    if (!parsedEmail.success) {
+      return NextResponse.json(
+        { success: false, error: "Invalid email format" },
+        { status: 400 }
+      );
+    }
+
     if (!token) {
       return NextResponse.json(
         { success: false, error: "Authorization token required" },
@@ -32,7 +52,7 @@ export async function POST(request: NextRequest) {
 
     // Get user from database
     const user = await prisma.user.findUnique({
-      where: { id: userId },
+      where: { id: userId ?? parsedEmail.data.userEmail },
       select: {
         id: true,
         email: true,

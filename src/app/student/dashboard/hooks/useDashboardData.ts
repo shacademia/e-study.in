@@ -28,14 +28,17 @@ const useDashboardData = (): DashboardData => {
   const [loading, setLoading] = useState(true);
   const [dataLoaded, setDataLoaded] = useState(false);
 
+  console.log('Dashboard Data Hook - User:', user?.id, 'Loading:', loading);
+
   useEffect(() => {
-    if (!user?.id || dataLoaded) return;
+    if (!user?.id) return;
+
+    console.log('Dashboard Data Hook - Starting data load for user:', user?.id);
 
     const loadData = async () => {
       try {
         setLoading(true);
-        setDataLoaded(true); // Set this early to prevent multiple calls
-
+        
         // Load all dashboard data in parallel
         const [examResult, submissionResult, rankingResult] = await Promise.allSettled([
           examsApi.getAllExams({ page: 1, limit: 50, published: true }),
@@ -71,13 +74,17 @@ const useDashboardData = (): DashboardData => {
         }
       } catch (error) {
         console.error('Error loading dashboard data:', error);
+        // Set empty states to prevent infinite loading
+        setExams([]);
+        setUserSubmissions([]);
+        setUserRanking(null);
       } finally {
         setLoading(false);
       }
     };
 
     loadData();
-  }, []); // Only run when user.id changes or if data hasn't been loaded
+  }, [user?.id]); // Only depend on user.id, remove dataLoaded dependency
 
   // Calculate user statistics from submissions
   const userStats = useMemo(() => {
