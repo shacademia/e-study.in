@@ -120,7 +120,7 @@ const UserDebugInfo: React.FC = () => {
         <Button 
           onClick={fetchUserProfile} 
           disabled={loading || !tokenExists}
-          className="w-full"
+          className="w-full cursor-pointer"
         >
           {loading ? 'Fetching...' : 'Fetch Current User Profile'}
         </Button>

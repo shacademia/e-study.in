@@ -14,7 +14,6 @@ import {
     CheckCircle,
     XCircle,
     User,
-    MapPin,
     Clock,
     Shield,
     Activity,
@@ -23,7 +22,6 @@ import {
     Target,
     Timer,
     TrendingUp,
-    Award,
     BarChart3,
     ArrowLeft
 } from 'lucide-react';
@@ -223,7 +221,7 @@ export default function UserProfileModal({ params }: UserProfileModalProps) {
                         variant="ghost"
                         size="sm"
                         onClick={handleClose}
-                        className="h-8 w-8 p-0"
+                        className="h-8 w-8 p-0 cursor-pointer"
                     >
                     </Button>
                 </DialogHeader>
@@ -241,7 +239,7 @@ export default function UserProfileModal({ params }: UserProfileModalProps) {
                             <XCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
                             <h3 className="text-lg font-semibold text-red-700 mb-2">Error Loading Profile</h3>
                             <p className="text-red-600 mb-4">{error}</p>
-                            <Button onClick={handleClose} variant="outline">
+                            <Button onClick={handleClose} variant="outline" className='cursor-pointer'>
                                 Close
                             </Button>
                         </div>
@@ -502,15 +500,15 @@ export default function UserProfileModal({ params }: UserProfileModalProps) {
 
                         {/* Action Buttons */}
                         <div className="flex justify-between pt-4 border-t">
-                            <Button variant="outline" onClick={handleClose} className="flex items-center space-x-2">
+                            <Button variant="outline" onClick={handleClose} className="flex items-center space-x-2 cursor-pointer">
                                 <ArrowLeft className="w-4 h-4" />
                                 <span>Back</span>
                             </Button>
                             <div className="flex space-x-3">
-                                <Button variant="outline" onClick={handleClose}>
+                                <Button variant="outline" onClick={handleClose} className='cursor-pointer'>
                                     Close
                                 </Button>
-                                <Button variant="outline" className="text-red-600 border-red-200 hover:bg-red-50">
+                                <Button variant="outline" className="text-red-600 border-red-200 hover:bg-red-50 cursor-pointer">
                                     Manage Account
                                 </Button>
                             </div>

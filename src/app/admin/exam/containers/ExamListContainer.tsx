@@ -107,7 +107,7 @@ const ExamListContainer: React.FC = () => {
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <p className="text-red-600 mb-4">{error}</p>
-            <Button onClick={refetch}>Try Again</Button>
+            <Button onClick={refetch} className='cursor-pointer'>Try Again</Button>
           </CardContent>
         </Card>
       </div>
@@ -207,7 +207,7 @@ const ExamListContainer: React.FC = () => {
             <p className="text-gray-600 text-center mb-4">
               {searchQuery ? 'Try adjusting your search criteria' : 'Get started by creating your first exam'}
             </p>
-            <Button onClick={handleCreateExam}>
+            <Button onClick={handleCreateExam} className='cursor-pointer'>
               <Plus className="h-4 w-4 mr-2" />
               Create Exam
             </Button>

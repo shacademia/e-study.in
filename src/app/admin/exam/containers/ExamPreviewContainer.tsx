@@ -192,7 +192,7 @@ const ExamPreviewContainer: React.FC<ExamPreviewContainerProps> = ({ examId }) =
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <p className="text-red-600 mb-4">{error || 'Exam not found'}</p>
-            <Button onClick={handleBack}>
+            <Button onClick={handleBack} className='cursor-pointer'>
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Details
             </Button>
