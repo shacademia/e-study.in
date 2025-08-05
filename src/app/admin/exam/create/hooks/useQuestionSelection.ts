@@ -9,7 +9,7 @@ export const useQuestionSelection = () => {
     const lastToggle = lastToggleTime.current[questionId] || 0;
     
     // Prevent rapid clicking (debounce)
-    if (now - lastToggle < 100) {
+    if (now - lastToggle < 20) {
       console.log(`⏱️ Debouncing rapid click for question: ${questionId}`);
       return;
     }
