@@ -277,7 +277,7 @@ export const useExamData = (examId: string) => {
 
       if (!results.success || !results.data?.submissionId) {
         toast({
-          title: "Submission Failed",
+          title: results.message || "Error",
           description: results.message || "Failed to submit exam. Please try again.",
           variant: "destructive",
         });

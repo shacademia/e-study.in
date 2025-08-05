@@ -24,6 +24,9 @@ const ExamInterface: React.FC<ExamInterfaceProps> = ({ examId }) => {
   const [isWarningActive, setIsWarningActive] = useState(false); // Controls warning dialog display
   const [examSubmitted, setExamSubmitted] = useState(false); // Prevents multiple submissions
   
+  const [isFullyLoaded ,setIsFullyLoaded] = useState(false); // Tracks if all resources are loaded
+
+
   // Performance optimization refs to prevent excessive browser history manipulation
   const historyProtectionRef = useRef<boolean>(false); // Tracks if history protection is active
   const lastPopstateTimeRef = useRef<number>(0); // Throttles popstate events to prevent spam
@@ -182,59 +185,59 @@ const ExamInterface: React.FC<ExamInterfaceProps> = ({ examId }) => {
    * PAGE REFRESH/CLOSE WARNING HANDLER
    * Shows browser's native confirmation dialog when user tries to refresh or close page
    */
-  const handleBeforeUnload = useCallback((event: BeforeUnloadEvent) => {
-    // Skip if exam already submitted, warning active, or exam not started
-    if (examSubmitted || isWarningActive || !timerState.examStarted) return;
+  // const handleBeforeUnload = useCallback((event: BeforeUnloadEvent) => {
+  //   // Skip if exam already submitted, warning active, or exam not started
+  //   if (examSubmitted || isWarningActive || !timerState.examStarted) return;
 
-    // Set browser's native confirmation message
-    const message = '⚠️ Your exam will be auto-submitted if you leave this page. Are you sure?';
-    event.preventDefault();
-    event.returnValue = message;
-    return message;
-  }, [examSubmitted, isWarningActive, timerState.examStarted]);
+  //   // Set browser's native confirmation message
+  //   const message = '⚠️ Your exam will be auto-submitted if you leave this page. Are you sure?';
+  //   event.preventDefault();
+  //   event.returnValue = message;
+  //   return message;
+  // }, [examSubmitted, isWarningActive, timerState.examStarted]);
 
   /**
    * PAGE UNLOAD HANDLER
    * Handles actual submission when user confirms page refresh/close
    * Uses navigator.sendBeacon for reliable submission during page unload
    */
-  const handleUnload = useCallback(() => {
-    // Only submit if exam is active and not already submitted
-    if (!examSubmitted && timerState.examStarted) {
-      // Calculate time spent on exam
-      const examTimeLimit = examData.exam?.timeLimit ? examData.exam.timeLimit * 60 : 0;
-      const timeSpent = examTimeLimit - timerState.timeLeft;
+  // const handleUnload = useCallback(() => {
+  //   // Only submit if exam is active and not already submitted
+  //   if (!examSubmitted && timerState.examStarted) {
+  //     // Calculate time spent on exam
+  //     const examTimeLimit = examData.exam?.timeLimit ? examData.exam.timeLimit * 60 : 0;
+  //     const timeSpent = examTimeLimit - timerState.timeLeft;
 
-      // Prepare submission data
-      const submissionData = {
-        examId: examData.exam?.id,
-        answers: navigationState.answers,
-        questionStatuses: navigationState.questionStatuses,
-        timeSpent: timeSpent,
-        isAutoSubmitted: true,
-        reason: 'page_unload_confirmed',
-        completedAt: new Date().toISOString()
-      };
+  //     // Prepare submission data
+  //     const submissionData = {
+  //       examId: examData.exam?.id,
+  //       answers: navigationState.answers,
+  //       questionStatuses: navigationState.questionStatuses,
+  //       timeSpent: timeSpent,
+  //       isAutoSubmitted: true,
+  //       reason: 'page_unload_confirmed',
+  //       completedAt: new Date().toISOString()
+  //     };
 
-      // 🔥 UPDATED: Use correct API endpoint format
-      // Changed from '/api/exam/submit' to '/api/exams/{examId}/submissions'
-      const submissionEndpoint = `/api/exams/${examData.exam?.id}/submissions`;
+  //     // 🔥 UPDATED: Use correct API endpoint format
+  //     // Changed from '/api/exam/submit' to '/api/exams/{examId}/submissions'
+  //     const submissionEndpoint = `/api/exams/${examData.exam?.id}/submissions`;
 
-      // Use sendBeacon for reliable submission during page unload
-      // This works even when regular fetch() might fail during unload
-      if (navigator.sendBeacon) {
-        navigator.sendBeacon(submissionEndpoint, JSON.stringify(submissionData));
-      }
-    }
-  }, [
-    examSubmitted, 
-    timerState.examStarted, 
-    timerState.timeLeft,
-    examData.exam?.id, 
-    examData.exam?.timeLimit,
-    navigationState.answers, 
-    navigationState.questionStatuses
-  ]);
+  //     // Use sendBeacon for reliable submission during page unload
+  //     // This works even when regular fetch() might fail during unload
+  //     if (navigator.sendBeacon) {
+  //       navigator.sendBeacon(submissionEndpoint, JSON.stringify(submissionData));
+  //     }
+  //   }
+  // }, [
+  //   examSubmitted, 
+  //   timerState.examStarted, 
+  //   timerState.timeLeft,
+  //   examData.exam?.id, 
+  //   examData.exam?.timeLimit,
+  //   navigationState.answers, 
+  //   navigationState.questionStatuses
+  // ]);
 
   // ========================================
   // EVENT LISTENERS SETUP
@@ -244,96 +247,161 @@ const ExamInterface: React.FC<ExamInterfaceProps> = ({ examId }) => {
    * MAIN PROTECTION SETUP
    * Sets up all browser event listeners for exam security
    */
-  useEffect(() => {
-    // Skip setup if exam not started or already submitted
-    if (!timerState.examStarted || examSubmitted) {
-      historyProtectionRef.current = false;
-      return;
-    }
+  // useEffect(() => {
+  //   // Skip setup if exam not started or already submitted
+  //   if (!timerState.examStarted || examSubmitted) {
+  //     historyProtectionRef.current = false;
+  //     return;
+  //   }
 
-    // Set up browser history protection (prevents back button issues)
-    if (!historyProtectionRef.current) {
-      window.history.pushState({ examProtection: true }, '', window.location.pathname);
-      historyProtectionRef.current = true;
-    }
+  //   // Set up browser history protection (prevents back button issues)
+  //   if (!historyProtectionRef.current) {
+  //     window.history.pushState({ examProtection: true }, '', window.location.pathname);
+  //     historyProtectionRef.current = true;
+  //   }
     
-    // Add event listeners for browser navigation protection
-    window.addEventListener('popstate', handlePopState);        // Back/forward buttons
-    window.addEventListener('beforeunload', handleBeforeUnload); // Page refresh/close warning
-    window.addEventListener('unload', handleUnload);            // Actual page unload
+  //   // Add event listeners for browser navigation protection
+  //   window.addEventListener('popstate', handlePopState);        // Back/forward buttons
+  //   window.addEventListener('beforeunload', handleBeforeUnload); // Page refresh/close warning
+  //   window.addEventListener('unload', handleUnload);            // Actual page unload
 
-    // Cleanup function - removes event listeners when component unmounts
-    return () => {
-      window.removeEventListener('popstate', handlePopState);
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      window.removeEventListener('unload', handleUnload);
-    };
-  }, [timerState.examStarted, examSubmitted, handlePopState, handleBeforeUnload, handleUnload]);
+  //   // Cleanup function - removes event listeners when component unmounts
+  //   return () => {
+  //     window.removeEventListener('popstate', handlePopState);
+  //     window.removeEventListener('beforeunload', handleBeforeUnload);
+  //     window.removeEventListener('unload', handleUnload);
+  //   };
+  // }, [timerState.examStarted, examSubmitted, handlePopState, handleBeforeUnload, handleUnload]);
 
   /**
    * TAB SWITCHING DETECTION
    * Monitors when user switches away from exam tab
    * Shows warning after 10 seconds of being away
    */
-  useEffect(() => {
-    // Skip if exam not started or already submitted
-    if (!timerState.examStarted || examSubmitted) return;
+  // useEffect(() => {
+  //   // Skip if exam not started or already submitted
+  //   if (!timerState.examStarted || examSubmitted) return;
 
-    let tabSwitchTimeout: NodeJS.Timeout;
+  //   let tabSwitchTimeout: NodeJS.Timeout;
 
-    const handleVisibilityChange = () => {
-      if (document.hidden && !isWarningActive) {
-        console.warn('⚠️ Student switched tabs during exam');
+  //   const handleVisibilityChange = () => {
+  //     if (document.hidden && !isWarningActive) {
+  //       console.warn('⚠️ Student switched tabs during exam');
         
-        // Clear any existing timeout to prevent multiple warnings
-        if (tabSwitchTimeout) {
-          clearTimeout(tabSwitchTimeout);
-        }
+  //       // Clear any existing timeout to prevent multiple warnings
+  //       if (tabSwitchTimeout) {
+  //         clearTimeout(tabSwitchTimeout);
+  //       }
         
-        // Set 10-second timeout for tab switching warning
-        tabSwitchTimeout = setTimeout(() => {
-          // Double-check conditions before showing warning
-          if (document.hidden && !examSubmitted && !isWarningActive) {
-            const confirmSubmit = window.confirm(
-              '⚠️ TAB SWITCHING DETECTED\n\n' +
-              'You have been away from the exam tab for 10 seconds.\n' +
-              'For exam integrity, would you like to submit your exam now?\n\n' +
-              '✅ Click "OK" to submit\n' +
-              '❌ Click "Cancel" to continue (but stay focused on exam)'
-            );
+  //       // Set 10-second timeout for tab switching warning
+  //       tabSwitchTimeout = setTimeout(() => {
+  //         // Double-check conditions before showing warning
+  //         if (document.hidden && !examSubmitted && !isWarningActive) {
+  //           const confirmSubmit = window.confirm(
+  //             '⚠️ TAB SWITCHING DETECTED\n\n' +
+  //             'You have been away from the exam tab for 10 seconds.\n' +
+  //             'For exam integrity, would you like to submit your exam now?\n\n' +
+  //             '✅ Click "OK" to submit\n' +
+  //             '❌ Click "Cancel" to continue (but stay focused on exam)'
+  //           );
             
-            if (confirmSubmit) {
-              autoSubmitExam('tab_switching_confirmed');
-            }
-          }
-        }, 10000); // 10 second delay
-      } else if (!document.hidden && tabSwitchTimeout) {
-        // Clear timeout when user returns to exam tab
-        clearTimeout(tabSwitchTimeout);
-      }
-    };
+  //           if (confirmSubmit) {
+  //             autoSubmitExam('tab_switching_confirmed');
+  //           }
+  //         }
+  //       }, 10000); // 10 second delay
+  //     } else if (!document.hidden && tabSwitchTimeout) {
+  //       // Clear timeout when user returns to exam tab
+  //       clearTimeout(tabSwitchTimeout);
+  //     }
+  //   };
 
-    // Add visibility change listener
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+  //   // Add visibility change listener
+  //   document.addEventListener('visibilitychange', handleVisibilityChange);
 
-    // Cleanup function
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      if (tabSwitchTimeout) {
-        clearTimeout(tabSwitchTimeout);
-      }
-    };
-  }, [timerState.examStarted, examSubmitted, isWarningActive, autoSubmitExam]);
+  //   // Cleanup function
+  //   return () => {
+  //     document.removeEventListener('visibilitychange', handleVisibilityChange);
+  //     if (tabSwitchTimeout) {
+  //       clearTimeout(tabSwitchTimeout);
+  //     }
+  //   };
+  // }, [timerState.examStarted, examSubmitted, isWarningActive, autoSubmitExam]);
 
   /**
    * CLEANUP PROTECTION ON EXAM END
    * Disables history protection when exam is properly submitted
    */
-  useEffect(() => {
-    if (examSubmitted) {
-      historyProtectionRef.current = false;
+  // useEffect(() => {
+  //   if (examSubmitted) {
+  //     historyProtectionRef.current = false;
+  //   }
+  // }, [examSubmitted]);
+
+
+  // Changes on reload
+
+useEffect(() => {
+  const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+    if (examData?.exam?.id) {
+      localStorage.setItem('autoSubmitExamData', JSON.stringify({
+        examId: examData.exam.id,
+        reason: 'reload',
+      }));
     }
-  }, [examSubmitted]);
+    // Optional: Show confirm dialog
+    e.preventDefault();
+    e.returnValue = ''; // Required to show the dialog in some browsers
+  };
+
+  window.addEventListener('beforeunload', handleBeforeUnload);
+  return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+}, [examData?.exam?.id]);
+
+
+  // Automatically check for stored auto-submit data on component mount 
+
+const AutoSubmitExam = () => {
+  const stored = localStorage.getItem('autoSubmitExamData');
+
+  if (stored) {
+    try {
+      const { examId, reason } = JSON.parse(stored);
+      // Optional: check if this matches current exam
+      if (examId === examData?.exam?.id) {
+        window.alert(`Exam auto-submission detected!\n\nReason: ${reason}\n\nYour exam will be submitted now.`);
+        // autoSubmitExam(reason); // Your internal function
+        setUiState(prev => ({ ...prev, showSubmitDialog: true }));
+        localStorage.removeItem('autoSubmitExamData');
+      }
+    } catch (err) {
+      console.error('Error parsing auto submit data:', err);
+      localStorage.removeItem('autoSubmitExamData');
+    }
+  }
+};
+
+
+useEffect(() => {
+  const onLoad = () => {
+    // Everything is fully loaded: DOM + images + fonts
+    console.log('Fully loaded');
+    setIsFullyLoaded(true);
+    AutoSubmitExam()
+
+  };
+
+  if (document.readyState === 'complete') {
+    onLoad();
+  } else {
+    window.addEventListener('load', onLoad);
+  }
+
+  return () => {
+    window.removeEventListener('load', onLoad);
+  };
+}, [examData]);
+
 
   // ========================================
   // COMPONENT HELPER FUNCTIONS
@@ -403,6 +471,8 @@ const ExamInterface: React.FC<ExamInterfaceProps> = ({ examId }) => {
     const questionsLength = examData.exam.questions?.length || 0;
     return questionsLength > 0 && navigationState.currentQuestionIndex === questionsLength - 1;
   })();
+
+
 
   // ========================================
   // MAIN COMPONENT RENDER
