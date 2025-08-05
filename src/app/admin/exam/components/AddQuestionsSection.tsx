@@ -541,7 +541,7 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
         : isSelected
           ? 'ring-2 ring-blue-500 bg-blue-50 hover:shadow-md cursor-pointer'
           : 'hover:shadow-md cursor-pointer'
-        }`}>
+        }`} onClick={handleCardClick}>
         <CardHeader className="pb-3">
           <div className="flex justify-between items-start">
             <div className="flex items-center space-x-2">
@@ -587,7 +587,7 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
             </div>
           </div>
         </CardHeader>
-        <CardContent onClick={handleCardClick}>
+        <CardContent>
           {/* Render 3 layers with proper conditional content */}
           {renderLayer(question.layer1Type, question.layer1Text, question.layer1Image)}
           {renderLayer(question.layer2Type, question.layer2Text, question.layer2Image)}
