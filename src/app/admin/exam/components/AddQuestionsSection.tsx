@@ -30,11 +30,13 @@ import { Question, ExamSection } from '@/constants/types';
 import { examService } from '@/services/exam';
 import { useUsedQuestions } from '@/contexts/UsedQuestionsContext';
 
+import SafeMathDisplay from '@/components/SafeMathDisplay';
+
 // Custom hooks
 import { useQuestions } from '../create/hooks/useQuestions';
 import { useQuestionSelection } from '../create/hooks/useQuestionSelection';
 import { useQuestionFilters } from '../create/hooks/useQuestionFilters';
-import { useDebounce } from '../create/hooks/useDebounce';
+// import { useDebounce } from '../create/hooks/useDebounce';
 import { useUserPermissions } from '../create/hooks/useUserPermissions';
 import QuestionPreviewDialog from './QuestionPreviewDialog';
 import { QuestionsPagination } from './QuestionsPagination';
@@ -77,14 +79,14 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
     error,
     loadQuestions,
     refreshQuestions,
-    hasMore,
+    // hasMore,
     currentPage,
     totalQuestions,
     totalPages,
     itemsPerPage
   } = useQuestions();
   const { selectedQuestions, toggleSelection, clearSelection, selectedCount } = useQuestionSelection();
-  const { filters, updateFilter, toggleTag, clearFilters, filterOptions } = useQuestionFilters(questions);
+  const { filters, updateFilter, toggleTag, clearFilters } = useQuestionFilters(questions);
   const userPermissions = useUserPermissions();
   const { usedQuestionIds, addUsedQuestions, isQuestionUsed } = useUsedQuestions();
 
@@ -494,7 +496,7 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
         console.log(`🖱️ Card clicked for question: ${question.id}`);
         toggleSelection(question.id);
       }
-    }, [question.id, isUsed, toggleSelection]);
+    }, [question.id, isUsed]);
 
     // Handle checkbox click
     const handleCheckboxClick = useCallback((e: React.MouseEvent) => {
@@ -504,7 +506,7 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
         console.log(`☑️ Checkbox clicked for question: ${question.id}`);
         toggleSelection(question.id);
       }
-    }, [question.id, isUsed, toggleSelection]);
+    }, [question.id, isUsed]);
     // Helper to render a single layer
     const renderLayer = (
       type: 'text' | 'image' | 'none',
@@ -512,7 +514,7 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
       imageUrl?: string
     ) => {
       if (type === 'text' && text) {
-        return <p className="text-sm line-clamp-3 mb-1 break-words">{text}</p>;
+        return <SafeMathDisplay>{text}</SafeMathDisplay>
       } else if (type === 'image' && imageUrl) {
         return (
           <div className="mb-1 flex justify-start">
@@ -895,7 +897,7 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
             {/* Available Questions */}
             {availableQuestions.length > 0 && (
               <div>
-                <h3 className="text-lg font-semibold mb-3 text-green-700">
+                <h3 className="text-lg font-semibold mb-3 text-gray-800">
                   Available Questions ({availableQuestions.length})
                 </h3>
                 <div className={
@@ -918,7 +920,7 @@ const AddQuestionsSection: React.FC<AddQuestionsSectionProps> = ({
             {/* Used Questions */}
             {usedQuestions.length > 0 && (
               <div>
-                <h3 className="text-lg font-semibold mb-3 text-orange-700">
+                <h3 className="text-base font-semibold mb-3 text-amber-600">
                   Already Used in This Exam ({usedQuestions.length})
                 </h3>
                 <div className={
