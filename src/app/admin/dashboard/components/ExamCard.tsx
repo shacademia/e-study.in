@@ -9,7 +9,7 @@ import {
   CheckCircle,
   Eye,
   EyeOff,
-  Copy,
+  // Copy,
   Edit,
   Trash2,
   Lock,
@@ -31,7 +31,7 @@ export const ExamCard: React.FC<ExamCardProps> = ({
   publishingExamId,
   refreshingData,
   onTogglePublish,
-  onDuplicate,
+  // onDuplicate,
   onEdit,
   onDelete,
 }) => {
@@ -95,7 +95,7 @@ export const ExamCard: React.FC<ExamCardProps> = ({
                 </>
               )}
             </Button>
-            <Button
+            {/* <Button
               variant="outline"
               className="cursor-pointer"
               size="sm"
@@ -103,7 +103,7 @@ export const ExamCard: React.FC<ExamCardProps> = ({
               onClick={onDuplicate}
             >
               <Copy className="h-4 w-4" />
-            </Button>
+            </Button> */}
             <Button
               variant="outline"
               size="sm"
