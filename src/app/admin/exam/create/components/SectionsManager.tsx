@@ -21,6 +21,7 @@ import {
 import { ExamSection, Question } from '@/constants/types';
 import { getDifficultyColor } from '../utils/examUtils';
 import QuestionPreviewDialog from '../../components/QuestionPreviewDialog';
+import SafeMathDisplay from '@/components/SafeMathDisplay';
 
 interface SectionsManagerProps {
   sections: ExamSection[];
@@ -80,9 +81,9 @@ const SectionsManager: React.FC<SectionsManagerProps> = ({
   ) => {
     if (type === 'text' && text) {
       return (
-        <p key={`layer-text-${key}`} className="text-sm line-clamp-2 mb-1 break-words">
-          {text}
-        </p>
+        <div key={`layer-text-${key}`} className="text-sm line-clamp-2 mb-1 break-words">
+          <SafeMathDisplay>{text}</SafeMathDisplay>
+        </div>
       );
     } 
     if (type === 'image' && imageUrl) {

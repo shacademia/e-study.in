@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,7 @@ import { useExamBuilder } from './hooks/useExamBuilder';
 import { useUsedQuestions } from '@/contexts/UsedQuestionsContext';
 import { Exam, Question } from '@/constants/types';
 import { toast } from '@/hooks/use-toast';
+import { useRouter } from 'next/navigation';
 
 interface EnhancedExamBuilderProps {
   onBack: () => void;
@@ -61,12 +62,55 @@ const LoadingFallback: React.FC = () => (
   </div>
 );
 
+// Proper Class-based Error Boundary
+class ErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean; error: Error | null }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('Error caught by boundary:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <ErrorFallback 
+          error={this.state.error!} 
+          resetError={() => this.setState({ hasError: false, error: null })} 
+        />
+      );
+    }
+    return this.props.children;
+  }
+}
+
 const EnhancedExamBuilderContent: React.FC<EnhancedExamBuilderProps> = ({
   onBack,
   editingExam,
   availableQuestions
 }) => {
-  const { resetUsedQuestionsForNewExam, initializeFromExamData } = useUsedQuestions();
+  // Error Context Validation
+  const usedQuestionsContext = useUsedQuestions();
+  if (!usedQuestionsContext) {
+    throw new Error('useUsedQuestions must be used within UsedQuestionsProvider');
+  }
+  
+  const { resetUsedQuestionsForNewExam, initializeFromExamData } = usedQuestionsContext;
+  const router = useRouter();
+
+  const examBuilderHook = useExamBuilder({ editingExam, availableQuestions, initializeFromExamData });
+  if (!examBuilderHook) {
+    throw new Error('useExamBuilder hook failed to initialize');
+  }
 
   const {
     examDetails,
@@ -85,8 +129,17 @@ const EnhancedExamBuilderContent: React.FC<EnhancedExamBuilderProps> = ({
     getTotalQuestions,
     getTotalMarks,
     loading
-  } = useExamBuilder({ editingExam, availableQuestions, initializeFromExamData });
+  } = examBuilderHook;
 
+  // Memory Leak Prevention
+  useEffect(() => {
+    return () => {
+      // Cleanup to prevent memory leaks
+      setShowQuestionSelector(false);
+    };
+  }, [setShowQuestionSelector]);
+
+  // Better Error Handling
   const handleSaveDraft = async () => {
     try {
       await handleSaveExam('draft');
@@ -97,10 +150,12 @@ const EnhancedExamBuilderContent: React.FC<EnhancedExamBuilderProps> = ({
       // Reset used questions for new exam creation
       resetUsedQuestionsForNewExam();
     } catch (error) {
-      console.error('Failed to save draft:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      const errorDetails = error instanceof Error ? error.stack : 'No stack trace available';
+      console.error('Failed to save draft:', errorMessage, errorDetails);
       toast({
         title: "Error",
-        description: "Failed to save exam as draft. Please try again.",
+        description: `Failed to save exam as draft: ${errorMessage}`,
         variant: "destructive",
       });
     }
@@ -113,29 +168,39 @@ const EnhancedExamBuilderContent: React.FC<EnhancedExamBuilderProps> = ({
         title: "Success",
         description: "Exam published successfully",
       });
-      // Reset used questions for new exam creation
       resetUsedQuestionsForNewExam();
+      router.replace('/');
     } catch (error) {
-      console.error('Failed to publish exam:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      const errorDetails = error instanceof Error ? error.stack : 'No stack trace available';
+      console.error('Failed to publish exam:', errorMessage, errorDetails);
       toast({
         title: "Error",
-        description: "Failed to publish exam. Please try again.",
+        description: `Failed to publish exam: ${errorMessage}`,
         variant: "destructive",
       });
     }
   };
 
   const handlePreview = () => {
-    // Navigate to preview page if exam is saved
-    if (editingExam?.id) {
-      window.open(`/admin/exam/${editingExam.id}/preview`, '_blank');
-      // Reset used questions for new exam creation
-      resetUsedQuestionsForNewExam();
-    } else {
+    try {
+      if (editingExam?.id) {
+        window.open(`/admin/exam/${editingExam.id}/preview`, '_blank');
+        resetUsedQuestionsForNewExam();
+      } else {
+        toast({
+          title: "Info",
+          description: "Please save the exam first to preview it.",
+          variant: "default",
+        });
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      console.error('Failed to open preview:', errorMessage);
       toast({
-        title: "Info",
-        description: "Please save the exam first to preview it.",
-        variant: "default",
+        title: "Error",
+        description: `Failed to open preview: ${errorMessage}`,
+        variant: "destructive",
       });
     }
   };
@@ -148,7 +213,6 @@ const EnhancedExamBuilderContent: React.FC<EnhancedExamBuilderProps> = ({
       }
 
       const updatedQuestions = [...(currentSection.questions || []), ...addedQuestions];
-      // Calculate total marks by summing up positiveMarks from all questions
       const updatedMarks = updatedQuestions.reduce((total, question) => {
         return total + (question.positiveMarks || question.marks || 1);
       }, 0);
@@ -166,10 +230,11 @@ const EnhancedExamBuilderContent: React.FC<EnhancedExamBuilderProps> = ({
 
       setShowQuestionSelector(false);
     } catch (error) {
-      console.error('Failed to add questions:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      console.error('Failed to add questions:', errorMessage, error);
       toast({
         title: "Error",
-        description: "Failed to add questions. Please try again.",
+        description: `Failed to add questions: ${errorMessage}`,
         variant: "destructive",
       });
     }
@@ -199,8 +264,8 @@ const EnhancedExamBuilderContent: React.FC<EnhancedExamBuilderProps> = ({
       <div className="max-w-7xl mx-auto px-6 py-6 mb-4">
         <Tabs defaultValue="details" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="details" className='cursor-pointer'>Exam Details</TabsTrigger>
-            <TabsTrigger value="sections" className='cursor-pointer'>Sections & Questions</TabsTrigger>
+            <TabsTrigger value="details" className="cursor-pointer">Exam Details</TabsTrigger>
+            <TabsTrigger value="sections" className="cursor-pointer">Sections & Questions</TabsTrigger>
           </TabsList>
 
           <TabsContent value="details" className="space-y-6">
@@ -242,25 +307,17 @@ const EnhancedExamBuilderContent: React.FC<EnhancedExamBuilderProps> = ({
   );
 };
 
-// Error Boundary Component
-const EnhancedExamBuilder: React.FC<EnhancedExamBuilderProps> = (props) => {
-  try {
-    return <EnhancedExamBuilderContent {...props} />;
-  } catch (error) {
-    console.error('EnhancedExamBuilder error:', error);
-    return <ErrorFallback error={error as Error} resetError={() => window.location.reload()} />;
-  }
-};
-
 // Wrap with React.memo for performance optimization
-const MemoizedEnhancedExamBuilder = React.memo(EnhancedExamBuilder);
+const MemoizedEnhancedExamBuilder = React.memo(EnhancedExamBuilderContent);
 
-// Production-ready export with error boundary
+// Production-ready export with proper error boundary
 const EnhancedExamBuilderWithErrorBoundary: React.FC<EnhancedExamBuilderProps> = (props) => {
   return (
-    <React.Suspense fallback={<LoadingFallback />}>
-      <MemoizedEnhancedExamBuilder {...props} />
-    </React.Suspense>
+    <ErrorBoundary>
+      <React.Suspense fallback={<LoadingFallback />}>
+        <MemoizedEnhancedExamBuilder {...props} />
+      </React.Suspense>
+    </ErrorBoundary>
   );
 };
 

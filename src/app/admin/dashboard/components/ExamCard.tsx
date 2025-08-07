@@ -9,7 +9,7 @@ import {
   CheckCircle,
   Eye,
   EyeOff,
-  Copy,
+  // Copy,
   Edit,
   Trash2,
   Lock,
@@ -31,7 +31,7 @@ export const ExamCard: React.FC<ExamCardProps> = ({
   publishingExamId,
   refreshingData,
   onTogglePublish,
-  onDuplicate,
+  // onDuplicate,
   onEdit,
   onDelete,
 }) => {
@@ -95,7 +95,7 @@ export const ExamCard: React.FC<ExamCardProps> = ({
                 </>
               )}
             </Button>
-            <Button
+            {/* <Button
               variant="outline"
               className="cursor-pointer"
               size="sm"
@@ -103,7 +103,7 @@ export const ExamCard: React.FC<ExamCardProps> = ({
               onClick={onDuplicate}
             >
               <Copy className="h-4 w-4" />
-            </Button>
+            </Button> */}
             <Button
               variant="outline"
               size="sm"
@@ -126,13 +126,13 @@ export const ExamCard: React.FC<ExamCardProps> = ({
         </div>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <div className="flex items-center text-sm text-gray-600">
             <Clock className="h-4 w-4 mr-1" />
             {exam.timeLimit} mins
           </div>
           <div className="text-sm text-gray-600">
-            <span className="font-medium">{exam.totalMarks}</span> marks
+            <span className="font-medium">{exam.sectionsCount}</span> sections
           </div>
           <div className="text-sm text-gray-600">
             <span className="font-medium">{questionsCount}</span> questions
@@ -141,6 +141,9 @@ export const ExamCard: React.FC<ExamCardProps> = ({
                 (Add questions to publish)
               </span>
             )}
+          </div>
+          <div className="text-sm text-gray-600">
+            <span className="font-medium">{exam.totalMarks}</span> marks
           </div>
           <div className="text-sm text-gray-600">
             <CheckCircle className="h-4 w-4 mr-1 inline" />
