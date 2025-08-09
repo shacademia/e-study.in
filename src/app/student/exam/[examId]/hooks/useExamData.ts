@@ -293,7 +293,7 @@ export const useExamData = (examId: string) => {
         variant: "default"
       });
       
-      router.push(`/student/results/${submissionId}`);
+      router.replace(`/student/results/${submissionId}`);
     } catch (error) {
       console.error("Error submitting exam:", error);
       toast({
