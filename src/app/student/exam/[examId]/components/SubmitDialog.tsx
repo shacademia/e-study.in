@@ -35,10 +35,10 @@ const SubmitDialog: React.FC<SubmitDialogProps> = ({
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel onClick={onCancel}>
+          <AlertDialogCancel onClick={onCancel} className="cursor-pointer">
             Cancel
           </AlertDialogCancel>
-          <AlertDialogAction onClick={onSubmit}>
+          <AlertDialogAction onClick={onSubmit} className="cursor-pointer">
             Submit
           </AlertDialogAction>
         </AlertDialogFooter>
