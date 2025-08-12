@@ -1,9 +1,23 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { MathJax, MathJaxContext } from 'better-react-mathjax';
+
+// Dynamically import MathJax components with no SSR
+const MathJax = dynamic(
+  () => import('better-react-mathjax').then((mod) => mod.MathJax),
+  { 
+    ssr: false,
+    loading: () => <span className="text-gray-500 animate-pulse">Loading math...</span>
+  }
+);
+
+const MathJaxContext = dynamic(
+  () => import('better-react-mathjax').then((mod) => mod.MathJaxContext),
+  { ssr: false }
+);
 
 interface MathInputProps {
   label: string;
@@ -23,6 +37,11 @@ const MathInput: React.FC<MathInputProps> = ({
   className = ""
 }) => {
   const [showPreview, setShowPreview] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   // MathJax configuration
   const mathJaxConfig = {
@@ -108,7 +127,7 @@ const MathInput: React.FC<MathInputProps> = ({
         required={required}
       />
       
-      {showPreview && value && (
+      {showPreview && value && isClient && (
         <div className="p-3 border rounded-lg bg-muted/50">
           <Label className="text-xs text-muted-foreground mb-2 block">Preview:</Label>
           <MathJaxContext config={mathJaxConfig}>
@@ -116,6 +135,13 @@ const MathInput: React.FC<MathInputProps> = ({
               <MathJax>{value}</MathJax>
             </div>
           </MathJaxContext>
+        </div>
+      )}
+      
+      {showPreview && value && !isClient && (
+        <div className="p-3 border rounded-lg bg-muted/50">
+          <Label className="text-xs text-muted-foreground mb-2 block">Preview:</Label>
+          <span className="text-gray-500 animate-pulse">Loading math preview...</span>
         </div>
       )}
     </div>
