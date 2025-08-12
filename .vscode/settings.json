@@ -4,5 +4,6 @@
     "cSpell.words": [
         "imagekit"
     ],
-    "typescript.tsdk": "node_modules\\typescript\\lib"
+    "typescript.tsdk": "node_modules\\typescript\\lib",
+    "kiroAgent.configureMCP": "Disabled"
 }

@@ -1,6 +1,15 @@
 'use client';
-import React from 'react';
-import { MathJax, MathJaxContext } from 'better-react-mathjax';
+import React, { useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
+
+// Dynamically import MathJax component with no SSR
+const MathJax = dynamic(
+  () => import('better-react-mathjax').then((mod) => mod.MathJax),
+  { 
+    ssr: false,
+    loading: () => <span className="text-gray-500 animate-pulse">Loading math...</span>
+  }
+);
 
 interface MathDisplayProps {
   children: string;
@@ -11,24 +20,25 @@ const MathDisplay: React.FC<MathDisplayProps> = ({
   children, 
   className = "" 
 }) => {
-  const mathJaxConfig = {
-    loader: { load: ["[tex]/html"] },
-    tex: {
-      packages: { "[+]": ["html"] },
-      inlineMath: [["$", "$"], ["\\(", "\\)"]],
-      displayMath: [["$$", "$$"], ["\\[", "\\]"]]
-    },
-    svg: {
-      fontCache: 'global'
-    }
-  };
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  // Show loading state during SSR and initial client render
+  if (!isClient) {
+    return (
+      <div className={`prose prose-sm max-w-none ${className}`}>
+        <span className="text-gray-500 animate-pulse">Loading math...</span>
+      </div>
+    );
+  }
 
   return (
-    <MathJaxContext config={mathJaxConfig}>
-      <div className={`prose prose-sm max-w-none ${className}`}>
-        <MathJax>{children}</MathJax>
-      </div>
-    </MathJaxContext>
+    <div className={`prose prose-sm max-w-none ${className}`}>
+      <MathJax>{children}</MathJax>
+    </div>
   );
 };
 

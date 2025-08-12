@@ -2,6 +2,7 @@ import { SpeedInsights } from '@vercel/speed-insights/next';
 import type { Metadata } from "next";
 import { ClientAuthProvider } from '@/components/ClientAuthProvider';
 import { ReactQueryProvider } from '@/components/ReactQueryProvider';
+import MathJaxProvider from '@/providers/MathJaxProvider';
 import "./globals.css";
 import { ResultContextProvider } from '@/context/ResultContext';
 import { QuestionContextProvider } from "@/context/QuestionContext";
@@ -21,14 +22,16 @@ export default function RootLayout({
       <body suppressHydrationWarning className="antialiased">
         <ReactQueryProvider>
           <ClientAuthProvider>
-            <ResultContextProvider>
-              <QuestionContextProvider>
-                <UsedQuestionsProvider>
-                  {children}
-                  <SpeedInsights />
-                </UsedQuestionsProvider>
-              </QuestionContextProvider>
-            </ResultContextProvider>
+            <MathJaxProvider>
+              <ResultContextProvider>
+                <QuestionContextProvider>
+                  <UsedQuestionsProvider>
+                    {children}
+                    <SpeedInsights />
+                  </UsedQuestionsProvider>
+                </QuestionContextProvider>
+              </ResultContextProvider>
+            </MathJaxProvider>
           </ClientAuthProvider>
         </ReactQueryProvider>
       </body>
