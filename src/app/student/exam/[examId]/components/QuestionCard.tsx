@@ -17,8 +17,7 @@ import {
   ImageIcon,
 } from "lucide-react";
 import { Question } from "@/constants/types";
-// import SafeMathDisplay from "@/components/SafeMathDisplay";
-import MathDisplay from "@/components/math-display";
+import SafeMathDisplay from "@/components/SafeMathDisplay";
 
 // QuestionCardProps interface
 interface QuestionCardProps {
@@ -234,7 +233,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
     if (question.layer1Type === 'text' && question.layer1Text?.trim()) {
       layers.push(
         <div key="l1t" className="mb-4">
-          <MathDisplay className="text-gray-800">{question.layer1Text}</MathDisplay>
+          <SafeMathDisplay className="text-gray-800">{question.layer1Text}</SafeMathDisplay>
         </div>
       );
     } else if (question.layer1Type === 'image' && question.layer1Image?.trim()) {
@@ -252,7 +251,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
     if (question.layer2Type === 'text' && question.layer2Text?.trim()) {
       layers.push(
         <div key="l2t" className="mt-4 mb-4">
-          <MathDisplay className="text-gray-800">{question.layer2Text}</MathDisplay>
+          <SafeMathDisplay className="text-gray-800">{question.layer2Text}</SafeMathDisplay>
         </div>
       );
     } else if (question.layer2Type === 'image' && question.layer2Image?.trim()) {
@@ -270,7 +269,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
     if (question.layer3Type === 'text' && question.layer3Text?.trim()) {
       layers.push(
         <div key="l3t" className="mt-4">
-          <MathDisplay className="text-gray-800">{question.layer3Text}</MathDisplay>
+          <SafeMathDisplay className="text-gray-800">{question.layer3Text}</SafeMathDisplay>
         </div>
       );
     } else if (question.layer3Type === 'image' && question.layer3Image?.trim()) {
@@ -384,7 +383,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
           </div>
         </div>
 
-        {/* ✅ FIXED: Answer Options Section - Single radio button, no extra text */}
+        {/* Answer Options Section - Single radio button*/}
         <div className="bg-white rounded-lg p-6 border border-gray-200 shadow-sm">
           <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
             <CheckCircle className="h-5 w-5 text-green-600" />
@@ -431,7 +430,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
                       />
                     )}
                     
-                    {/* ✅ FIXED: Clickable label that wraps everything */}
+                    {/* Clickable label that wraps everything */}
                     <Label 
                       htmlFor={`${question.id}-${index}`} 
                       className={`block ${!isReviewMode ? 'cursor-pointer' : ''}`}
@@ -446,7 +445,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
                               : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                       }`}>
                         
-                        {/* ✅ SINGLE Option Letter Button - Acts as the selector */}
+                        {/* SINGLE Option Letter Button - Acts as the selector */}
                         <div className={`flex-shrink-0 w-8 h-8 rounded-full border-2 flex items-center justify-center font-bold text-sm transition-colors ${
                           isReviewMode && isCorrect
                             ? 'bg-green-600 border-green-600 text-white'
@@ -459,7 +458,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
                           {String.fromCharCode(65 + index)}
                         </div>
                         
-                        {/* ✅ FIXED: Option Image on Left (if exists) */}
+                        {/* Option Image on Left (if exists) */}
                         {optionType === 'image' && hasImageContent && optionImage && (
                           <div className="flex-shrink-0 w-32 h-auto">
                             <StaticImage
@@ -472,15 +471,13 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
                           </div>
                         )}
                         
-                        {/* ✅ FIXED: Content - Only show text for text options, nothing extra for images */}
+                        {/* text options*/}
                         <div className="flex-1 flex flex-col justify-center">
                           {optionType === 'text' && hasTextContent && (
                             <div className="text-gray-800 leading-relaxed">
-                              <MathDisplay className="text-gray-800">{option}</MathDisplay>
+                              <SafeMathDisplay className="text-gray-800">{option}</SafeMathDisplay>
                             </div>
                           )}
-                          
-                          {/* ✅ REMOVED: Extra "Option A" text for image options */}
                         </div>
 
                         {/* Review Mode Indicators */}
