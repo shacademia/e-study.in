@@ -5,18 +5,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 
-// Dynamically import MathJax components with no SSR
+// Dynamically import MathJax component with no SSR
 const MathJax = dynamic(
   () => import('better-react-mathjax').then((mod) => mod.MathJax),
   { 
     ssr: false,
     loading: () => <span className="text-gray-500 animate-pulse">Loading math...</span>
   }
-);
-
-const MathJaxContext = dynamic(
-  () => import('better-react-mathjax').then((mod) => mod.MathJaxContext),
-  { ssr: false }
 );
 
 interface MathInputProps {
@@ -42,19 +37,6 @@ const MathInput: React.FC<MathInputProps> = ({
   useEffect(() => {
     setIsClient(true);
   }, []);
-
-  // MathJax configuration
-  const mathJaxConfig = {
-    loader: { load: ["[tex]/html"] },
-    tex: {
-      packages: { "[+]": ["html"] },
-      inlineMath: [["$", "$"], ["\\(", "\\)"]],
-      displayMath: [["$$", "$$"], ["\\[", "\\]"]]
-    },
-    svg: {
-      fontCache: 'global'
-    }
-  };
 
   // Handle paste events from MathType
   const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
@@ -130,11 +112,9 @@ const MathInput: React.FC<MathInputProps> = ({
       {showPreview && value && isClient && (
         <div className="p-3 border rounded-lg bg-muted/50">
           <Label className="text-xs text-muted-foreground mb-2 block">Preview:</Label>
-          <MathJaxContext config={mathJaxConfig}>
-            <div className="prose prose-sm max-w-none">
-              <MathJax>{value}</MathJax>
-            </div>
-          </MathJaxContext>
+          <div className="prose prose-sm max-w-none">
+            <MathJax>{value}</MathJax>
+          </div>
         </div>
       )}
       
