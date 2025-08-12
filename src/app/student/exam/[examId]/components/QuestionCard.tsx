@@ -17,8 +17,8 @@ import {
   ImageIcon,
 } from "lucide-react";
 import { Question } from "@/constants/types";
-import SafeMathDisplay from "@/components/SafeMathDisplay";
-// import MathDisplay from "@/components/math-display";
+// import SafeMathDisplay from "@/components/SafeMathDisplay";
+import MathDisplay from "@/components/math-display";
 
 // QuestionCardProps interface
 interface QuestionCardProps {
@@ -234,7 +234,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
     if (question.layer1Type === 'text' && question.layer1Text?.trim()) {
       layers.push(
         <div key="l1t" className="mb-4">
-          <SafeMathDisplay className="text-gray-800">{question.layer1Text}</SafeMathDisplay>
+          <MathDisplay className="text-gray-800">{question.layer1Text}</MathDisplay>
         </div>
       );
     } else if (question.layer1Type === 'image' && question.layer1Image?.trim()) {
@@ -252,7 +252,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
     if (question.layer2Type === 'text' && question.layer2Text?.trim()) {
       layers.push(
         <div key="l2t" className="mt-4 mb-4">
-          <SafeMathDisplay className="text-gray-800">{question.layer2Text}</SafeMathDisplay>
+          <MathDisplay className="text-gray-800">{question.layer2Text}</MathDisplay>
         </div>
       );
     } else if (question.layer2Type === 'image' && question.layer2Image?.trim()) {
@@ -270,7 +270,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
     if (question.layer3Type === 'text' && question.layer3Text?.trim()) {
       layers.push(
         <div key="l3t" className="mt-4">
-          <SafeMathDisplay className="text-gray-800">{question.layer3Text}</SafeMathDisplay>
+          <MathDisplay className="text-gray-800">{question.layer3Text}</MathDisplay>
         </div>
       );
     } else if (question.layer3Type === 'image' && question.layer3Image?.trim()) {
@@ -280,27 +280,6 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
           src={question.layer3Image}
           alt="Question Layer 3" 
           maxHeight="200px"
-        />
-      );
-    }
-
-    // Fallback for legacy content field
-    if (layers.length === 0 && question.content?.trim()) {
-      layers.push(
-        <div key="legacy-content" className="mb-4">
-          <SafeMathDisplay className="text-gray-800">{question.content}</SafeMathDisplay>
-        </div>
-      );
-    }
-
-    // Legacy question image support
-    if (question.questionImage?.trim()) {
-      layers.push(
-        <StaticImage 
-          key="legacy-image" 
-          src={question.questionImage}
-          alt="Question Image" 
-          maxHeight="400px"
         />
       );
     }
@@ -497,7 +476,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
                         <div className="flex-1 flex flex-col justify-center">
                           {optionType === 'text' && hasTextContent && (
                             <div className="text-gray-800 leading-relaxed">
-                              <SafeMathDisplay className="text-gray-800">{option}</SafeMathDisplay>
+                              <MathDisplay className="text-gray-800">{option}</MathDisplay>
                             </div>
                           )}
                           
