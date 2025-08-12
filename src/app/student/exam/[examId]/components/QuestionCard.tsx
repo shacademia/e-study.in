@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { Question } from "@/constants/types";
 import SafeMathDisplay from "@/components/SafeMathDisplay";
+// import MathDisplay from "@/components/math-display";
 
 // QuestionCardProps interface
 interface QuestionCardProps {
