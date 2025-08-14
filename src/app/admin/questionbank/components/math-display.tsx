@@ -36,7 +36,7 @@ const MathDisplay: React.FC<MathDisplayProps> = ({
   }
 
   return (
-    <div className={`prose prose-sm max-w-none ${className}`}>
+    <div className={`prose prose-sm max-w-none whitespace-pre-line ${className}`}>
       <MathJax>{children}</MathJax>
     </div>
   );

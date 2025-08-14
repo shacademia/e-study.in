@@ -8,7 +8,7 @@ const MathJaxContext = dynamic(
   () => import('better-react-mathjax').then((mod) => mod.MathJaxContext),
   {
     ssr: false,
-    loading: () => <div>Loading MathJax...</div>
+    loading: () => <div></div>
   }
 );
 
@@ -68,7 +68,9 @@ const MathJaxProvider: React.FC<MathJaxProviderProps> = ({ children }) => {
             // Force initial typesetting for production
             if (process.env.NODE_ENV === 'production') {
               setTimeout(() => {
-                window.MathJax.typesetPromise?.();
+                if (window.MathJax) {
+                  window.MathJax.typesetPromise?.();
+                }
               }, 100);
             }
           }).catch((error: unknown) => {
