@@ -54,7 +54,7 @@ const MathRenderer: React.FC<MathRendererProps> = ({
   return (
     <div 
       key={renderKey} 
-      className={`prose prose-sm max-w-none ${className} ${inline ? 'inline-block' : ''}`}
+      className={`prose prose-sm max-w-none whitespace-pre-line ${className} ${inline ? 'inline-block' : ''}`}
     >
       <MathJax>{children}</MathJax>
     </div>

@@ -112,7 +112,7 @@ const MathInput: React.FC<MathInputProps> = ({
       {showPreview && value && isClient && (
         <div className="p-3 border rounded-lg bg-muted/50">
           <Label className="text-xs text-muted-foreground mb-2 block">Preview:</Label>
-          <div className="prose prose-sm max-w-none">
+          <div className="prose prose-sm max-w-none whitespace-pre-line">
             <MathJax>{value}</MathJax>
           </div>
         </div>
