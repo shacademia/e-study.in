@@ -36,6 +36,7 @@ export const AddQuestionDialog: React.FC<AddQuestionDialogProps> = ({
             question={question}
             onChange={onQuestionChange}
             isSubmitting={isSubmitting}
+            onCancel={onClose}
             onSubmit={onSubmit}
           />
         </div>

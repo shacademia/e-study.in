@@ -14,6 +14,7 @@ interface QuestionFormProps {
   onChange: (question: Question | CreateQuestionRequest) => void;
   isSubmitting?: boolean;
   onSubmit?: () => void;
+  onCancel?: () => void;
   isEditMode?: boolean;
 }
 
@@ -22,6 +23,7 @@ export const QuestionForm: React.FC<QuestionFormProps> = ({
   onChange,
   isSubmitting = false,
   onSubmit,
+  onCancel,
   isEditMode = false
 }) => {
   const updateQuestion = (updates: Partial<Question | CreateQuestionRequest>) => {
@@ -30,17 +32,6 @@ export const QuestionForm: React.FC<QuestionFormProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Legacy Question Content (for backward compatibility) */}
-      {/* <div>
-        <Label>Question Content (Legacy)</Label>
-        <MathInput
-          label=""
-          value={question.content || ''}
-          onChange={(value) => updateQuestion({ content: value })}
-          placeholder="Enter the question text. You can paste math from MathType!"
-        />
-      </div> */}
-
       {/* NEW: 3-Layer Question System */}
       <div className="space-y-4 p-4 border-2 border-dashed border-blue-200 rounded-lg bg-blue-50/30">
         <h3 className="text-sm font-medium text-blue-900">📝 Question Structure</h3>
@@ -500,9 +491,9 @@ export const QuestionForm: React.FC<QuestionFormProps> = ({
             type="button"
             variant="outline"
             disabled={isSubmitting}
-            onClick={() => onChange(question)}
+            onClick={onCancel}
           >
-            Reset
+            Cancel
           </Button>
           <Button
             type="button"
