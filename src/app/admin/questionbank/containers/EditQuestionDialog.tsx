@@ -20,10 +20,7 @@ export const EditQuestionDialog: React.FC<EditQuestionDialogProps> = ({
   isSubmitting
 }) => {
   if (!question) return null;
-
-
   
-
   return (
     <Dialog open={!!question} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -42,6 +39,7 @@ export const EditQuestionDialog: React.FC<EditQuestionDialogProps> = ({
             }}
             isSubmitting={isSubmitting}
             onSubmit={onSubmit}
+            onCancel={onClose}
             isEditMode
           />
         </div>
