@@ -31,14 +31,6 @@ const QuestionResultsList: React.FC<QuestionResultsListProps> = ({
     );
   }
 
-  // Debug: Check exam questions structure
-  // console.log('QuestionResultsList: Exam questions structure:', {
-  //   hasQuestions: !!exam.questions,
-  //   questionsLength: exam.questions?.length || 0,
-  //   firstQuestion: exam.questions?.[0],
-  //   questionsType: Array.isArray(exam.questions) ? 'array' : typeof exam.questions,
-  // });
-
   return (
     <Card>
       <CardHeader>

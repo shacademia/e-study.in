@@ -1,10 +1,10 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Trophy, Calendar, Sparkles  } from 'lucide-react';
 // import { Exam, Submission } from '@/constants/types';
 import { Exam, ExamSubmissionData, Statistics } from '../types/index';
+
 
 interface ResultsSummaryProps {
   exam: Exam;
@@ -15,6 +15,7 @@ interface ResultsSummaryProps {
   grade: string;
   statistics: Statistics;
 }
+
 
 const ResultsSummary: React.FC<ResultsSummaryProps> = ({
   exam,
@@ -29,6 +30,7 @@ const ResultsSummary: React.FC<ResultsSummaryProps> = ({
   const unanswered = statistics.unanswered !== undefined
     ? statistics.unanswered
     : totalQuestions - (correctAnswers ?? 0) - incorrectAnswers;
+
 
   const getMessage = () => {
     if (percentage >= 95)
@@ -92,59 +94,65 @@ const ResultsSummary: React.FC<ResultsSummaryProps> = ({
     };
   };
 
+
   const message = getMessage();
 
+
   return (
-    <Card className="max-w-7xl mx-auto border border-gray-200 shadow-md">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-lg font-semibold">
-          <Trophy className="h-5 w-5 text-yellow-500" />
-          {exam.name}
+    <Card className="w-full max-w-7xl mx-auto border border-gray-200 shadow-md">
+      <CardHeader className="px-4 sm:px-6">
+        <CardTitle className="flex items-center gap-2 text-base sm:text-lg font-semibold">
+          <Trophy className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-500 flex-shrink-0" />
+          <span className="truncate">{exam.name}</span>
         </CardTitle>
-        <CardDescription className="flex items-center gap-2 text-gray-600 mt-1">
-          <Calendar className="h-4 w-4" />
-          Completed on{' '}
-          {submission.completedAt
-            ? new Date(submission.completedAt).toLocaleDateString(undefined, {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-              })
-            : 'N/A'}
+        <CardDescription className="flex items-center gap-2 text-gray-600 mt-1 text-sm">
+          <Calendar className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+          <span className="truncate">
+            Completed on{' '}
+            {submission.completedAt
+              ? new Date(submission.completedAt).toLocaleDateString(undefined, {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                })
+              : 'N/A'}
+          </span>
         </CardDescription>
       </CardHeader>
 
-      <CardContent>
+
+      <CardContent className="px-4 sm:px-6">
         {/* Stat blocks */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-          <div className="p-4 rounded bg-gray-50 border text-center">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 mb-4 sm:mb-6">
+          <div className="p-3 sm:p-4 rounded bg-gray-50 border text-center">
             <div className="text-xs text-gray-500 mb-1">Score</div>
-            <div className="text-2xl font-bold text-blue-600">{statistics.earnedMarks}</div>
+            <div className="text-xl sm:text-2xl font-bold text-blue-600">{statistics.earnedMarks}</div>
           </div>
-          <div className="p-4 rounded bg-gray-50 border text-center">
+          <div className="p-3 sm:p-4 rounded bg-gray-50 border text-center">
             <div className="text-xs text-gray-500 mb-1">Correct</div>
-            <div className="text-2xl font-bold text-emerald-600">{correctAnswers?? 0}</div>
+            <div className="text-xl sm:text-2xl font-bold text-emerald-600">{correctAnswers?? 0}</div>
           </div>
-          <div className="p-4 rounded bg-gray-50 border text-center">
+          <div className="p-3 sm:p-4 rounded bg-gray-50 border text-center">
             <div className="text-xs text-gray-500 mb-1">Incorrect</div>
-            <div className="text-2xl font-bold text-rose-600">{incorrectAnswers}</div>
+            <div className="text-xl sm:text-2xl font-bold text-rose-600">{incorrectAnswers}</div>
           </div>
-          <div className="p-4 rounded bg-gray-50 border text-center">
+          <div className="p-3 sm:p-4 rounded bg-gray-50 border text-center">
             <div className="text-xs text-gray-500 mb-1">Unanswered</div>
-            <div className="text-2xl font-bold text-amber-500">{unanswered}</div>
+            <div className="text-xl sm:text-2xl font-bold text-amber-500">{unanswered}</div>
           </div>
-          <div className="p-4 rounded bg-gray-50 border text-center">
+          <div className="p-3 sm:p-4 rounded bg-gray-50 border text-center col-span-2 sm:col-span-1">
             <div className="text-xs text-gray-500 mb-1">Grade</div>
-            <div className="text-2xl font-bold text-amber-500">{grade}</div>
+            <div className="text-xl sm:text-2xl font-bold text-amber-500">{grade}</div>
           </div>
         </div>
 
+
         {/* Percentage/Progress */}
-        <div className="mb-5">
+        <div className="mb-4 sm:mb-5">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium text-gray-700">Percentage</span>
             <Badge
-              className="ml-2 text-amber-600"
+              className="ml-2 text-amber-600 text-xs sm:text-sm"
               style={{
                 background:
                   percentage >= 90
@@ -159,7 +167,7 @@ const ResultsSummary: React.FC<ResultsSummaryProps> = ({
               {Math.round(percentage)}%
             </Badge>
           </div>
-          <div className="relative w-full h-5 mb-2">
+          <div className="relative w-full h-4 sm:h-5 mb-2">
             {/* Animated Gradient Progress Bar */}
             <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-200/50 via-green-200/50 to-amber-200/50" />
             <div
@@ -182,16 +190,16 @@ const ResultsSummary: React.FC<ResultsSummaryProps> = ({
             <div
               className="absolute -top-2 z-10 transition-all duration-700"
               style={{
-                left: `calc(${percentage}% - 16px)`, // Adjust so the icon stays inside
+                left: `calc(${percentage}% - 12px)`, // Adjusted for smaller screens
               }}
             >
               {/* You can use any icon or emoji! */}
-              {percentage >= 90 ? (
-                <Trophy className="h-6 w-6 text-emerald-500 drop-shadow-lg animate-bounce" />
+              {percentage >= 80 ? (
+                <Trophy className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-500 drop-shadow-lg animate-bounce" />
               ) : percentage >= 60 ? (
-                <Sparkles className="h-6 w-6 text-blue-500 drop-shadow-lg animate-pulse" />
+                <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 text-blue-500 drop-shadow-lg animate-pulse" />
               ) : (
-                <span className="text-2xl select-none">{percentage >= 50 ? "🔥" : "💡"}</span>
+                <span className="text-xl sm:text-2xl select-none">{percentage >= 50 ? "💡" : "🥲"}</span>
               )}
             </div>
             {/* Border and fill outline */}
@@ -199,10 +207,11 @@ const ResultsSummary: React.FC<ResultsSummaryProps> = ({
           </div>
         </div>
 
+
         {/* Feedback message */}
         <div className="mt-3">
           <div
-            className={`px-4 py-3 text-center rounded-md border text-sm font-medium transition-colors duration-200 ${message.color}`}
+            className={`px-3 sm:px-4 py-3 text-center rounded-md border text-xs sm:text-sm font-medium transition-colors duration-200 ${message.color}`}
           >
             {message.text}
           </div>
@@ -211,5 +220,6 @@ const ResultsSummary: React.FC<ResultsSummaryProps> = ({
     </Card>
   );
 };
+
 
 export default ResultsSummary;
