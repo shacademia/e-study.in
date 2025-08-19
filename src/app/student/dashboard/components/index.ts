@@ -1,7 +1,6 @@
 export { default as DashboardHeader } from './DashboardHeader';
 export { default as WelcomeSection } from './WelcomeSection';
 export { default as StatsCards } from './StatsCards';
-export { default as StatCard } from './StatCard';
 export { default as ProfilePerformance } from './ProfilePerformance';
 export { default as RecentActivity } from './RecentActivity';
 export { default as ExamsSection } from './ExamsSection';

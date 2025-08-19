@@ -26,7 +26,6 @@ const useDashboardData = (): DashboardData => {
   const [userSubmissions, setUserSubmissions] = useState<Submission[]>([]);
   const [userRanking, setUserRanking] = useState<StudentRanking | null>(null);
   const [loading, setLoading] = useState(true);
-  const [dataLoaded, setDataLoaded] = useState(false);
 
   console.log('Dashboard Data Hook - User:', user?.id, 'Loading:', loading);
 

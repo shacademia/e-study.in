@@ -9,21 +9,23 @@ const ResultsActions: React.FC = () => {
   const router = useRouter();
 
   return (
-    <div className="flex justify-center space-x-4">
+    <div className="flex flex-col sm:flex-row justify-center items-center gap-2 sm:gap-4 w-full px-4 sm:px-0">
       <Button
         variant="outline"
-        className="cursor-pointer"
+        className="w-full sm:w-auto cursor-pointer text-sm sm:text-base"
         onClick={() => router.push('/student/dashboard')}
       >
         <BookOpen className="h-4 w-4 mr-2" />
-        Back to Dashboard
+        <span className="hidden sm:inline">Back to Dashboard</span>
+        <span className="inline sm:hidden">Dashboard</span>
       </Button>
       <Button
-        className="cursor-pointer"
+        className="w-full sm:w-auto cursor-pointer text-sm sm:text-base"
         onClick={() => router.push('/rankings')}
       >
         <Trophy className="h-4 w-4 mr-2" />
-        View Rankings
+        <span className="hidden sm:inline">View Rankings</span>
+        <span className="inline sm:hidden">Rankings</span>
       </Button>
     </div>
   );

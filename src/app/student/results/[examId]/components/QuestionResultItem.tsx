@@ -27,9 +27,9 @@ interface QuestionResultItemProps {
   showExplanation?: boolean;
 }
 
-// ==============================================
+// ==========
 // ENHANCED IMAGE COMPONENT FOR EXAM RESULTS
-// ==============================================
+// ==========
 const EnhancedResultImage: React.FC<{ 
   src: string; 
   alt: string; 
@@ -42,9 +42,9 @@ const EnhancedResultImage: React.FC<{
 
   if (imageError) {
     return (
-      <div className="flex flex-col items-center justify-center h-24 text-gray-500 bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg p-4">
-        <ImageIcon className="w-6 h-6 mb-1 text-gray-400" />
-        <p className="text-xs text-gray-600">Image failed to load</p>
+      <div className="flex flex-col items-center justify-center h-20 sm:h-24 text-gray-500 bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg p-3 sm:p-4">
+        <ImageIcon className="w-5 h-5 sm:w-6 sm:h-6 mb-1 text-gray-400" />
+        <p className="text-xs text-gray-600 text-center">Image failed to load</p>
       </div>
     );
   }
@@ -54,7 +54,7 @@ const EnhancedResultImage: React.FC<{
       <div className="relative bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden hover:border-blue-300 transition-all duration-200">
         {isLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-gray-50 z-10">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+            <div className="animate-spin rounded-full h-5 w-5 sm:h-6 sm:w-6 border-b-2 border-blue-600"></div>
           </div>
         )}
         
@@ -72,8 +72,8 @@ const EnhancedResultImage: React.FC<{
         />
         
         <div className="absolute inset-0 bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-200 flex items-center justify-center">
-          <div className="bg-white bg-opacity-90 rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-            <ZoomIn className="h-4 w-4 text-gray-700" />
+          <div className="bg-white bg-opacity-90 rounded-full p-1.5 sm:p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+            <ZoomIn className="h-3 w-3 sm:h-4 sm:w-4 text-gray-700" />
           </div>
         </div>
       </div>
@@ -123,24 +123,11 @@ const QuestionResultItem: React.FC<QuestionResultItemProps> = ({
   // Safety check - ensure question has required data
   if (!question) {
     return (
-      <div className="border rounded-lg p-4 bg-gray-50">
-        <p className="text-gray-500">Question data not available</p>
+      <div className="border rounded-lg p-3 sm:p-4 bg-gray-50">
+        <p className="text-gray-500 text-sm sm:text-base">Question data not available</p>
       </div>
     );
   }
-
-  // // Safety check for options
-  // const options = Array.isArray(question.options) ? question.options : [];
-  // if (options.length === 0) {
-  //   return (
-  //     <div className="border rounded-lg p-4 bg-gray-50">
-  //       <p className="text-gray-500">Question options not available</p>
-  //       {question.content && (
-  //         <p className="text-sm text-gray-400 mt-1">Content: {question.content}</p>
-  //       )}
-  //     </div>
-  //   );
-  // }
 
   // ✅ ENHANCED: Render 3-layer question content
   const renderQuestionContent = () => {
@@ -150,7 +137,7 @@ const QuestionResultItem: React.FC<QuestionResultItemProps> = ({
     if (question.layer1Type === 'text' && question.layer1Text?.trim()) {
       layers.push(
         <div key="l1t" className="mb-3">
-          <SafeMathDisplay className="text-gray-800 leading-relaxed">{question.layer1Text}</SafeMathDisplay>
+          <SafeMathDisplay className="text-gray-800 leading-relaxed text-sm sm:text-base">{question.layer1Text}</SafeMathDisplay>
         </div>
       );
     } else if (question.layer1Type === 'image' && question.layer1Image?.trim()) {
@@ -170,7 +157,7 @@ const QuestionResultItem: React.FC<QuestionResultItemProps> = ({
     if (question.layer2Type === 'text' && question.layer2Text?.trim()) {
       layers.push(
         <div key="l2t" className="mb-3">
-          <SafeMathDisplay className="text-gray-800 leading-relaxed">{question.layer2Text}</SafeMathDisplay>
+          <SafeMathDisplay className="text-gray-800 leading-relaxed text-sm sm:text-base">{question.layer2Text}</SafeMathDisplay>
         </div>
       );
     } else if (question.layer2Type === 'image' && question.layer2Image?.trim()) {
@@ -190,7 +177,7 @@ const QuestionResultItem: React.FC<QuestionResultItemProps> = ({
     if (question.layer3Type === 'text' && question.layer3Text?.trim()) {
       layers.push(
         <div key="l3t" className="mb-3">
-          <SafeMathDisplay className="text-gray-800 leading-relaxed">{question.layer3Text}</SafeMathDisplay>
+          <SafeMathDisplay className="text-gray-800 leading-relaxed text-sm sm:text-base">{question.layer3Text}</SafeMathDisplay>
         </div>
       );
     } else if (question.layer3Type === 'image' && question.layer3Image?.trim()) {
@@ -205,15 +192,6 @@ const QuestionResultItem: React.FC<QuestionResultItemProps> = ({
         </div>
       );
     }
-
-    // // Fallback to legacy content (backward compatibility)
-    // if (layers.length === 0 && question.content?.trim()) {
-    //   layers.push(
-    //     <div key="legacy-content" className="mb-3">
-    //       <MathDisplay className="text-gray-800 leading-relaxed">{question.content}</MathDisplay>
-    //     </div>
-    //   );
-    // }
 
     // Legacy question image
     if (question.questionImage?.trim()) {
@@ -231,8 +209,8 @@ const QuestionResultItem: React.FC<QuestionResultItemProps> = ({
 
     return layers.length > 0 ? layers : (
       <div className="text-gray-500 italic flex items-center gap-2 p-3 bg-gray-50 rounded-lg mb-3">
-        <AlertCircle className="h-4 w-4" />
-        No question content available.
+        <AlertCircle className="h-4 w-4 flex-shrink-0" />
+        <span className="text-sm sm:text-base">No question content available.</span>
       </div>
     );
   };
@@ -249,9 +227,9 @@ const QuestionResultItem: React.FC<QuestionResultItemProps> = ({
 
     if (!hasExplanationContent) {
       return (
-        <div className="mt-4 bg-gray-50 rounded-lg p-4 border border-gray-200">
+        <div className="mt-4 bg-gray-50 rounded-lg p-3 sm:p-4 border border-gray-200">
           <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-            <HelpCircle className="h-4 w-4 text-gray-500" />
+            <HelpCircle className="h-4 w-4 text-gray-500 flex-shrink-0" />
             Explanation
           </h4>
           <p className="text-gray-500 italic text-sm">No explanation available for this question.</p>
@@ -260,9 +238,9 @@ const QuestionResultItem: React.FC<QuestionResultItemProps> = ({
     }
 
     return (
-      <div className="mt-4 bg-green-50 rounded-lg p-4 border border-green-200">
+      <div className="mt-4 bg-green-50 rounded-lg p-3 sm:p-4 border border-green-200">
         <h4 className="text-sm font-semibold text-green-900 mb-3 flex items-center gap-2">
-          <HelpCircle className="h-4 w-4 text-green-600" />
+          <HelpCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
           Explanation
         </h4>
         <div className="text-green-800 leading-relaxed">
@@ -300,26 +278,26 @@ const QuestionResultItem: React.FC<QuestionResultItemProps> = ({
 
   return (
     <>
-      <div className="border rounded-lg p-4 bg-white shadow-sm">
+      <div className="border rounded-lg p-3 sm:p-4 bg-white shadow-sm">
         {/* Header Section */}
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center">
-              <span className="text-sm font-medium text-gray-600 mr-2">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-4 gap-3 sm:gap-0">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex items-center flex-wrap gap-2">
+              <span className="text-sm font-medium text-gray-600">
                 Question {index + 1}
               </span>
               {userAnswer === undefined ? (
-                <Badge className="bg-amber-100 text-amber-800 border-amber-200 flex items-center gap-1">
+                <Badge className="bg-amber-100 text-amber-800 border-amber-200 flex items-center gap-1 text-xs">
                   <AlertCircle className="h-3 w-3" />
-                  Unanswered
+                  N/A
                 </Badge>
               ) : isCorrect ? (
-                <Badge variant="default" className="flex items-center gap-1">
+                <Badge variant="default" className="flex items-center gap-1 text-xs">
                   <CheckCircle className="h-3 w-3" />
                   Correct
                 </Badge>
               ) : (
-                <Badge variant="destructive" className="flex items-center gap-1">
+                <Badge variant="destructive" className="flex items-center gap-1 text-xs">
                   <XCircle className="h-3 w-3" />
                   Incorrect
                 </Badge>
@@ -327,16 +305,17 @@ const QuestionResultItem: React.FC<QuestionResultItemProps> = ({
             </div>
           </div>
           
-          <div className="flex items-center gap-2">
-            {/* ✅ ENHANCED: Colored Difficulty Badge */}
+          <div className="flex flex-wrap items-center gap-1 sm:gap-2">
+            {/* Colored Difficulty Badge */}
             <Badge className={`${difficultyDetails.color} flex items-center gap-1 font-semibold text-xs`}>
               {difficultyDetails.icon}
-              {question.difficulty}
+              <span className="hidden xs:inline">{question.difficulty}</span>
+              <span className="xs:hidden">{question.difficulty?.[0]}</span>
             </Badge>
             {question.subject && (
               <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200">
-                <BookOpen className="h-3 w-3 mr-1" />
-                {question.subject}
+                <BookOpen className="h-3 w-3 mr-1 flex-shrink-0" />
+                <span className="truncate max-w-20 sm:max-w-none">{question.subject}</span>
               </Badge>
             )}
             <div className="flex items-center gap-1">
@@ -353,7 +332,7 @@ const QuestionResultItem: React.FC<QuestionResultItemProps> = ({
         {/* Question Content Section */}
         <div className="mb-4">
           <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-            <Target className="h-4 w-4 text-blue-600" />
+            <Target className="h-4 w-4 text-blue-600 flex-shrink-0" />
             Question
           </h3>
           {renderQuestionContent()}
@@ -362,7 +341,7 @@ const QuestionResultItem: React.FC<QuestionResultItemProps> = ({
         {/* Answer Options Section */}
         <div className="mb-4">
           <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-            <CheckCircle className="h-4 w-4 text-green-600" />
+            <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
             Answer Options
           </h4>
           <div className="grid grid-cols-1 gap-2">
@@ -388,7 +367,7 @@ const QuestionResultItem: React.FC<QuestionResultItemProps> = ({
                   key={optionIndex}
                   className={`p-3 rounded-lg border text-sm transition-all duration-200 ${optionStyle}`}
                 >
-                  <div className="flex items-start gap-3">
+                  <div className="flex items-start gap-2 sm:gap-3">
                     {/* Option Letter */}
                     <div className={`flex-shrink-0 w-6 h-6 rounded-full border flex items-center justify-center font-bold text-xs ${
                       isOptionCorrect 
@@ -401,7 +380,7 @@ const QuestionResultItem: React.FC<QuestionResultItemProps> = ({
                     </div>
 
                     {/* Option Content */}
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       {/* Text Content */}
                       {optionType === 'text' && option?.trim() && (
                         <SafeMathDisplay className="text-sm">{option}</SafeMathDisplay>
@@ -414,34 +393,38 @@ const QuestionResultItem: React.FC<QuestionResultItemProps> = ({
                             src={optionImage}
                             alt={`Option ${String.fromCharCode(65 + optionIndex)}`}
                             onClick={() => setSelectedImagePreview(optionImage)}
-                            maxHeight="100px"
+                            maxHeight="80px"
                           />
                           <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
                             <Eye className="h-3 w-3" />
-                            Click to enlarge
+                            <span className="hidden sm:inline">Click to enlarge</span>
+                            <span className="sm:hidden">Tap to enlarge</span>
                           </p>
                         </div>
                       )}
                     </div>
 
                     {/* Status Icons */}
-                    <div className="flex flex-col gap-1">
+                    <div className="flex flex-col gap-1 flex-shrink-0">
                       {isOptionCorrect && (
                         <Badge className="bg-green-100 text-green-800 border-green-200 text-xs flex items-center gap-1">
                           <CheckCircle className="h-3 w-3" />
-                          Correct
+                          <span className="hidden sm:inline">Correct</span>
+                          <span className="sm:hidden">✓</span>
                         </Badge>
                       )}
                       {isUserChoice && !isOptionCorrect && (
                         <Badge className="bg-red-100 text-red-800 border-red-200 text-xs flex items-center gap-1">
                           <XCircle className="h-3 w-3" />
-                          Your Answer
+                          <span className="hidden sm:inline">Your Answer</span>
+                          <span className="sm:hidden">You</span>
                         </Badge>
                       )}
                       {isUserChoice && isCorrect && (
                         <Badge className="bg-green-100 text-green-800 border-green-200 text-xs flex items-center gap-1">
                           <CheckCircle className="h-3 w-3" />
-                          Your Answer
+                          <span className="hidden sm:inline">Your Answer</span>
+                          <span className="sm:hidden">You</span>
                         </Badge>
                       )}
                     </div>
@@ -454,9 +437,12 @@ const QuestionResultItem: React.FC<QuestionResultItemProps> = ({
 
         {/* No Answer Indicator */}
         {userAnswer === undefined && (
-          <div className="mb-4 p-3 bg-amber-100 border-2 border-amber-200 rounded-lg text-sm text-amber-700 flex items-center gap-2 font-medium">
-            <AlertCircle className="h-5 w-5" />
-              No answer provided - This question was left unanswered
+          <div className="mb-4 p-3 bg-amber-100 border-2 border-amber-200 rounded-lg text-sm text-amber-700 flex items-start gap-2 font-medium">
+            <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+            <span>
+              <span className="hidden sm:inline">No answer provided - This question was left unanswered</span>
+              <span className="sm:hidden">Question left unanswered</span>
+            </span>
           </div>
         )}
 
@@ -466,16 +452,16 @@ const QuestionResultItem: React.FC<QuestionResultItemProps> = ({
 
       {/* Image Preview Dialog */}
       <Dialog open={!!selectedImagePreview} onOpenChange={() => setSelectedImagePreview(null)}>
-        <DialogContent className="border-0 shadow-none bg-transparent  [&>button:last-child]:hidden">
+        <DialogContent className="border-0 shadow-none bg-transparent [&>button:last-child]:hidden max-w-[95vw] max-h-[95vh] w-auto h-auto p-0">
           <DialogTitle></DialogTitle>
-          <div className="relative flex items-center justify-center h-full">
-            <div className="relative overflow-hidden scale-[1.7]">
+          <div className="relative flex items-center justify-center h-full w-full">
+            <div className="relative overflow-hidden scale-100 sm:scale-[1.7] max-w-full max-h-full">
               {selectedImagePreview && (
                 <EnhancedResultImage
                   src={selectedImagePreview}
                   alt="Full size preview"
                   onClick={() => {}}
-                  className="object-contain"
+                  className="object-contain max-w-full max-h-full"
                 />
               )}
             </div>

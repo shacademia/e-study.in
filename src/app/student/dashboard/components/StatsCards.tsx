@@ -1,42 +1,96 @@
 import React from "react";
 import { BookOpen, Goal, Award, Users } from "lucide-react";
-import { StatCard } from "./";
-import { StatsCardsProps } from "../types";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { StatsCardsProps, StatCardProps } from "../types";
 
 const StatsCards: React.FC<StatsCardsProps> = ({ stats, userRanking }) => {
+  
+  // StatCard component defined inside StatsCards
+  const StatCard: React.FC<StatCardProps> = ({ title, value, subtitle, icon, colorScheme }) => {
+    const colorSchemes = {
+      blue: {
+        bg: "bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200",
+        text: "text-blue-600",
+        iconBg: "bg-blue-500"
+      },
+      green: {
+        bg: "bg-gradient-to-r from-green-50 to-green-100 border-green-200",
+        text: "text-green-600",
+        iconBg: "bg-green-500"
+      },
+      purple: {
+        bg: "bg-gradient-to-r from-purple-50 to-purple-100 border-purple-200",
+        text: "text-purple-600",
+        iconBg: "bg-purple-500"
+      },
+      orange: {
+        bg: "bg-gradient-to-r from-orange-50 to-orange-100 border-orange-200",
+        text: "text-orange-500",
+        iconBg: "bg-orange-500"
+      }
+    };
+
+    const colors = colorSchemes[colorScheme];
+
+    return (
+      <Card className={colors.bg}>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className={`text-sm font-medium ${colors.text}`}>
+            {title}
+          </CardTitle>
+          <div className={`h-8 w-8 ${colors.iconBg} rounded-full flex items-center justify-center`}>
+            <div className="h-4 w-4 text-white">
+              {icon}
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className={`text-2xl font-bold ${colors.text}`}>
+            {value}
+          </div>
+          <p className={`text-xs ${colors.text} mt-1`}>
+            {subtitle}
+          </p>
+        </CardContent>
+      </Card>
+    );
+  };
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-      <StatCard
-        title="Exams Attended"
-        value={stats?.totalExamsAttended || 0}
-        subtitle="Total completed"
-        icon={<BookOpen className="h-4 w-4" />}
-        colorScheme="blue"
-      />
-      
-      <StatCard
-        title="Highest Score"
-        value={stats?.highestScore || 0}
-        subtitle="Best performance"
-        icon={<Goal className="h-4 w-4" />}
-        colorScheme="green"
-      />
-      
-      <StatCard
-        title="Current Rank"
-        value={userRanking?.globalRank ? `#${userRanking?.globalRank}` : 'N/A'}
-        subtitle="Among students"
-        icon={<Award className="h-4 w-4" />}
-        colorScheme="purple"
-      />
-      
-      <StatCard
-        title="Total Students"
-        value={stats?.totalStudents || 0}
-        subtitle="In the system"
-        icon={<Users className="h-4 w-4" />}
-        colorScheme="orange"
-      />
+    <div className="px-4 sm:px-0 mb-6 sm:mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+        <StatCard
+          title="Exams Attended"
+          value={stats?.totalExamsAttended || 0}
+          subtitle="Total completed"
+          icon={<BookOpen className="h-4 w-4" />}
+          colorScheme="blue"
+        />
+        
+        <StatCard
+          title="Highest Score"
+          value={stats?.highestScore || 0}
+          subtitle="Best performance"
+          icon={<Goal className="h-4 w-4" />}
+          colorScheme="green"
+        />
+        
+        <StatCard
+          title="Current Rank"
+          value={userRanking?.globalRank ? `#${userRanking?.globalRank}` : 'N/A'}
+          subtitle="Among students"
+          icon={<Award className="h-4 w-4" />}
+          colorScheme="purple"
+        />
+        
+        <StatCard
+          title="Total Students"
+          value={stats?.totalStudents || 0}
+          subtitle="In the system"
+          icon={<Users className="h-4 w-4" />}
+          colorScheme="orange"
+        />
+      </div>
     </div>
   );
 };

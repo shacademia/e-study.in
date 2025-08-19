@@ -12,30 +12,18 @@ import { useResult } from '@/context/ResultContext';
 
 const ExamResults = () => {
   const { ResultData, loading } = useResult();
-  
-  // 🚀 GO TO TOP BUTTON STATE
   const [showGoToTop, setShowGoToTop] = useState(false);
 
-  // Show/hide button based on scroll position
   useEffect(() => {
     const handleScroll = () => {
       const scrolled = window.scrollY;
-      const threshold = 300; // Show button after scrolling 300px
-      
-      if (scrolled > threshold) {
-        setShowGoToTop(true);
-      } else {
-        setShowGoToTop(false);
-      }
+      const threshold = 300;
+      setShowGoToTop(scrolled > threshold);
     };
-
     window.addEventListener('scroll', handleScroll);
-    
-    // Cleanup
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Smooth scroll to top function
   const scrollToTop = () => {
     window.scrollTo({
       top: 0,
@@ -43,18 +31,14 @@ const ExamResults = () => {
     });
   };
 
-  if(loading){
+  if (loading) {
     return <ResultsLoading />;
   }
   if (!ResultData || !ResultData.success) {
     return <ResultsNotFound />;
   }
-  if (!ResultData?.success) {
-    return <ResultsNotFound />;
-  }
 
   const data = ResultData?.data;
-
   const statistics = data?.statistics;
   const exam = data?.exam;
   const submission = data;
@@ -62,11 +46,6 @@ const ExamResults = () => {
   const totalQuestions = statistics?.totalQuestions;
   const percentage = statistics?.percentage;
   const grade = data?.performance?.grade;
-  // const remarks = data?.performance?.remarks;
-  // const questions = data?.questionAnalysis;
-
-  // window.alert('RESULT PAGE')
-  console.log("RESULT PAGE ExamResults - ResultData:", ResultData);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -74,8 +53,8 @@ const ExamResults = () => {
         <ResultsHeader />
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="space-y-6">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-6 sm:py-8">
+        <div className="space-y-4 sm:space-y-6">
           <ResultsSummary
             exam={exam}
             submission={submission}
@@ -92,14 +71,19 @@ const ExamResults = () => {
         </div>
       </div>
 
-      {/* 🚀 GO TO TOP BUTTON */}
+      {/* GO TO TOP BUTTON */}
       {showGoToTop && (
         <button
           onClick={scrollToTop}
-          className="fixed bottom-6 right-6 bg-indigo-950 hover:bg-indigo-800 cursor-pointer text-white p-3 rounded-full shadow-lg transition-all duration-300 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 z-50"
+          className="fixed bottom-6 right-6 sm:bottom-8 sm:right-8 bg-slate-950 hover:bg-slate-800 cursor-pointer text-white p-2.5 sm:p-3 rounded-full shadow-lg transition-all duration-300 hover:shadow-xl active:scale-95 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-0 z-50 touch-manipulation"
+          style={{
+            // Safe area considerations for devices with notches/rounded corners
+            bottom: 'max(1.5rem, env(safe-area-inset-bottom, 1.5rem))',
+            right: 'max(1.5rem, env(safe-area-inset-right, 1.5rem))'
+          }}
           aria-label="Go to top"
         >
-          <ChevronUp className="h-6 w-6" />
+          <ChevronUp className="h-5 w-5 sm:h-6 sm:w-6" />
         </button>
       )}
     </div>
