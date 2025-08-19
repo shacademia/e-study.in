@@ -309,13 +309,12 @@ const QuestionResultItem: React.FC<QuestionResultItemProps> = ({
             {/* Colored Difficulty Badge */}
             <Badge className={`${difficultyDetails.color} flex items-center gap-1 font-semibold text-xs`}>
               {difficultyDetails.icon}
-              <span className="hidden xs:inline">{question.difficulty}</span>
-              <span className="xs:hidden">{question.difficulty?.[0]}</span>
+              {question.difficulty}
             </Badge>
             {question.subject && (
               <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200">
                 <BookOpen className="h-3 w-3 mr-1 flex-shrink-0" />
-                <span className="truncate max-w-20 sm:max-w-none">{question.subject}</span>
+                {question.subject}
               </Badge>
             )}
             <div className="flex items-center gap-1">
