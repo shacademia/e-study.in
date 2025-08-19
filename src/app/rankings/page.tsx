@@ -67,21 +67,21 @@ export default function RankingsPage() {
                             <TabsList className="grid w-full grid-cols-3 mb-6 h-12">
                                 <TabsTrigger
                                     value="global"
-                                    className="flex items-center gap-2 text-sm font-medium"
+                                    className="flex items-center gap-2 text-sm font-medium cursor-pointer"
                                 >
                                     <Users className="h-4 w-4" />
                                     Global Rankings
                                 </TabsTrigger>
                                 <TabsTrigger
                                     value="individual"
-                                    className="flex items-center gap-2 text-sm font-medium"
+                                    className="flex items-center gap-2 text-sm font-medium cursor-pointer"
                                 >
                                     <Trophy className="h-4 w-4" />
                                     Exam Rankings
                                 </TabsTrigger>
                                 <TabsTrigger
                                     value="subject"
-                                    className="flex items-center gap-2 text-sm font-medium"
+                                    className="flex items-center gap-2 text-sm font-medium cursor-pointer"
                                 >
                                     <BookOpen className="h-4 w-4" />
                                     Subject Rankings

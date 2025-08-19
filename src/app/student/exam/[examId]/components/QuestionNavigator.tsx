@@ -10,8 +10,8 @@ import {
 } from "@/components/ui/accordion";
 import { Clock, CheckCircle, Bookmark, Circle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { QuestionNavigatorProps } from "../types"; // Assuming this path is correct
-import { Question } from "@/constants/types"; // Assuming this path is correct
+import { QuestionNavigatorProps } from "../types";
+import { Question } from "@/constants/types";
 
 // Type definitions for the helper component
 interface StatusItemProps {
@@ -73,7 +73,7 @@ const QuestionNavigator: React.FC<QuestionNavigatorProps> = ({
   // Function to render the grid of question buttons
   const renderQuestionGrid = (questions: Question[], sectionIndex: number = 0) => {
     return (
-      <div className="grid grid-cols-5 gap-2 pt-2">
+      <div className="grid grid-cols-5 pt-3 gap-2 justify-items-center justify-evenly px-1">
         {questions.map((question, qIndex) => {
           const questionStatus = questionStatuses[question.id];
           const isAnswered = questionStatus?.answer !== undefined;

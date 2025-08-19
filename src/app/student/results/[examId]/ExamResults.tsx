@@ -75,7 +75,12 @@ const ExamResults = () => {
       {showGoToTop && (
         <button
           onClick={scrollToTop}
-          className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 bg-slate-950 hover:bg-slate-800 cursor-pointer text-white p-2 sm:p-3 rounded-full shadow-lg transition-all duration-300 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 z-50"
+          className="fixed bottom-6 right-6 sm:bottom-8 sm:right-8 bg-slate-950 hover:bg-slate-800 cursor-pointer text-white p-2.5 sm:p-3 rounded-full shadow-lg transition-all duration-300 hover:shadow-xl active:scale-95 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-0 z-50 touch-manipulation"
+          style={{
+            // Safe area considerations for devices with notches/rounded corners
+            bottom: 'max(1.5rem, env(safe-area-inset-bottom, 1.5rem))',
+            right: 'max(1.5rem, env(safe-area-inset-right, 1.5rem))'
+          }}
           aria-label="Go to top"
         >
           <ChevronUp className="h-5 w-5 sm:h-6 sm:w-6" />

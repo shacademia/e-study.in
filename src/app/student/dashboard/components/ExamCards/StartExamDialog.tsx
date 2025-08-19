@@ -54,10 +54,10 @@ const StartExamDialog: React.FC<StartExamDialogProps> = memo(({
         {/* Exam Info */}
         <div className="py-4 sm:py-6 space-y-4 sm:space-y-6 px-1 sm:px-0">
           {/* Exam Title & Stats */}
-          <div className="text-center">
-            <h3 className="text-lg sm:text-xl font-bold text-slate-800 mb-3 sm:mb-4 flex items-center justify-center gap-2 px-2">
-              <Target className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 flex-shrink-0 mt-[-25px] sm:mt-0" />
-              <span className="break-words">{exam.name}</span>
+          <div className="text-start">
+            <h3 className="leading-[1.3] text-lg sm:text-xl font-bold text-slate-800 mb-3 sm:mb-4 flex items-center justify-center gap-2 px-2">
+              <Target className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 flex-shrink-0" />
+              {exam.name}
             </h3>
             
             <div className="flex flex-col sm:flex-row justify-center gap-2 sm:gap-4 mb-4 sm:mb-6">
