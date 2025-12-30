@@ -60,7 +60,7 @@
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.263.1",
     "mammoth": "^1.9.1",
-    "next": "15.4.1",
+    "next": "15.4.10",
     "next-themes": "^0.2.1",
     "pdf-parse": "^1.1.1",
     "react": "18.2.0",
